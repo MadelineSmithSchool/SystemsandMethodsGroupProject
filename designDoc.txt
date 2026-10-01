@@ -1,1 +1,23 @@
 Ideas: 
+
+
+1. Spot finder: Restuaruant, coffee, 
+
+organize by vibes, how late/early, walking distance, write your own notes on smth, filter chains (bussiness cert?), 
+
+-> sync w maps
+
+
+Add AI
+Google maps API
+
+
+
+
+2. Character builder for DND or any other game
+-> tempaltes for characters already made
+-> 
+
+
+3. Free Finder -> finds free alternatives to things near you. 
+free vaccuum at a carwash instead of having to pay for one at a different location
