@@ -21,7 +21,7 @@ Users build their own templates with drag-and-drop fields like stats, skills, in
 
 - **Repository:** https://github.com/MadelineSmithSchool/SystemsandMethodsGroupProject
 - **Methodology:** Waterfall
-- **Communication:** [Discord](https://discord.gg/Se4RcD3rE)
+- **Communication:** Discord
 
 ## Meetings
 
