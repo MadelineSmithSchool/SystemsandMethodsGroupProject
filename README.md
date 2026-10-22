@@ -11,7 +11,7 @@ Users build their own templates with drag-and-drop fields like stats, skills, in
 ## Team
 
 | Name | GitHub | 
-| --- | --- | --- |
+| ---- | ------- |
 | Aidan Jiang | [aidantjiang](https://github.com/aidantjiang) | 
 | Sawyer Rockey | [SawyerRockey](https://github.com/SawyerRockey) | 
 | Kristin Kim | [skriblee-ksk](https://github.com/skriblee-ksk) | 
