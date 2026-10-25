@@ -16,6 +16,7 @@ Users build their own templates with drag-and-drop fields like stats, skills, in
 | Sawyer Rockey | [SawyerRockey](https://github.com/SawyerRockey) | 
 | Kristin Kim | [skriblee-ksk](https://github.com/skriblee-ksk) | 
 | Madeline Smith | [MadelineSmithSchool](https://github.com/MadelineSmithSchool) | 
+| Lucas Moraca | [LuMo6282](https://github.com/LuMo6282) | 
 
 ## Project Info
 
