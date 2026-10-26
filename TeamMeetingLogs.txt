@@ -1,4 +1,16 @@
-The minutes of the meeting with your TA every week will be recorded in a file here. You will be updating the same file every week with the latest updates. Points to include in the minutes would be:
-Decisions made
-Alternative actions/options discussed
-Follow-up items, including agreed-on roles and responsibilities
+TEAM MEETING LOGS - Rocket Powered Goblins (Team 013-2)
+
+== Week of 10/26/2026 - TA Meeting (Mon 10/26, 1:45 PM, Zoom) ==
+
+What everyone did:
+- Aidan Jiang: Added sample index.html and a full .gitignore
+- Sawyer Rockey: Added the source/docker folders and docker-compose; renamed README
+- Kristin Kim: Formatted the README with Markdown
+- Madeline Smith: Created the repo, folder structure, and initial .gitignore
+- Lucas Moraca: Added himself to the README team table; set up minutes and release notes
+
+Decisions made:
+- 
+
+Follow-up items:
+- Everyone: keep the release notes and these minutes updated every week
