@@ -26,5 +26,5 @@ Users build their own templates with drag-and-drop fields like stats, skills, in
 
 ## Meetings
 
-- Team meeting: Tuesdays, 8:45 AM (Zoom)
+- Team meeting: Tuesdays, 1:00 PM (Zoom)
 - Meeting with TA: Mondays, 1:45 PM (Zoom)
