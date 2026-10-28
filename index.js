@@ -55,3 +55,6 @@ app.get('/', (req, res) => {
 app.get('/login', (req, res) => {
   res.render('pages/login');
 });
+
+// Upload / send templates (routes are in ProjectSourceCode/routes/templates.js)
+app.use('/templates', require('./ProjectSourceCode/routes/templates'));

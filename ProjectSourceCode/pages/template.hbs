@@ -1,0 +1,30 @@
+<!-- Shows one uploaded template. Placeholder until the dashboard page can display templates. -->
+<main class="container my-4">
+    <h2>{{template.name}}</h2>
+    {{#if template.data.description}}
+        <p class="text-muted">{{template.data.description}}</p>
+    {{/if}}
+
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Stats</h4>
+            <table class="table table-sm">
+                {{#each template.data.stats}}
+                    <tr><th class="text-capitalize">{{@key}}</th><td>{{this}}</td></tr>
+                {{/each}}
+            </table>
+        </div>
+        <div class="col-md-6">
+            <h4>Minor stats</h4>
+            <table class="table table-sm">
+                {{#each template.data.minorStats}}
+                    <tr><th class="text-capitalize">{{@key}}</th><td>{{this}}</td></tr>
+                {{else}}
+                    <tr><td class="text-muted">None</td></tr>
+                {{/each}}
+            </table>
+        </div>
+    </div>
+
+    <a href="/templates/upload" class="btn btn-outline-secondary">Upload another</a>
+</main>
