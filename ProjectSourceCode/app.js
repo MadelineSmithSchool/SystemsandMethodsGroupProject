@@ -1,5 +1,5 @@
-//quite literally just copied and pasted from lab 7.
 const express = require('express');
+const session = require('express-session');
 const app = express();
 const handlebars = require('express-handlebars');
 const Handlebars = require('handlebars');
@@ -21,7 +21,7 @@ const hbs = handlebars.create({
 
 app.engine('hbs', hbs.engine);
 app.set('view engine', 'hbs');
-app.set('views', path.join(__dirname, 'pages'));
+app.set('views', __dirname);
 app.use(bodyParser.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -50,25 +50,7 @@ const auth = (req, res, next) => {
 
 // Serve the stylesheet at /css/styles.css no matter what the folder is called
 // (CSS, css, ...) or how deep it sits inside ProjectSourceCode.
-function findFile(dir, name) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === 'node_modules') continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isFile() && entry.name.toLowerCase() === name) return full;
-    if (entry.isDirectory()) {
-      const found = findFile(full, name);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-const stylesPath = findFile(path.join(__dirname, 'css', 'styles.css'));
-console.log('Serving /css/styles.css from:', stylesPath || 'NOT FOUND - check your CSS folder');
-app.get('/css/styles.css', (req, res) => {
-  if (!stylesPath) return res.status(404).send('styles.css not found');
-  res.sendFile(stylesPath);
-});
+app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
 
 // database configuration
 const dbConfig = {

@@ -6,7 +6,7 @@ services:
       - '5432'
     volumes:
       - group-project:/var/lib/postgresql/data
-      - ./src/init_data:/docker-entrypoint-initdb.d
+      - ./create.sql:/docker-entrypoint-initdb.d/create.sql
   web:
     image: node:lts
     user: 'node'
