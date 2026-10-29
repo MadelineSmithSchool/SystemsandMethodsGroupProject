@@ -94,6 +94,8 @@ app.listen(3000);
 console.log('Server is listening on port 3000');
 
 //Routes
+
+//TODO:
 //add auth param to anything that needs auth to use (like app.get('/tutorial', auth, ...))
 
 app.get('/', (req, res) => res.redirect('/login'));
