@@ -13,7 +13,7 @@
     },
     "scripts": {
         "prestart": "npm install",
-        "start": "nodemon index.js"
+        "start": "nodemon app.js"
     },
     "version": "1.0.0",
     "description": "**Team 013-2 | DND4ALL**",
