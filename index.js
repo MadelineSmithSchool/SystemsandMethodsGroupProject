@@ -24,6 +24,30 @@ app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'ProjectSourceCode', 'pages'));
 app.use(bodyParser.json());
 
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  }
+}));
+
+app.use((req, res, next) => {
+  res.locals.user = req.session.user;
+  next();
+});
+
+const auth = (req, res, next) => {
+  if (!req.session.user) return res.redirect('/login');
+  next();
+};
+
 // Serve the stylesheet at /css/styles.css no matter what the folder is called
 // (CSS, css, ...) or how deep it sits inside ProjectSourceCode.
 function findFile(dir, name) {
@@ -71,18 +95,50 @@ app.listen(3000);
 console.log('Server is listening on port 3000');
 
 //Routes
-app.get('/', (req, res) => {
-  res.redirect('/login');
+
+//TODO:
+//add auth param to anything that needs auth to use (like app.get('/tutorial', auth, ...))
+
+app.get('/', (req, res) => res.redirect('/login'));
+
+app.get('/login', (req, res) => res.render('pages/login'));
+app.get('/register', (req, res) => res.render('pages/register'));
+
+app.post('/register', async (req, res) => {
+  try {
+    const hash = await bcrypt.hash(req.body.password, 10);
+    await db.none('INSERT INTO users (username, password) VALUES ($1, $2)',
+      [req.body.username, hash]);
+    res.redirect('/login');
+  } catch (err) {
+    // 23505 = unique violation (username taken)
+    const error = err.code === '23505' ? 'Username already taken' : 'Registration failed';
+    res.render('pages/register', { error });
+  }
 });
 
-app.get('/login', (req, res) => {
-  res.render('login', { title: 'Login' });
+app.post('/login', async (req, res) => {
+  try {
+    const user = await db.oneOrNone('SELECT * FROM users WHERE username = $1',
+      [req.body.username]);
+    if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
+      return res.render('pages/login', { error: 'Invalid username or password' });
+    }
+    req.session.user = { id: user.id, username: user.username };
+    req.session.save(() => res.redirect('/tutorial')); // TODO: change to real landing page
+  } catch (err) {
+    console.log(err);
+    res.render('pages/login', { error: 'Something went wrong' });
+  }
 });
 
-app.get('/tutorial', (req, res) => {
-  res.render('tutorial', { title: 'Dashboard tutorial' });
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.redirect('/login');
+  });
 });
 
-app.get('/register', (req, res) => {
-  res.render('register', { title: 'Register' });
+app.get('/tutorial', auth, (req, res) => {
+  res.render('pages/tutorial', { title: 'Dashboard tutorial' });
 });
