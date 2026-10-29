@@ -81,6 +81,7 @@ app.get('/login', (req, res) => {
 // The layout (layouts/main.hbs) adds the head and the nav bar, so pages hold content only.
 app.get('/tutorial', (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard tutorial' });
+});
 app.get('/register', (req, res) => {
   res.render('pages/register');
 });
