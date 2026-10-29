@@ -14,20 +14,20 @@ const axios = require('axios');
 //For handlebars
 const hbs = handlebars.create({
   extname: '.hbs',
-  layoutsDir: path.join(__dirname, 'ProjectSourceCode', 'layouts'),
+  layoutsDir: path.join(__dirname, 'layouts'),
   defaultLayout: 'main',
-  partialsDir: path.join(__dirname, 'ProjectSourceCode', 'partials'),
+  partialsDir: path.join(__dirname, 'partials'),
 });
 
 app.engine('hbs', hbs.engine);
 app.set('view engine', 'hbs');
-app.set('views', path.join(__dirname, 'ProjectSourceCode', 'pages'));
+app.set('views', path.join(__dirname, 'pages'));
 app.use(bodyParser.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: "pleasepleasepleaseplaeaseplelase",
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -62,7 +62,8 @@ function findFile(dir, name) {
   }
   return null;
 }
-const stylesPath = findFile(path.join(__dirname, 'ProjectSourceCode'), 'styles.css');
+
+const stylesPath = findFile(path.join(__dirname, 'css', 'styles.css'));
 console.log('Serving /css/styles.css from:', stylesPath || 'NOT FOUND - check your CSS folder');
 app.get('/css/styles.css', (req, res) => {
   if (!stylesPath) return res.status(404).send('styles.css not found');
