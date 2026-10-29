@@ -14,13 +14,14 @@ const axios = require('axios');
 //For handlebars
 const hbs = handlebars.create({
   extname: '.hbs',
-  layoutsDir: __dirname + '/ProjectSourceCode/layouts',
-  partialsDir: __dirname + '/ProjectSourceCode/partials',
+  layoutsDir: path.join(__dirname, 'ProjectSourceCode', 'layouts'),
+  defaultLayout: 'main',
+  partialsDir: path.join(__dirname, 'ProjectSourceCode', 'partials'),
 });
 
 app.engine('hbs', hbs.engine);
 app.set('view engine', 'hbs');
-app.set('views', path.join(__dirname, '/ProjectSourceCode'));
+app.set('views', path.join(__dirname, 'ProjectSourceCode', 'pages'));
 app.use(bodyParser.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));

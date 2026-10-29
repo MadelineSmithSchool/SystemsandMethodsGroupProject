@@ -19,7 +19,7 @@ app.engine(
   })
 );
 
-app.set('view engine', 'hbs');   // <-- Missing
+app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'ProjectSourceCode', 'pages'));
 
 app.use(express.static(path.join(__dirname, 'ProjectSourceCode')));
@@ -49,8 +49,14 @@ app.get('/', (req, res) => {
   res.render('index', { title: 'Home' });
 });
 
-// The layout (layouts/main.hbs) adds the head and the nav bar, so pages hold content only.
-// Views folder is ProjectSourceCode/pages, so this renders pages/tutorial.hbs.
+app.get('/login', (req, res) => {
+  res.render('login', { title: 'Login' });
+});
+
+app.get('/register', (req, res) => {
+  res.render('register', { title: 'Register' });
+});
+
 app.get('/tutorial', (req, res) => {
   res.render('tutorial', { title: 'Dashboard tutorial' });
 });
