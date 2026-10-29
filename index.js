@@ -14,13 +14,14 @@ const axios = require('axios');
 //For handlebars
 const hbs = handlebars.create({
   extname: '.hbs',
-  layoutsDir: __dirname + '/ProjectSourceCode/layouts',
-  partialsDir: __dirname + '/ProjectSourceCode/partials',
+  layoutsDir: path.join(__dirname, 'ProjectSourceCode', 'layouts'),
+  defaultLayout: 'main',
+  partialsDir: path.join(__dirname, 'ProjectSourceCode', 'partials'),
 });
 
 app.engine('hbs', hbs.engine);
 app.set('view engine', 'hbs');
-app.set('views', path.join(__dirname, '/ProjectSourceCode'));
+app.set('views', path.join(__dirname, 'ProjectSourceCode', 'pages'));
 app.use(bodyParser.json());
 
 // Serve the stylesheet at /css/styles.css no matter what the folder is called
@@ -75,12 +76,13 @@ app.get('/', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-  res.render('pages/login');
+  res.render('login', { title: 'Login' });
 });
 
-// The layout (layouts/main.hbs) adds the head and the nav bar, so pages hold content only.
 app.get('/tutorial', (req, res) => {
-  res.render('pages/tutorial', { title: 'Dashboard tutorial' });
+  res.render('tutorial', { title: 'Dashboard tutorial' });
+});
+
 app.get('/register', (req, res) => {
-  res.render('pages/register');
+  res.render('register', { title: 'Register' });
 });
