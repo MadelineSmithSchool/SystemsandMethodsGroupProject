@@ -23,6 +23,30 @@ app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, '/ProjectSourceCode'));
 app.use(bodyParser.json());
 
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  }
+}));
+
+app.use((req, res, next) => {
+  res.locals.user = req.session.user;
+  next();
+});
+
+const auth = (req, res, next) => {
+  if (!req.session.user) return res.redirect('/login');
+  next();
+};
+
 // Serve the stylesheet at /css/styles.css no matter what the folder is called
 // (CSS, css, ...) or how deep it sits inside ProjectSourceCode.
 function findFile(dir, name) {
