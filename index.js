@@ -32,6 +32,7 @@ const dbConfig = {
 };
 
 const db = pgp(dbConfig);
+const home = true;
 
 // test your database
 db.connect()
@@ -49,7 +50,8 @@ console.log('Server is listening on port 3000');
 
 //Routes
 app.get('/', (req, res) => {
-  res.redirect('/login');
+
+  res.render('pages/index',);
 });
 
 app.get('/login', (req, res) => {
