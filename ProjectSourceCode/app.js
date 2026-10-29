@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const pgp = require('pg-promise')();
 const bodyParser = require('body-parser');
-const session = require('express-session'); // To set the session object. To store or access session data, use the `req.session`, which is (generally) serialized as JSON by the store.
+//const session = require('express-session'); // To set the session object. To store or access session data, use the `req.session`, which is (generally) serialized as JSON by the store.
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
 
@@ -27,7 +27,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(session({
-  secret: "pleasepleasepleaseplaeaseplelase",
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
