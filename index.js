@@ -95,18 +95,47 @@ console.log('Server is listening on port 3000');
 
 //Routes
 //add auth param to anything that needs auth to use (like app.get('/tutorial', auth, ...))
-app.get('/', (req, res) => {
-  res.redirect('/login');
+
+app.get('/', (req, res) => res.redirect('/login'));
+
+app.get('/login', (req, res) => res.render('pages/login'));
+app.get('/register', (req, res) => res.render('pages/register'));
+
+app.post('/register', async (req, res) => {
+  try {
+    const hash = await bcrypt.hash(req.body.password, 10);
+    await db.none('INSERT INTO users (username, password) VALUES ($1, $2)',
+      [req.body.username, hash]);
+    res.redirect('/login');
+  } catch (err) {
+    // 23505 = unique violation (username taken)
+    const error = err.code === '23505' ? 'Username already taken' : 'Registration failed';
+    res.render('pages/register', { error });
+  }
 });
 
-app.get('/login', (req, res) => {
-  res.render('pages/login');
+app.post('/login', async (req, res) => {
+  try {
+    const user = await db.oneOrNone('SELECT * FROM users WHERE username = $1',
+      [req.body.username]);
+    if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
+      return res.render('pages/login', { error: 'Invalid username or password' });
+    }
+    req.session.user = { id: user.id, username: user.username };
+    req.session.save(() => res.redirect('/tutorial')); // TODO: change to real landing page
+  } catch (err) {
+    console.log(err);
+    res.render('pages/login', { error: 'Something went wrong' });
+  }
 });
 
-// The layout (layouts/main.hbs) adds the head and the nav bar, so pages hold content only.
-app.get('/tutorial', (req, res) => {
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.redirect('/login');
+  });
+});
+
+app.get('/tutorial', auth, (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard tutorial' });
-});
-app.get('/register', (req, res) => {
-  res.render('pages/register');
 });
