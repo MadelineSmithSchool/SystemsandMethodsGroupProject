@@ -1,0 +1,26 @@
+<!-- "Send" a template: shows a link anyone can open to view or download it. -->
+<main class="container my-4" style="max-width: 640px;">
+    <h2>Send {{template.name}}</h2>
+    <p class="text-muted">Anyone with this link can view this template and download a copy.</p>
+
+    <div class="input-group mb-3">
+        <input id="share-url" class="form-control" type="text" value="{{shareUrl}}" readonly>
+        <button id="copy-link" class="btn btn-primary" type="button">Copy link</button>
+    </div>
+
+    <a href="/templates/{{template.id}}" class="btn btn-outline-secondary">Back to template</a>
+</main>
+
+<script>
+    document.getElementById('copy-link').addEventListener('click', async (event) => {
+        const input = document.getElementById('share-url');
+        try {
+            await navigator.clipboard.writeText(input.value);
+        } catch (err) {
+            // Clipboard API needs https (or localhost); fall back to the old way.
+            input.select();
+            document.execCommand('copy');
+        }
+        event.target.textContent = 'Copied!';
+    });
+</script>

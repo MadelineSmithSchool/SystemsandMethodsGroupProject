@@ -1,0 +1,12 @@
+<!-- What someone sees when they open a template link that was sent to them. -->
+<main class="container my-4">
+    <p class="text-muted mb-1">Someone sent you a template</p>
+    <h2>{{template.name}}</h2>
+    {{#if template.data.description}}
+        <p class="text-muted">{{template.data.description}}</p>
+    {{/if}}
+
+    {{> template-stats template=template}}
+
+    <a href="/templates/shared/{{template.share_id}}/download" class="btn btn-primary">Download</a>
+</main>

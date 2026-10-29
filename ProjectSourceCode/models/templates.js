@@ -19,8 +19,11 @@
 //     owner_id   INT REFERENCES users(id),  -- null until login is wired up
 //     name       VARCHAR(100) NOT NULL,
 //     data       JSONB NOT NULL,            -- the parsed template (see above)
+//     share_id   VARCHAR(32) UNIQUE,        -- set once the template is sent
 //     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 //   );
+
+const crypto = require('crypto');
 
 const MAX_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 2000;
@@ -100,7 +103,14 @@ const templates = new Map();
 let nextId = 1;
 
 async function create(ownerId, data) {
-  const template = { id: nextId++, owner_id: ownerId, name: data.name, data, created_at: new Date() };
+  const template = {
+    id: nextId++,
+    owner_id: ownerId,
+    name: data.name,
+    data,
+    share_id: null,
+    created_at: new Date(),
+  };
   templates.set(template.id, template);
   return template;
 }
@@ -109,4 +119,21 @@ async function findById(id) {
   return templates.get(id) || null;
 }
 
-module.exports = { TemplateFormatError, parseTemplate, create, findById };
+// Gives a template a hard-to-guess share id the first time it's sent, so the
+// link keeps working if it's sent again. Returns the template.
+async function ensureShareId(id) {
+  const template = templates.get(id);
+  if (template && !template.share_id) {
+    template.share_id = crypto.randomBytes(12).toString('base64url');
+  }
+  return template || null;
+}
+
+async function findByShareId(shareId) {
+  for (const template of templates.values()) {
+    if (template.share_id === shareId) return template;
+  }
+  return null;
+}
+
+module.exports = { TemplateFormatError, parseTemplate, create, findById, ensureShareId, findByShareId };

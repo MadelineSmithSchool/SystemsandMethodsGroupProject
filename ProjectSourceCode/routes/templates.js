@@ -31,6 +31,28 @@ async function loadOwnTemplate(req, res, next) {
   }
 }
 
+// Loads a template by its share link into req.template. Anyone with the link can see it.
+async function loadSharedTemplate(req, res, next) {
+  try {
+    const template = await templates.findByShareId(req.params.shareId);
+    if (!template) {
+      return res.status(404).send('This share link is invalid or was removed.');
+    }
+    req.template = template;
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Sends a template back as a downloadable .json file in the same format as uploads.
+function sendTemplateFile(res, template) {
+  const fileName =
+    template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'template';
+  res.attachment(`${fileName}.json`);
+  res.send(JSON.stringify(template.data, null, 2));
+}
+
 router.get('/upload', (req, res) => {
   res.render('pages/upload', { title: 'Upload a template' });
 });
@@ -60,8 +82,31 @@ router.post('/upload', (req, res, next) => {
   });
 });
 
+// ---------- Send (share links) ----------
+// Sending is a copy-link: the link works for anyone, logged in or not.
+
+router.get('/shared/:shareId', loadSharedTemplate, (req, res) => {
+  res.render('pages/shared', { title: req.template.name, template: req.template });
+});
+
+router.get('/shared/:shareId/download', loadSharedTemplate, (req, res) => {
+  sendTemplateFile(res, req.template);
+});
+
+// ---------- Your own templates ----------
+
 router.get('/:id', loadOwnTemplate, (req, res) => {
   res.render('pages/template', { title: req.template.name, template: req.template });
+});
+
+router.get('/:id/share', loadOwnTemplate, async (req, res, next) => {
+  try {
+    const template = await templates.ensureShareId(req.template.id);
+    const shareUrl = `${req.protocol}://${req.get('host')}/templates/shared/${template.share_id}`;
+    res.render('pages/share', { title: `Send ${template.name}`, template, shareUrl });
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;
