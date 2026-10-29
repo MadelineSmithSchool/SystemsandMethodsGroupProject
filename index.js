@@ -4,6 +4,7 @@ const app = express();
 const handlebars = require('express-handlebars');
 const Handlebars = require('handlebars');
 const path = require('path');
+const fs = require('fs');
 const pgp = require('pg-promise')();
 const bodyParser = require('body-parser');
 const session = require('express-session'); // To set the session object. To store or access session data, use the `req.session`, which is (generally) serialized as JSON by the store.
@@ -12,7 +13,7 @@ const axios = require('axios');
 
 //For handlebars
 const hbs = handlebars.create({
-  extname: 'hbs',
+  extname: '.hbs',
   layoutsDir: __dirname + '/ProjectSourceCode/layouts',
   partialsDir: __dirname + '/ProjectSourceCode/partials',
 });
@@ -21,6 +22,27 @@ app.engine('hbs', hbs.engine);
 app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, '/ProjectSourceCode'));
 app.use(bodyParser.json());
+
+// Serve the stylesheet at /css/styles.css no matter what the folder is called
+// (CSS, css, ...) or how deep it sits inside ProjectSourceCode.
+function findFile(dir, name) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules') continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isFile() && entry.name.toLowerCase() === name) return full;
+    if (entry.isDirectory()) {
+      const found = findFile(full, name);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+const stylesPath = findFile(path.join(__dirname, 'ProjectSourceCode'), 'styles.css');
+console.log('Serving /css/styles.css from:', stylesPath || 'NOT FOUND - check your CSS folder');
+app.get('/css/styles.css', (req, res) => {
+  if (!stylesPath) return res.status(404).send('styles.css not found');
+  res.sendFile(stylesPath);
+});
 
 // database configuration
 const dbConfig = {
@@ -54,4 +76,9 @@ app.get('/', (req, res) => {
 
 app.get('/login', (req, res) => {
   res.render('pages/login');
+});
+
+// The layout (layouts/main.hbs) adds the head and the nav bar, so pages hold content only.
+app.get('/tutorial', (req, res) => {
+  res.render('pages/tutorial', { title: 'Dashboard tutorial' });
 });
