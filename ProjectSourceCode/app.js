@@ -5,6 +5,8 @@ const app = express();
 const handlebars = require('express-handlebars');
 const Handlebars = require('handlebars');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const pgp = require('pg-promise')();
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
@@ -83,13 +85,21 @@ app.get('/register', (req, res) => res.render('pages/register'));
 
 app.post('/register', async (req, res) => {
   try {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res.render('pages/register', { error: 'Username, email, and password are required' });
+    }
     const hash = await bcrypt.hash(req.body.password, 10);
-    await db.none('INSERT INTO users (username, password) VALUES ($1, $2)',
-      [req.body.username, hash]);
+    const authToken = crypto.randomBytes(16).toString('hex');
+    await db.none(
+      'INSERT INTO users (username, email, password_hash, auth_token) VALUES ($1, $2, $3, $4)',
+      [username, email, hash, authToken]
+    );
     res.redirect('/login');
   } catch (err) {
     // 23505 = unique violation (username taken)
     const error = err.code === '23505' ? 'Username already taken' : 'Registration failed';
+    console.error('Registration failed:', err);
     res.render('pages/register', { error });
   }
 });
@@ -98,10 +108,10 @@ app.post('/login', async (req, res) => {
   try {
     const user = await db.oneOrNone('SELECT * FROM users WHERE username = $1',
       [req.body.username]);
-    if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
+    if (!user || !(await bcrypt.compare(req.body.password, user.password_hash))) {
       return res.render('pages/login', { error: 'Invalid username or password' });
     }
-    req.session.user = { id: user.id, username: user.username };
+    req.session.user = { id: user.user_id, username: user.username };
     req.session.save(() => res.redirect('/tutorial')); // TODO: change to real landing page
   } catch (err) {
     console.log(err);
