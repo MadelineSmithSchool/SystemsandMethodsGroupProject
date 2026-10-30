@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS templates (
 
     template_desc VARCHAR(255) NOT NULL,
 
+    template_data JSONB,
+
+    share_id VARCHAR(32) UNIQUE,
+
     user_id INT REFERENCES users(user_id),
     
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
