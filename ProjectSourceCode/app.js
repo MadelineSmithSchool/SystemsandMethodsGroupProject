@@ -1,15 +1,15 @@
+//dependencies
 const express = require('express');
 const session = require('express-session');
 const app = express();
 const handlebars = require('express-handlebars');
 const Handlebars = require('handlebars');
 const path = require('path');
-const fs = require('fs');
 const pgp = require('pg-promise')();
 const bodyParser = require('body-parser');
-//const session = require('express-session'); // To set the session object. To store or access session data, use the `req.session`, which is (generally) serialized as JSON by the store.
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
+const login = false;
 
 //For handlebars
 const hbs = handlebars.create({
@@ -24,32 +24,28 @@ app.set('view engine', 'hbs');
 app.set('views', __dirname);
 app.use(bodyParser.json());
 
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session(
+  {
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production'
+    }
+  })
+);
 
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * 7,
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
-  }
-}));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
   res.locals.user = req.session.user;
   next();
 });
 
-const auth = (req, res, next) => {
-  if (!req.session.user) return res.redirect('/login');
-  next();
-};
-
-// Serve the stylesheet at /css/styles.css no matter what the folder is called
-// (CSS, css, ...) or how deep it sits inside ProjectSourceCode.
+//css
 app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
 
 // database configuration
@@ -76,7 +72,6 @@ db.connect()
 
 app.listen(3000);
 console.log('Server is listening on port 3000');
-
 //ROUTES//
 
 //TODO:
@@ -121,6 +116,11 @@ app.get('/logout', (req, res) => {
   });
 });
 
+const auth = (req, res, next) => {
+  if (!req.session.user) return res.redirect('/login');
+  next();
+};
+
 app.get('/tutorial', auth, (req, res) => {
-  res.render('pages/tutorial', { title: 'Dashboard tutorial' });
+  res.render('pages/tutorial', { title: 'Dashboard tutorial' , login: true});
 });
