@@ -9,6 +9,7 @@ const pgp = require('pg-promise')();
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
+const login = false;
 
 //For handlebars
 const hbs = handlebars.create({
@@ -121,5 +122,5 @@ const auth = (req, res, next) => {
 };
 
 app.get('/tutorial', auth, (req, res) => {
-  res.render('pages/tutorial', { title: 'Dashboard tutorial' });
+  res.render('pages/tutorial', { title: 'Dashboard tutorial' , login: true});
 });

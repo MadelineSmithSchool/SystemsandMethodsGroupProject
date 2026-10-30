@@ -1,15 +1,23 @@
 <header class="site-header">
   <!-- TODO: rename the site and point this at your home page -->
-  <a class="brand" href="/index">Character Builder</a>
+  <a class="brand" href="/">Character Builder</a>
   <nav aria-label="Main">
-    <ul class="nav-list">
-      <!-- TODO: replace each "#" with the real page URL -->
-      <li><a href="#">Upload template</a></li>
-      <li><a href="#">Send template</a></li>
-      <li><a href="#">Build new template</a></li>
-      <li><a href="#">Template library</a></li>
-      <li><a href="/tutorial">Tutorial</a></li>
-    </ul>
+    {{#if login}}
+      <ul class="nav-list">
+        <!-- TODO: replace each "#" with the real page URL -->
+        <li><a href="#">Upload template</a></li>
+        <li><a href="#">Send template</a></li>
+        <li><a href="#">Build new template</a></li>
+        <li><a href="#">Template library</a></li>
+        <li><a href="/tutorial">Tutorial</a></li>
+      </ul>
+    {{else}}
+      <ul class="nav-list">
+        <!-- TODO: replace each "#" with the real page URL -->
+        <li><a href="/login">Login</a></li>
+        <li><a href="/register">Register</a></li>
+      </ul>
+    {{/if}}
   </nav>
 </header>
 
