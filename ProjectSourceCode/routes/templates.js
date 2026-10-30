@@ -1,112 +1,165 @@
-// Upload and send character templates. Mounted at /templates in index.js.
+// upload + send templates
 const express = require('express');
 const multer = require('multer');
-const templates = require('../models/templates');
+const crypto = require('crypto');
 
-const router = express.Router();
+const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
 
-// Uploads stay in memory: we only need the file's JSON text, not a copy on disk.
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 1024 * 1024, files: 1 },
-}).single('template');
-
-// Login isn't wired up yet, so templates are ownerless until req.session.user exists.
-function currentUserId(req) {
-  return req.session && req.session.user ? req.session.user.id : null;
-}
-
-// Loads the template in the URL into req.template, if this user is allowed to see it.
-// Ownerless templates (uploaded before login existed) are open to everyone.
-async function loadOwnTemplate(req, res, next) {
-  try {
-    const template = await templates.findById(Number(req.params.id));
-    if (!template || (template.owner_id !== null && template.owner_id !== currentUserId(req))) {
-      return res.status(404).send('Template not found.');
-    }
-    req.template = template;
-    next();
-  } catch (err) {
-    next(err);
+// returns an error message if the uploaded template is wrong, otherwise null
+function checkTemplate(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return 'File must be a JSON object.';
+  if (typeof t.name !== 'string' || !t.name.trim() || t.name.length > 50) return 'Template needs a name (50 characters max).';
+  if (t.description && (typeof t.description !== 'string' || t.description.length > 255)) return 'Description must be text (255 characters max).';
+  for (const group of ['stats', 'minorStats']) {
+    const stats = t[group];
+    if (group === 'minorStats' && stats === undefined) continue;
+    if (!stats || typeof stats !== 'object' || Array.isArray(stats)) return `"${group}" must be stat names with numbers.`;
+    if (Object.values(stats).some((v) => typeof v !== 'number')) return `Every value in "${group}" must be a number.`;
   }
+  if (Object.keys(t.stats).length === 0) return 'Template needs at least one stat.';
+  return null;
 }
 
-// Loads a template by its share link into req.template. Anyone with the link can see it.
-async function loadSharedTemplate(req, res, next) {
-  try {
-    const template = await templates.findByShareId(req.params.shareId);
-    if (!template) {
-      return res.status(404).send('This share link is invalid or was removed.');
-    }
-    req.template = template;
+// sends a template back as a .json file (same format as uploads)
+function download(res, template) {
+  const fileName = template.template_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  res.attachment(fileName + '.json');
+  res.send(JSON.stringify(template.template_data, null, 2));
+}
+
+module.exports = (db, auth) => {
+  const router = express.Router();
+
+  router.use((req, res, next) => {
+    res.locals.login = !!req.session.user; // for the nav
     next();
-  } catch (err) {
-    next(err);
-  }
-}
+  });
 
-// Sends a template back as a downloadable .json file in the same format as uploads.
-function sendTemplateFile(res, template) {
-  const fileName =
-    template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'template';
-  res.attachment(`${fileName}.json`);
-  res.send(JSON.stringify(template.data, null, 2));
-}
+  // one of the logged in user's templates (null if it isn't theirs)
+  const getMyTemplate = (req) => {
+    if (!/^\d{1,9}$/.test(req.params.id)) return null;
+    return db.oneOrNone('SELECT * FROM templates WHERE template_id = $1 AND user_id = $2', [req.params.id, req.session.user.id]);
+  };
 
-router.get('/upload', (req, res) => {
-  res.render('pages/upload', { title: 'Upload a template' });
-});
+  const getShared = (req) => db.oneOrNone('SELECT * FROM templates WHERE share_id = $1', [req.params.shareId]);
 
-router.post('/upload', (req, res, next) => {
-  const fail = (error) => res.status(400).render('pages/upload', { title: 'Upload a template', error });
-
-  upload(req, res, async (uploadErr) => {
-    if (uploadErr instanceof multer.MulterError) {
-      return fail(
-        uploadErr.code === 'LIMIT_FILE_SIZE'
-          ? 'That file is too big (1 MB max).'
-          : 'Upload failed. Pick a single template file and try again.'
-      );
-    }
-    if (uploadErr) return next(uploadErr);
-    if (!req.file) return fail('Pick a template file to upload.');
-
+  // list of your templates (pick one to send)
+  router.get('/', auth, async (req, res, next) => {
     try {
-      const data = templates.parseTemplate(req.file.buffer.toString('utf8'));
-      const template = await templates.create(currentUserId(req), data);
-      res.redirect(`/templates/${template.id}`);
+      const templates = await db.any('SELECT * FROM templates WHERE user_id = $1 ORDER BY created_at DESC', [req.session.user.id]);
+      res.render('pages/templates', { templates });
     } catch (err) {
-      if (err instanceof templates.TemplateFormatError) return fail(err.message);
       next(err);
     }
   });
-});
 
-// ---------- Send (share links) ----------
-// Sending is a copy-link: the link works for anyone, logged in or not.
+  router.get('/upload', auth, (req, res) => res.render('pages/upload'));
 
-router.get('/shared/:shareId', loadSharedTemplate, (req, res) => {
-  res.render('pages/shared', { title: req.template.name, template: req.template });
-});
+  router.post('/upload', auth, upload.single('template'), async (req, res, next) => {
+    const fail = (error) => res.status(400).render('pages/upload', { error });
+    if (!req.file) return fail('Pick a file to upload.');
 
-router.get('/shared/:shareId/download', loadSharedTemplate, (req, res) => {
-  sendTemplateFile(res, req.template);
-});
+    let t;
+    try {
+      t = JSON.parse(req.file.buffer.toString());
+    } catch (err) {
+      return fail('That file is not valid JSON.');
+    }
+    const error = checkTemplate(t);
+    if (error) return fail(error);
 
-// ---------- Your own templates ----------
+    try {
+      const data = { name: t.name.trim(), description: t.description || '', stats: t.stats, minorStats: t.minorStats || {} };
+      const row = await db.one(
+        'INSERT INTO templates (template_name, template_desc, template_data, user_id) VALUES ($1, $2, $3:json, $4) RETURNING template_id',
+        [data.name, data.description, data, req.session.user.id]
+      );
+      res.redirect('/templates/' + row.template_id);
+    } catch (err) {
+      next(err);
+    }
+  });
 
-router.get('/:id', loadOwnTemplate, (req, res) => {
-  res.render('pages/template', { title: req.template.name, template: req.template });
-});
+  // ---- send (share links). anyone with the link can view it ----
 
-router.get('/:id/share', loadOwnTemplate, async (req, res, next) => {
-  try {
-    const template = await templates.ensureShareId(req.template.id);
-    const shareUrl = `${req.protocol}://${req.get('host')}/templates/shared/${template.share_id}`;
-    res.render('pages/share', { title: `Send ${template.name}`, template, shareUrl });
-  } catch (err) {
+  router.get('/shared/:shareId', async (req, res, next) => {
+    try {
+      const template = await getShared(req);
+      if (!template) return res.status(404).send('This link is invalid.');
+      res.render('pages/shared', { template });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get('/shared/:shareId/download', async (req, res, next) => {
+    try {
+      const template = await getShared(req);
+      if (!template) return res.status(404).send('This link is invalid.');
+      download(res, template);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // save a copy of a sent template to your own templates
+  router.post('/shared/:shareId/save', auth, async (req, res, next) => {
+    try {
+      const template = await getShared(req);
+      if (!template) return res.status(404).send('This link is invalid.');
+      const row = await db.one(
+        'INSERT INTO templates (template_name, template_desc, template_data, user_id) VALUES ($1, $2, $3:json, $4) RETURNING template_id',
+        [template.template_name, template.template_desc, template.template_data, req.session.user.id]
+      );
+      res.redirect('/templates/' + row.template_id);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // ---- your own templates ----
+
+  router.get('/:id', auth, async (req, res, next) => {
+    try {
+      const template = await getMyTemplate(req);
+      if (!template) return res.status(404).send('Template not found.');
+      res.render('pages/template', { template });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get('/:id/download', auth, async (req, res, next) => {
+    try {
+      const template = await getMyTemplate(req);
+      if (!template) return res.status(404).send('Template not found.');
+      download(res, template);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get('/:id/share', auth, async (req, res, next) => {
+    try {
+      let template = await getMyTemplate(req);
+      if (!template) return res.status(404).send('Template not found.');
+      // make the link the first time it's shared
+      if (!template.share_id) {
+        template = await db.one('UPDATE templates SET share_id = $1 WHERE template_id = $2 RETURNING *',
+          [crypto.randomBytes(12).toString('hex'), template.template_id]);
+      }
+      const link = `${req.protocol}://${req.get('host')}/templates/shared/${template.share_id}`;
+      res.render('pages/share', { template, link });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // multer errors (like file too big)
+  router.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) return res.status(400).render('pages/upload', { error: 'Upload failed: ' + err.message });
     next(err);
-  }
-});
+  });
 
-module.exports = router;
+  return router;
+};

@@ -1,12 +1,10 @@
-<!-- Shows one uploaded template. Placeholder until the dashboard page can display templates. -->
 <main class="container my-4">
-    <h2>{{template.name}}</h2>
-    {{#if template.data.description}}
-        <p class="text-muted">{{template.data.description}}</p>
-    {{/if}}
+    <h2>{{template.template_name}}</h2>
+    <p class="text-muted">{{template.template_desc}}</p>
 
     {{> template-stats template=template}}
 
-    <a href="/templates/{{template.id}}/share" class="btn btn-primary">Send</a>
+    <a href="/templates/{{template.template_id}}/share" class="btn btn-primary">Send</a>
+    <a href="/templates/{{template.template_id}}/download" class="btn btn-outline-secondary">Download</a>
     <a href="/templates/upload" class="btn btn-outline-secondary">Upload another</a>
 </main>

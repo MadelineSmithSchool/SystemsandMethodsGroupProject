@@ -1,0 +1,334 @@
+/* ---------- Tokens ---------- */
+:root {
+  --mat: #e4eaee;
+  --grid: #d3dde3;
+  --ink: #17283a;
+  --ink-soft: #44566a;
+  --card: #fafbfc;
+  --line: #9fb1bc;
+  --shadow: #c2cfd7;
+  --teal: #0c6a6a;
+  --gold: #e3a72f;
+
+  --pad: clamp(1.25rem, 5vw, 4rem);
+  --card-w: clamp(19rem, 32vw, 28rem);
+  --token: 2.75rem;
+
+  --font-head: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ---------- Base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--ink);
+  background-color: var(--mat);
+  /* Battle-map grid */
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+h1,
+h2 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Nav bar ---------- */
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding: 0.75rem var(--pad);
+  background: var(--ink);
+  color: #f2f6f8;
+}
+
+.brand {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-list a {
+  display: block;
+  padding: 0.5rem 0.85rem;
+  border-radius: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.nav-list a:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.nav-list a[aria-current="page"] {
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 var(--gold);
+}
+
+.site-header a:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ---------- Intro + controls ---------- */
+.tutorial {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem 3rem;
+  padding: 2.5rem var(--pad) 1.5rem;
+}
+
+.intro-text {
+  max-width: 40rem;
+}
+
+.intro h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.1;
+}
+
+.intro p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.progress-label {
+  min-width: 6.5rem;
+  font-family: var(--font-head);
+  font-weight: 700;
+}
+
+.progress-bar {
+  width: 7rem;
+  height: 6px;
+  margin-right: 0.5rem;
+  border-radius: 3px;
+  background: #b9c7d0;
+  overflow: hidden;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--teal);
+}
+
+.btn {
+  display: inline-block;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--ink);
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible,
+.track:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* ---------- Horizontal track ---------- */
+.track {
+  overflow-x: auto;
+  padding-bottom: 3rem;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--pad);
+  overscroll-behavior-x: contain;
+  scrollbar-color: var(--ink-soft) transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .track {
+    scroll-behavior: smooth;
+  }
+}
+
+.steps {
+  position: relative;
+  display: flex;
+  gap: 2.5rem;
+  width: max-content;
+  margin: 0;
+  padding: 0.5rem var(--pad) 0;
+  list-style: none;
+}
+
+/* The dashed path the step tokens sit on */
+.steps::before {
+  content: "";
+  position: absolute;
+  left: var(--pad);
+  right: var(--pad);
+  top: calc(0.5rem + var(--token) / 2 - 1.5px);
+  border-top: 3px dashed var(--ink-soft);
+}
+
+.step {
+  position: relative;
+  display: flex;
+  flex: 0 0 var(--card-w);
+  flex-direction: column;
+  padding-top: calc(var(--token) + 1.25rem);
+  scroll-snap-align: start;
+}
+
+.step-token {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: var(--token);
+  height: var(--token);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--gold);
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+
+/* ---------- Step card ---------- */
+.card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 6px 6px 0 var(--shadow);
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+
+.card p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* Screenshot slot */
+.shot {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  border: 2px dashed var(--line);
+  border-radius: 4px;
+  background: #eef3f6;
+  color: var(--ink-soft);
+  text-align: center;
+  overflow: hidden;
+}
+
+.shot:has(img) {
+  border-style: solid;
+}
+
+.shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.shot-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 1rem;
+  font-size: 0.95rem;
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 40rem) {
+  :root {
+    --card-w: 82vw;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+  }
+}
+
+/*login register form specific stuff*/
+.form{
+  margin-top:7vh;
+  background-color: white;
+  padding: 60px;
+  border-radius: 20%;
+  border-color: #17283a;
+  border-style: groove;
+}
+
+/*Home card styling*/
+.home{
+  
+}

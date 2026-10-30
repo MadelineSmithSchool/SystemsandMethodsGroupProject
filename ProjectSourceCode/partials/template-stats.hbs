@@ -1,9 +1,8 @@
-{{!-- Stat tables for one template. Usage: {{> template-stats template=template}} --}}
 <div class="row">
     <div class="col-md-6">
         <h4>Stats</h4>
         <table class="table table-sm">
-            {{#each template.data.stats}}
+            {{#each template.template_data.stats}}
                 <tr><th class="text-capitalize">{{@key}}</th><td>{{this}}</td></tr>
             {{/each}}
         </table>
@@ -11,7 +10,7 @@
     <div class="col-md-6">
         <h4>Minor stats</h4>
         <table class="table table-sm">
-            {{#each template.data.minorStats}}
+            {{#each template.template_data.minorStats}}
                 <tr><th class="text-capitalize">{{@key}}</th><td>{{this}}</td></tr>
             {{else}}
                 <tr><td class="text-muted">None</td></tr>
