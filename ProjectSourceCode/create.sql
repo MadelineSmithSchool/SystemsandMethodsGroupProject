@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE NOT NULL,
 
     email VARCHAR(255) NOT NULL,
+
+    password_hash VARCHAR(60) NOT NULL,
     
     auth_token VARCHAR(32) UNIQUE NOT NULL,
     

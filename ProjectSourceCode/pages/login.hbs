@@ -1,13 +1,14 @@
 <div class="d-flex justify-content-center">
     <div>
         <h2>Login</h2>
-        <form action="/login" method="GET">
+        <form action="/login" method="POST">
             <label for="username">Username</label><br>
-            <input type="text" id="username" name="username"><br><br>
+            <input type="text" id="username" name="username" required><br><br>
             <label for="password">Password</label><br>
-            <input type="text" id="password" name="password"><br><br>
+            <input type="password" id="password" name="password" required><br><br>
             <input type="submit" value="Login">
         </form>
+        {{#if error}}<p role="alert">{{error}}</p>{{/if}}
         <p>Don't have an account? <a href="/register">Register</a></p>
     </div>
 </div>
