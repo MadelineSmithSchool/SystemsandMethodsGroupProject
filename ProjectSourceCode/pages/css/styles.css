@@ -317,3 +317,18 @@ h2 {
     flex-wrap: wrap;
   }
 }
+
+/*login register form specific stuff*/
+.form{
+  margin-top:7vh;
+  background-color: white;
+  padding: 60px;
+  border-radius: 20%;
+  border-color: #17283a;
+  border-style: groove;
+}
+
+/*Home card styling*/
+.home{
+  
+}
