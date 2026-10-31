@@ -54,6 +54,7 @@ module.exports = (db, auth) => {
   });
 
   router.get('/upload', auth, (req, res) => res.render('pages/upload'));
+  router.get('/new', auth, (req, res) => res.render('pages/template-builder'));
 
   router.post('/upload', auth, upload.single('template'), async (req, res, next) => {
     const fail = (error) => res.status(400).render('pages/upload', { error });

@@ -1,0 +1,804 @@
+{{!-- Temporary prototype: this browser-only builder may be replaced if the team chooses a better design. --}}
+<main class="sheet-studio" data-sheet-studio data-mode="developer">
+    <header class="studio-header">
+        <div>
+            <p class="prototype-flag">absolutely temporary design mockup, improve PLEASE god</p>
+            <h1>Character sheet studio</h1>
+            <p class="studio-subtitle">Build the sheet, then switch to Playtest and try it as a player.</p>
+        </div>
+        <div class="studio-header-actions">
+            <div class="studio-view-switch" role="tablist" aria-label="Studio view">
+                <button type="button" role="tab" aria-selected="true" data-view-button="developer">Developer</button>
+                <button type="button" role="tab" aria-selected="false" data-view-button="playtest">Playtest</button>
+            </div>
+            <button class="btn" type="button">Save draft</button>
+            <button class="btn studio-publish" type="button">Publish</button>
+        </div>
+    </header>
+
+    <p class="prototype-note"><strong>Temporary stand-in:</strong> this design is a pretty vibe coded mockup in desperate need of human improvement, i just wanted to both see and show what the character sheet builder should work and look like. THIS IS NOT CONNECTED TO THE DATABASE, SAVE AND PUBLISH DO NOTHING.</p>
+
+    <div class="studio-sheet-meta">
+        <label for="sheet-name">Sheet name<input id="sheet-name" type="text" maxlength="50" placeholder="E.g. Fateshift Character Sheet"></label>
+        <label for="sheet-description">Description<input id="sheet-description" type="text" maxlength="255" placeholder="Optional game or sheet notes"></label>
+    </div>
+
+    <div class="studio-layout">
+        <aside class="studio-sidebar" data-developer-only>
+            <section class="studio-panel module-palette" aria-labelledby="module-palette-title">
+                <h2 id="module-palette-title">Module palette</h2>
+                <p>Click to add, or drag a module onto the sheet.</p>
+                <div class="studio-palette-grid">
+                    <button class="module-tool" type="button" data-module-tool="number"><span class="module-tool-icon">123</span>Number</button>
+                    <button class="module-tool" type="button" data-module-tool="text"><span class="module-tool-icon">Aa</span>Text</button>
+                    <button class="module-tool" type="button" data-module-tool="dice"><span class="module-tool-icon">d20</span>Dice</button>
+                    <button class="module-tool" type="button" data-module-tool="checkbox"><span class="module-tool-icon">[x]</span>Checkbox</button>
+                    <button class="module-tool" type="button" data-module-tool="notes"><span class="module-tool-icon">TXT</span>Notes</button>
+                    <button class="module-tool" type="button" data-module-tool="group"><span class="module-tool-icon">[]</span>Group</button>
+                </div>
+            </section>
+
+            <section class="studio-panel inspector-panel" aria-labelledby="inspector-title">
+                <h2 id="inspector-title">Module settings</h2>
+                <div data-inspector><p class="studio-muted">Select Edit on a module to change its settings and inputs.</p></div>
+            </section>
+
+        </aside>
+
+        <section class="studio-workspace" aria-label="Character sheet workspace">
+            <div class="workspace-heading">
+                <h2 data-workspace-title>Developer canvas</h2>
+                <p data-workspace-help>Snap modules into the grid. Drag modules into a group to keep related fields together.</p>
+            </div>
+            <div class="studio-canvas" data-layout-canvas data-root-canvas role="region" aria-label="Character sheet canvas" tabindex="0">
+                <p class="canvas-empty-state" data-empty-state>Start with a module from the palette.</p>
+            </div>
+        </section>
+    </div>
+</main>
+
+<script>
+    (function () {
+        var studio = document.querySelector('[data-sheet-studio]');
+        if (!studio) return;
+
+        var rootCanvas = studio.querySelector('[data-root-canvas]');
+        var inspector = studio.querySelector('[data-inspector]');
+        var emptyState = studio.querySelector('[data-empty-state]');
+        var modules = [];
+        var nextId = 1;
+        var selectedId = null;
+        var mode = 'developer';
+        var activeDrag = null;
+        var suppressToolClick = false;
+        var names = { number: 'Number', text: 'Text', dice: 'Dice', checkbox: 'Checkbox', notes: 'Notes', group: 'Group' };
+
+        function placementsOverlap(first, second) {
+            return first.col < second.col + second.colSpan && first.col + first.colSpan > second.col &&
+                first.row < second.row + second.rowSpan && first.row + first.rowSpan > second.row;
+        }
+
+        // find nearest free area
+        function findOpenPlacement(list, columns, colSpan, rowSpan, preferred, ignoreId) {
+            var lastRow = Math.max(24, preferred.row + 12);
+            list.forEach(function (item) { lastRow = Math.max(lastRow, item.row + item.rowSpan + 8); });
+            var best = null;
+            var bestDistance = Infinity;
+            for (var row = 1; row <= lastRow; row += 1) {
+                for (var col = 1; col <= columns - colSpan + 1; col += 1) {
+                    var candidate = { col: col, row: row, colSpan: colSpan, rowSpan: rowSpan };
+                    if (list.some(function (item) { return item.id !== ignoreId && placementsOverlap(candidate, item); })) continue;
+                    var distance = Math.abs(col - preferred.col) + Math.abs(row - preferred.row) * 2;
+                    if (distance < bestDistance) {
+                        best = candidate;
+                        bestDistance = distance;
+                    }
+                }
+            }
+            return best || { col: 1, row: lastRow + 1, colSpan: colSpan, rowSpan: rowSpan };
+        }
+
+        // apply free grid placement
+        function placeAtNearestOpen(list, module, columns, preferred) {
+            var placement = findOpenPlacement(list, columns, module.colSpan, module.rowSpan, preferred, module.id);
+            module.col = placement.col;
+            module.row = placement.row;
+            module.colSpan = placement.colSpan;
+            module.rowSpan = placement.rowSpan;
+        }
+
+        // create and select module
+        function createModule(type, parentList, deferRefresh) {
+            var siblings = parentList || modules;
+            var columns = siblings === modules ? 12 : 6;
+            var colSpan = Math.min(4, columns);
+            var placement = findOpenPlacement(siblings, columns, colSpan, 3, {
+                col: 1 + (siblings.length % 3) * 4,
+                row: 1 + Math.floor(siblings.length / 3) * 3
+            });
+            var module = {
+                id: String(nextId++), type: type, name: names[type],
+                col: placement.col, row: placement.row,
+                colSpan: placement.colSpan, rowSpan: placement.rowSpan, value: type === 'number' ? '10' : '', checked: false,
+                count: 1, countSource: '', sides: 20, sidesSource: '', source: '', modifiers: [], rollResult: '', children: []
+            };
+            siblings.push(module);
+            selectedId = module.id;
+            if (!deferRefresh) refresh();
+            return module;
+        }
+
+        // search nested module groups
+        function findModule(id, list) {
+            var collection = list || modules;
+            for (var index = 0; index < collection.length; index += 1) {
+                if (collection[index].id === id) return collection[index];
+                var nested = findModule(id, collection[index].children);
+                if (nested) return nested;
+            }
+            return null;
+        }
+
+        // find containing module list
+        function findOwner(id, list, parent) {
+            var collection = list || modules;
+            for (var index = 0; index < collection.length; index += 1) {
+                if (collection[index].id === id) return { list: collection, parent: parent || null };
+                var nested = findOwner(id, collection[index].children, collection[index]);
+                if (nested) return nested;
+            }
+            return null;
+        }
+
+        // flatten nested module groups
+        function flatten(list, output) {
+            (list || modules).forEach(function (module) {
+                output.push(module);
+                flatten(module.children, output);
+            });
+            return output;
+        }
+
+        function valueModules() {
+            return flatten(modules, []).filter(function (module) { return module.type !== 'group'; });
+        }
+
+        function checkboxModules() {
+            return flatten(modules, []).filter(function (module) { return module.type === 'checkbox'; });
+        }
+
+        // populate linked value choices
+        function selectOptions(select, items, selected, emptyLabel) {
+            var empty = document.createElement('option');
+            empty.value = '';
+            empty.textContent = emptyLabel;
+            select.appendChild(empty);
+            items.forEach(function (item) {
+                var option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name || names[item.type];
+                option.selected = item.id === selected;
+                select.appendChild(option);
+            });
+        }
+
+        function field(labelText, control) {
+            var label = document.createElement('label');
+            label.className = 'inspector-field';
+            label.append(document.createTextNode(labelText), control);
+            return label;
+        }
+
+        function inputControl(type, value, min, max) {
+            var control = document.createElement('input');
+            control.type = type;
+            control.value = value;
+            if (min !== undefined) control.min = min;
+            if (max !== undefined) control.max = max;
+            return control;
+        }
+
+        // show selected module settings
+        function renderInspector() {
+            inspector.replaceChildren();
+            var module = findModule(selectedId);
+            if (!module) {
+                var empty = document.createElement('p');
+                empty.className = 'studio-muted';
+                empty.textContent = 'Select Edit on a module to change its settings and inputs.';
+                inspector.appendChild(empty);
+                return;
+            }
+
+            var nameInput = inputControl('text', module.name, undefined, undefined);
+            nameInput.maxLength = 40;
+            nameInput.dataset.setting = 'name';
+            inspector.appendChild(field('Module name', nameInput));
+
+            if (module.type !== 'group' && module.type !== 'dice') {
+                var sourceSelect = document.createElement('select');
+                selectOptions(sourceSelect, valueModules().filter(function (item) { return item.id !== module.id; }), module.source, 'Player enters this value');
+                sourceSelect.dataset.setting = 'source';
+                inspector.appendChild(field('Input from', sourceSelect));
+            }
+
+            if (module.type === 'number' && !module.source) {
+                var defaultValue = inputControl('number', module.value || '0');
+                defaultValue.dataset.setting = 'value';
+                inspector.appendChild(field('Starting value', defaultValue));
+            }
+
+            if (module.type === 'number') {
+                var modifierHeading = document.createElement('strong');
+                modifierHeading.textContent = 'Conditional changes';
+                inspector.appendChild(modifierHeading);
+                var modifierHelp = document.createElement('p');
+                modifierHelp.className = 'studio-muted';
+                modifierHelp.textContent = 'Change this value when a checkbox is on.';
+                inspector.appendChild(modifierHelp);
+                module.modifiers.forEach(function (modifier, index) {
+                    var row = document.createElement('div');
+                    row.className = 'module-modifier';
+                    row.dataset.modifierIndex = index;
+                    row.dataset.moduleId = module.id;
+                    var checkboxSelect = document.createElement('select');
+                    selectOptions(checkboxSelect, checkboxModules(), modifier.source, 'Choose a checkbox');
+                    checkboxSelect.dataset.modifierSetting = 'source';
+                    var amount = inputControl('number', modifier.amount, -99, 99);
+                    amount.dataset.modifierSetting = 'amount';
+                    row.append(field('When checked', checkboxSelect), field('Change by', amount));
+                    var remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'btn module-modifier-remove';
+                    remove.dataset.removeModifier = index;
+                    remove.textContent = 'Remove';
+                    row.appendChild(remove);
+                    inspector.appendChild(row);
+                });
+                var addModifier = document.createElement('button');
+                addModifier.type = 'button';
+                addModifier.className = 'btn module-add-modifier';
+                addModifier.dataset.addModifier = module.id;
+                addModifier.textContent = 'Add checkbox change';
+                inspector.appendChild(addModifier);
+            }
+
+            if (module.type === 'dice') {
+                var countInput = inputControl('number', module.count, 1, 100);
+                countInput.dataset.setting = 'count';
+                inspector.appendChild(field('Number of dice', countInput));
+                var countSource = document.createElement('select');
+                selectOptions(countSource, valueModules().filter(function (item) { return item.id !== module.id; }), module.countSource, 'Fixed dice count');
+                countSource.dataset.setting = 'countSource';
+                inspector.appendChild(field('Count from', countSource));
+                var sidesInput = inputControl('number', module.sides, 2, 1000);
+                sidesInput.dataset.setting = 'sides';
+                inspector.appendChild(field('Die sides', sidesInput));
+                var sidesSource = document.createElement('select');
+                selectOptions(sidesSource, valueModules().filter(function (item) { return item.id !== module.id; }), module.sidesSource, 'Fixed die sides');
+                sidesSource.dataset.setting = 'sidesSource';
+                inspector.appendChild(field('Sides from', sidesSource));
+            }
+
+            if (module.type === 'group') {
+                var groupHint = document.createElement('p');
+                groupHint.className = 'studio-muted';
+                groupHint.textContent = 'Drop other modules inside this group to organize related fields.';
+                inspector.appendChild(groupHint);
+            }
+        }
+
+        // read responsive grid columns
+        function layoutColumns(layout) {
+            return Number(getComputedStyle(layout).getPropertyValue('--layout-columns').trim()) || 12;
+        }
+
+        // apply module grid position
+        function setPlacement(element, module, layout) {
+            var columns = layoutColumns(layout);
+            module.colSpan = Math.min(module.colSpan, columns);
+            module.col = Math.max(1, Math.min(columns - module.colSpan + 1, module.col));
+            element.style.gridColumn = module.col + ' / span ' + module.colSpan;
+            element.style.gridRow = module.row + ' / span ' + module.rowSpan;
+        }
+
+        // build player-facing controls
+        function createPlayableControl(module) {
+            var body = document.createElement('div');
+            body.className = 'module-body';
+            body.dataset.moduleId = module.id;
+
+            if (module.type === 'group') {
+                var groupCanvas = document.createElement('div');
+                groupCanvas.className = 'group-canvas';
+                groupCanvas.dataset.layoutCanvas = '';
+                groupCanvas.dataset.groupCanvas = module.id;
+                renderModules(groupCanvas, module.children, false);
+                body.appendChild(groupCanvas);
+                return body;
+            }
+
+            if (module.type === 'dice') {
+                var formula = document.createElement('p');
+                formula.className = 'dice-formula';
+                formula.dataset.diceFormula = module.id;
+                formula.textContent = diceCount(module) + 'd' + diceSides(module);
+                var rollButton = document.createElement('button');
+                rollButton.type = 'button';
+                rollButton.className = 'btn dice-roll-button';
+                rollButton.dataset.rollModule = module.id;
+                rollButton.textContent = 'Roll';
+                var result = document.createElement('output');
+                result.className = 'dice-result';
+                result.dataset.diceResult = module.id;
+                result.textContent = module.rollResult || '-';
+                body.append(formula, rollButton, result);
+                return body;
+            }
+
+            if (module.source) {
+                var output = document.createElement('output');
+                output.className = 'module-output';
+                output.dataset.sourceValue = module.id;
+                output.textContent = String(resolveValue(module.id, {}));
+                body.appendChild(output);
+                return body;
+            }
+
+            if (module.type === 'checkbox') {
+                var checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = module.checked;
+                checkbox.dataset.moduleChecked = module.id;
+                checkbox.setAttribute('aria-label', module.name);
+                body.appendChild(checkbox);
+                return body;
+            }
+
+            var input = module.type === 'notes' ? document.createElement('textarea') : document.createElement('input');
+            if (module.type !== 'notes') input.type = module.type === 'number' ? 'number' : 'text';
+            input.value = module.value || '';
+            input.placeholder = module.type === 'notes' ? 'Write notes' : module.type === 'number' ? '0' : 'Enter text';
+            input.dataset.moduleValue = module.id;
+            input.setAttribute('aria-label', module.name);
+            body.appendChild(input);
+            if (module.type === 'number') {
+                var effective = document.createElement('output');
+                effective.className = 'number-effective';
+                effective.dataset.effectiveNumber = module.id;
+                body.appendChild(effective);
+            }
+            return body;
+        }
+
+        // render grouped modules recursively
+        function renderModules(layout, list, root) {
+            list.forEach(function (module) {
+                var card = document.createElement('article');
+                card.className = 'sheet-module' + (module.id === selectedId ? ' is-selected' : '');
+                card.dataset.sheetModule = module.id;
+                card.dataset.moduleType = module.type;
+                setPlacement(card, module, layout);
+
+                var header = document.createElement('header');
+                header.className = 'sheet-module-header';
+                var move = document.createElement('button');
+                move.type = 'button';
+                move.className = 'module-move-handle';
+                move.dataset.moveModule = '';
+                move.textContent = 'Move';
+                move.setAttribute('aria-label', 'Move ' + module.name);
+                var title = document.createElement('strong');
+                title.dataset.moduleTitle = '';
+                title.textContent = module.name;
+                header.append(move, title);
+                if (mode === 'developer') {
+                    var edit = document.createElement('button');
+                    edit.type = 'button';
+                    edit.className = 'module-edit';
+                    edit.dataset.editModule = module.id;
+                    edit.textContent = 'Edit';
+                    header.appendChild(edit);
+                    var remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'module-remove';
+                    remove.dataset.removeModule = module.id;
+                    remove.textContent = 'Remove';
+                    header.appendChild(remove);
+                }
+                
+                card.appendChild(header);
+
+                if (mode === 'developer' && module.type !== 'group') {
+                    var devSummary = document.createElement('p');
+                    devSummary.className = 'module-dev-summary';
+                    devSummary.textContent = module.type === 'dice' ? 'Roll output' : module.source ? 'Linked input' : 'Player input';
+                    card.appendChild(devSummary);
+                }
+                var body = createPlayableControl(module);
+                if (mode === 'developer') {
+                    body.querySelectorAll('input,textarea,select,button').forEach(function (control) {
+                        if (control.closest('[data-sheet-module]') === card) control.disabled = true;
+                    });
+                }
+                card.appendChild(body);
+
+                if (mode === 'developer') {
+                    var resize = document.createElement('button');
+                    resize.type = 'button';
+                    resize.className = 'module-resize-handle';
+                    resize.dataset.resizeModule = '';
+                    resize.setAttribute('aria-label', 'Resize ' + module.name);
+                    card.appendChild(resize);
+                }
+                layout.appendChild(card);
+            });
+            if (root) emptyState.hidden = list.length > 0;
+        }
+
+        // redraw the root canvas
+        function renderCanvas() {
+            rootCanvas.querySelectorAll('[data-sheet-module]').forEach(function (element) { element.remove(); });
+            renderModules(rootCanvas, modules, true);
+        }
+
+        // compute linked field values
+        function resolveValue(id, visited) {
+            var module = findModule(id);
+            if (!module || module.type === 'group' || visited[id]) return '';
+            visited[id] = true;
+            var value;
+            if (module.type === 'dice') {
+                var match = module.rollResult.match(/(?:=\s*)?(-?\d+)$/);
+                value = match ? Number(match[1]) : 0;
+            } else if (module.source) {
+                value = resolveValue(module.source, visited);
+            } else if (module.type === 'number') {
+                value = Number(module.value || 0);
+            } else if (module.type === 'checkbox') {
+                value = Boolean(module.checked);
+            } else {
+                value = module.value || '';
+            }
+            if (module.type === 'checkbox' && module.source) value = Boolean(value);
+            if (module.type === 'number') {
+                value = Number(value) || 0;
+                module.modifiers.forEach(function (modifier) {
+                    var source = findModule(modifier.source);
+                    if (source && Boolean(resolveValue(source.id, visited))) value += Number(modifier.amount || 0);
+                });
+            }
+            delete visited[id];
+            return value;
+        }
+
+        function diceCount(module) {
+            var linked = module.countSource ? Number(resolveValue(module.countSource, {})) : Number(module.count || 1);
+            return Math.max(1, Math.min(100, Math.floor(linked || 1)));
+        }
+
+        function diceSides(module) {
+            var linked = module.sidesSource ? Number(resolveValue(module.sidesSource, {})) : Number(module.sides || 20);
+            return Math.max(2, Math.min(1000, Math.floor(linked || 20)));
+        }
+
+        // sync derived values
+        function updateLiveValues() {
+            studio.querySelectorAll('[data-module-value]').forEach(function (input) {
+                var module = findModule(input.dataset.moduleValue);
+                if (module && input !== document.activeElement) input.value = module.value || '';
+            });
+            studio.querySelectorAll('[data-source-value]').forEach(function (output) {
+                output.textContent = String(resolveValue(output.dataset.sourceValue, {}));
+            });
+            studio.querySelectorAll('[data-effective-number]').forEach(function (output) {
+                output.textContent = 'Effective: ' + resolveValue(output.dataset.effectiveNumber, {});
+            });
+            studio.querySelectorAll('[data-dice-formula]').forEach(function (formula) {
+                var module = findModule(formula.dataset.diceFormula);
+                if (module) formula.textContent = diceCount(module) + 'd' + diceSides(module);
+            });
+        }
+
+        // redraw editor and inspector
+        function refresh() {
+            renderCanvas();
+            renderInspector();
+            updateLiveValues();
+        }
+
+        // remove module from groups
+        function removeModule(id, list) {
+            var collection = list || modules;
+            for (var index = 0; index < collection.length; index += 1) {
+                if (collection[index].id === id) {
+                    collection.splice(index, 1);
+                    return true;
+                }
+                if (removeModule(id, collection[index].children)) return true;
+            }
+            return false;
+        }
+
+        // find canvas under pointer
+        function canvasForPoint(x, y) {
+            var target = document.elementFromPoint(x, y);
+            var groupCanvas = target && target.closest('[data-group-canvas]');
+            if (groupCanvas) return { element: groupCanvas, owner: findModule(groupCanvas.dataset.groupCanvas) };
+            if (target && rootCanvas.contains(target)) return { element: rootCanvas, owner: null };
+            return null;
+        }
+
+        // snap movement and resizing
+        function setSnappedPlacement(module, layout, start, x, y, resize) {
+            var columns = layoutColumns(layout);
+            var bounds = layout.getBoundingClientRect();
+            var columnStep = bounds.width / columns;
+            var rowStep = parseFloat(getComputedStyle(layout).gridAutoRows) || 64;
+            var deltaColumns = Math.round((x - start.x) / columnStep);
+            var deltaRows = Math.round((y - start.y) / rowStep);
+            if (resize) {
+                module.colSpan = Math.max(2, Math.min(columns - module.col + 1, start.colSpan + deltaColumns));
+                module.rowSpan = Math.max(2, start.rowSpan + deltaRows);
+            } else {
+                module.col = Math.max(1, Math.min(columns - module.colSpan + 1, start.col + deltaColumns));
+                module.row = Math.max(1, start.row + deltaRows);
+            }
+        }
+
+        // start canvas drag
+        studio.addEventListener('pointerdown', function (event) {
+            var tool = event.target.closest('[data-module-tool]');
+            if (tool && mode === 'developer') {
+                activeDrag = { kind: 'palette', pointerId: event.pointerId, type: tool.dataset.moduleTool, tool: tool, startX: event.clientX, startY: event.clientY, dragged: false };
+                tool.setPointerCapture(event.pointerId);
+                return;
+            }
+
+            var move = event.target.closest('[data-move-module]');
+            var resize = event.target.closest('[data-resize-module]');
+            if ((!move && !resize) || mode !== 'developer') return;
+            var element = event.target.closest('[data-sheet-module]');
+            var module = findModule(element.dataset.sheetModule);
+            var layout = element.parentElement.closest('[data-layout-canvas]');
+            (move || resize).setPointerCapture(event.pointerId);
+            activeDrag = {
+                kind: 'module', pointerId: event.pointerId, module: module, element: element, layout: layout,
+                resize: !!resize,
+                start: { x: event.clientX, y: event.clientY, col: module.col, row: module.row, colSpan: module.colSpan, rowSpan: module.rowSpan }
+            };
+            event.preventDefault();
+        });
+
+        // update active drag placement
+        studio.addEventListener('pointermove', function (event) {
+            if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+            if (activeDrag.kind === 'palette') {
+                if (Math.hypot(event.clientX - activeDrag.startX, event.clientY - activeDrag.startY) > 6) {
+                    activeDrag.dragged = true;
+                    activeDrag.tool.classList.add('is-dragging');
+                    event.preventDefault();
+                }
+                return;
+            }
+            var owner = findOwner(activeDrag.module.id);
+            var previous = { col: activeDrag.module.col, row: activeDrag.module.row, colSpan: activeDrag.module.colSpan, rowSpan: activeDrag.module.rowSpan };
+            setSnappedPlacement(activeDrag.module, activeDrag.layout, activeDrag.start, event.clientX, event.clientY, activeDrag.resize);
+            if (owner && owner.list.some(function (item) { return item !== activeDrag.module && placementsOverlap(activeDrag.module, item); })) {
+                activeDrag.module.col = previous.col;
+                activeDrag.module.row = previous.row;
+                activeDrag.module.colSpan = previous.colSpan;
+                activeDrag.module.rowSpan = previous.rowSpan;
+                return;
+            }
+            setPlacement(activeDrag.element, activeDrag.module, activeDrag.layout);
+        });
+
+        // finish drop or reparent
+        studio.addEventListener('pointerup', function (event) {
+            if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+            var drag = activeDrag;
+            activeDrag = null;
+            if (drag.kind === 'palette') {
+                drag.tool.classList.remove('is-dragging');
+                if (!drag.dragged) return;
+                suppressToolClick = true;
+                window.setTimeout(function () { suppressToolClick = false; }, 50);
+                var destination = canvasForPoint(event.clientX, event.clientY);
+                if (!destination) return;
+                var list = destination.owner ? destination.owner.children : modules;
+                var module = createModule(drag.type, list, true);
+                var pointBounds = destination.element.getBoundingClientRect();
+                var cols = layoutColumns(destination.element);
+                placeAtNearestOpen(list, module, cols, {
+                    col: Math.max(1, Math.min(cols - module.colSpan + 1, Math.floor((event.clientX - pointBounds.left) / (pointBounds.width / cols)) + 1)),
+                    row: Math.max(1, Math.floor((event.clientY - pointBounds.top) / (parseFloat(getComputedStyle(destination.element).gridAutoRows) || 64)) + 1)
+                });
+                refresh();
+                return;
+            }
+
+            var drop = canvasForPoint(event.clientX, event.clientY);
+            if (drop && drop.owner && drop.owner.id !== drag.module.id) {
+                var owner = findOwner(drag.module.id);
+                if (owner && owner.parent !== drop.owner) {
+                    owner.list.splice(owner.list.indexOf(drag.module), 1);
+                    var groupColumns = layoutColumns(drop.element);
+                    drag.module.colSpan = Math.min(drag.module.colSpan, groupColumns);
+                    placeAtNearestOpen(drop.owner.children, drag.module, groupColumns, { col: 1, row: 1 });
+                    drop.owner.children.push(drag.module);
+                    refresh();
+                    return;
+                }
+            } else if (drop && !drop.owner) {
+                var moduleOwner = findOwner(drag.module.id);
+                if (moduleOwner && moduleOwner.parent) {
+                    moduleOwner.list.splice(moduleOwner.list.indexOf(drag.module), 1);
+                    var rootColumns = layoutColumns(rootCanvas);
+                    drag.module.colSpan = Math.min(4, rootColumns);
+                    placeAtNearestOpen(modules, drag.module, rootColumns, { col: 1, row: 1 });
+                    modules.push(drag.module);
+                    refresh();
+                    return;
+                }
+            }
+            renderCanvas();
+        });
+
+        // restore canceled drag state
+        studio.addEventListener('pointercancel', function (event) {
+            if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+            if (activeDrag.kind === 'palette') {
+                activeDrag.tool.classList.remove('is-dragging');
+            } else {
+                Object.assign(activeDrag.module, {
+                    col: activeDrag.start.col,
+                    row: activeDrag.start.row,
+                    colSpan: activeDrag.start.colSpan,
+                    rowSpan: activeDrag.start.rowSpan
+                });
+                renderCanvas();
+            }
+            activeDrag = null;
+        });
+
+        // handle studio actions
+        studio.addEventListener('click', function (event) {
+            var viewButton = event.target.closest('[data-view-button]');
+            if (viewButton) {
+                mode = viewButton.dataset.viewButton;
+                studio.dataset.mode = mode;
+                studio.querySelectorAll('[data-view-button]').forEach(function (button) {
+                    button.setAttribute('aria-selected', String(button === viewButton));
+                });
+                studio.querySelector('[data-workspace-title]').textContent = mode === 'developer' ? 'Developer canvas' : (studio.querySelector('#sheet-name').value || 'Character sheet');
+                studio.querySelector('[data-workspace-help]').textContent = mode === 'developer' ? 'Snap modules into the grid. Drag modules into a group to keep related fields together.' : 'Enter values, toggle conditions, and roll dice to test the sheet.';
+                refresh();
+                return;
+            }
+
+            var tool = event.target.closest('[data-module-tool]');
+            if (tool && mode === 'developer') {
+                if (suppressToolClick) return;
+                createModule(tool.dataset.moduleTool);
+                return;
+            }
+
+            var remove = event.target.closest('[data-remove-module]');
+            if (remove && mode === 'developer') {
+                removeModule(remove.dataset.removeModule);
+                if (!findModule(selectedId)) selectedId = null;
+                refresh();
+                return;
+            }
+
+            var edit = event.target.closest('[data-edit-module]');
+            if (edit && mode === 'developer') {
+                selectedId = edit.dataset.editModule;
+                refresh();
+                return;
+            }
+
+            var addModifier = event.target.closest('[data-add-modifier]');
+            if (addModifier) {
+                var targetModule = findModule(addModifier.dataset.addModifier);
+                if (targetModule) {
+                    targetModule.modifiers.push({ source: checkboxModules()[0] ? checkboxModules()[0].id : '', amount: -1 });
+                    selectedId = targetModule.id;
+                    refresh();
+                }
+                return;
+            }
+
+            var removeModifier = event.target.closest('[data-remove-modifier]');
+            if (removeModifier) {
+                var modifierRow = removeModifier.closest('[data-modifier-index]');
+                var modifierModule = findModule(modifierRow.dataset.moduleId);
+                if (modifierModule) {
+                    modifierModule.modifiers.splice(Number(modifierRow.dataset.modifierIndex), 1);
+                    selectedId = modifierModule.id;
+                    refresh();
+                }
+                return;
+            }
+
+            var roll = event.target.closest('[data-roll-module]');
+            if (roll && mode === 'playtest') {
+                var dice = findModule(roll.dataset.rollModule);
+                var count = diceCount(dice);
+                var sides = diceSides(dice);
+                var rolls = [];
+                for (var index = 0; index < count; index += 1) rolls.push(Math.floor(Math.random() * sides) + 1);
+                dice.rollResult = rolls.length === 1 ? String(rolls[0]) : rolls.join(' + ') + ' = ' + rolls.reduce(function (total, value) { return total + value; }, 0);
+                renderCanvas();
+                return;
+            }
+        });
+
+        // sync typed module values
+        studio.addEventListener('input', function (event) {
+            var moduleInput = event.target.closest('[data-module-value]');
+            if (moduleInput) {
+                var inputModule = findModule(moduleInput.dataset.moduleValue);
+                if (inputModule) inputModule.value = moduleInput.value;
+                updateLiveValues();
+            }
+            var setting = event.target.dataset.setting;
+            if (setting && mode === 'developer') updateSetting(event.target, setting);
+            var modifierSetting = event.target.dataset.modifierSetting;
+            if (modifierSetting) updateModifier(event.target, modifierSetting);
+        });
+
+        // sync committed control values
+        studio.addEventListener('change', function (event) {
+            var checkbox = event.target.closest('[data-module-checked]');
+            if (checkbox) {
+                var checkboxModule = findModule(checkbox.dataset.moduleChecked);
+                if (checkboxModule) checkboxModule.checked = checkbox.checked;
+                updateLiveValues();
+            }
+            var setting = event.target.dataset.setting;
+            if (setting && mode === 'developer') updateSetting(event.target, setting);
+            var modifierSetting = event.target.dataset.modifierSetting;
+            if (modifierSetting) updateModifier(event.target, modifierSetting);
+        });
+
+        // update selected module settings
+        function updateSetting(control, setting) {
+            var module = findModule(selectedId);
+            if (!module) return;
+            module[setting] = ['value', 'count', 'sides'].includes(setting) ? Number(control.value) : control.value;
+            if (setting === 'name') {
+                var header = studio.querySelector('[data-sheet-module="' + module.id + '"] [data-module-title]');
+                if (header) {
+                    header.textContent = module.name || names[module.type];
+                    header.parentElement.querySelector('[data-move-module]').setAttribute('aria-label', 'Move ' + module.name);
+                }
+                updateLiveValues();
+                return;
+            }
+            if (setting === 'value' || setting === 'count' || setting === 'sides') {
+                updateLiveValues();
+                return;
+            }
+            if (setting === 'source' || setting === 'countSource' || setting === 'sidesSource') module.rollResult = '';
+            refresh();
+        }
+
+        // update module checkbox modifier
+        function updateModifier(control, setting) {
+            var row = control.closest('[data-modifier-index]');
+            var module = findModule(row.dataset.moduleId);
+            var modifier = module && module.modifiers[Number(row.dataset.modifierIndex)];
+            if (!modifier) return;
+            modifier[setting] = setting === 'amount' ? Number(control.value) : control.value;
+            updateLiveValues();
+        }
+
+        studio.querySelector('#sheet-name').addEventListener('input', function (event) {
+            if (mode === 'playtest') studio.querySelector('[data-workspace-title]').textContent = event.target.value || 'Character sheet';
+        });
+
+        refresh();
+    })();
+</script>
