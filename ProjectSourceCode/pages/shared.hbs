@@ -1,0 +1,12 @@
+<main class="container my-4">
+    <p class="text-muted mb-1">Someone sent you a template</p>
+    <h2>{{template.template_name}}</h2>
+    <p class="text-muted">{{template.template_desc}}</p>
+
+    {{> template-stats template=template}}
+
+    <form action="/templates/shared/{{template.share_id}}/save" method="POST" class="d-inline">
+        <button type="submit" class="btn btn-primary">Save to my templates</button>
+    </form>
+    <a href="/templates/shared/{{template.share_id}}/download" class="btn btn-outline-secondary">Download</a>
+</main>
