@@ -47,6 +47,7 @@
                     <button class="module-tool" type="button" data-module-tool="dice"><span class="module-tool-icon">d20</span>Dice</button>
                     <button class="module-tool" type="button" data-module-tool="checkbox"><span class="module-tool-icon">[x]</span>Checkbox</button>
                     <button class="module-tool" type="button" data-module-tool="notes"><span class="module-tool-icon">TXT</span>Notes</button>
+                    <button class="module-tool" type="button" data-module-tool="math"><span class="module-tool-icon">+−</span>Math</button>
                     <button class="module-tool" type="button" data-module-tool="group"><span class="module-tool-icon">[]</span>Group</button>
                 </div>
             </section>
@@ -62,6 +63,7 @@
                 <div class="module-preset-list" data-preset-list>
                     <button class="module-preset" type="button" data-load-preset="ability-check">Ability check</button>
                     <button class="module-preset" type="button" data-load-preset="advantage-attack">Advantage attack</button>
+                    <button class="module-preset" type="button" data-load-preset="ability-score-bonus">Ability Score Bonus</button>
                 </div>
                 <p class="studio-muted" data-preset-selection aria-live="polite">Select modules by dragging across the canvas.</p>
                 <label class="inspector-field" for="preset-name">Preset name
@@ -102,8 +104,8 @@
         var mode = 'developer';
         var activeDrag = null;
         var suppressToolClick = false;
-        var names = { number: 'Number', text: 'Text', dice: 'Dice', checkbox: 'Checkbox', notes: 'Notes', group: 'Group' };
-        var numericSettings = ['value', 'count', 'sides', 'uncheckedValue', 'checkedValue', 'keepHighest'];
+        var names = { number: 'Number', text: 'Text', dice: 'Dice', checkbox: 'Checkbox', notes: 'Notes', math: 'Math', group: 'Group' };
+        var numericSettings = ['value', 'count', 'sides', 'uncheckedValue', 'checkedValue', 'keepHighest', 'leftValue', 'rightValue'];
 
         function placementsOverlap(first, second) {
             return first.col < second.col + second.colSpan && first.col + first.colSpan > second.col &&
@@ -153,7 +155,8 @@
                 col: placement.col, row: placement.row,
                 colSpan: placement.colSpan, rowSpan: placement.rowSpan, value: type === 'number' ? '10' : '', checked: false,
                 count: 1, countSource: '', sides: 20, sidesSource: '', source: '', modifiers: [], rollResult: '', children: [],
-                uncheckedValue: 0, checkedValue: 1, keepHighest: 0, keepHighestSource: '', bonusSource: ''
+                uncheckedValue: 0, checkedValue: 1, keepHighest: 0, keepHighestSource: '', bonusSource: '',
+                mathOperation: 'add', mathRounding: 'none', leftValue: 0, leftSource: '', rightValue: 0, rightSource: ''
             };
             siblings.push(module);
             selectedId = module.id;
@@ -207,7 +210,7 @@
             }
             function remapReferences(list) {
                 list.forEach(function (module) {
-                    ['source', 'countSource', 'sidesSource', 'keepHighestSource', 'bonusSource'].forEach(function (setting) {
+                    ['source', 'countSource', 'sidesSource', 'keepHighestSource', 'bonusSource', 'leftSource', 'rightSource'].forEach(function (setting) {
                         if (module[setting]) module[setting] = idMap[module[setting]] || '';
                     });
                     module.modifiers = (module.modifiers || []).filter(function (modifier) {
@@ -224,6 +227,34 @@
         }
 
         function addConnectedPreset(presetName) {
+            if (presetName === 'ability-score-bonus') {
+                var level = createModule('number', modules, true);
+                level.name = 'level';
+                level.value = '10';
+
+                var subtract = createModule('math', modules, true);
+                subtract.name = 'subtract 10';
+                subtract.leftSource = level.id;
+                subtract.rightValue = 10;
+                subtract.mathOperation = 'subtract';
+
+                var divide = createModule('math', modules, true);
+                divide.name = 'divide';
+                divide.leftSource = subtract.id;
+                divide.rightValue = 2;
+                divide.mathOperation = 'divide';
+                divide.mathRounding = 'down';
+
+                var abilityBonus = createModule('number', modules, true);
+                abilityBonus.name = 'Ability Bonus';
+                abilityBonus.source = divide.id;
+
+                selectedId = abilityBonus.id;
+                selectedModuleIds = [];
+                refresh();
+                return;
+            }
+
             var isAttackRoll = presetName === 'advantage-attack';
             var checkbox = createModule('checkbox', modules, true);
             checkbox.name = 'Proficient';
@@ -328,7 +359,7 @@
             var nameInput = settingInput('Module name', 'name', module.name);
             nameInput.maxLength = 40;
 
-            if (module.type !== 'group' && module.type !== 'dice') {
+            if (module.type !== 'group' && module.type !== 'dice' && module.type !== 'math') {
                 settingSelect('Input from', valueModules().filter(function (item) { return item.id !== module.id; }), module.source, 'Player enters this value', 'source');
             }
 
@@ -387,6 +418,46 @@
                 settingSelect('Add number value', sources, module.bonusSource, 'No bonus', 'bonusSource');
             }
 
+            if (module.type === 'math') {
+                var sources = valueModules().filter(function (item) { return item.id !== module.id; });
+                ['left', 'right'].forEach(function (side) {
+                    settingInput(side === 'left' ? 'First value' : 'Second value', side + 'Value', module[side + 'Value']);
+                    settingSelect((side === 'left' ? 'First' : 'Second') + ' value from', sources, module[side + 'Source'], 'Use fixed value', side + 'Source');
+                });
+                var operation = document.createElement('select');
+                [
+                    ['add', 'Add (+)'],
+                    ['subtract', 'Subtract (-)'],
+                    ['multiply', 'Multiply (×)'],
+                    ['divide', 'Divide (÷)'],
+                    ['modulo', 'Modulo (%)']
+                ].forEach(function (optionData) {
+                    var option = document.createElement('option');
+                    option.value = optionData[0];
+                    option.textContent = optionData[1];
+                    option.selected = option.value === module.mathOperation;
+                    operation.appendChild(option);
+                });
+                operation.dataset.setting = 'mathOperation';
+                inspector.appendChild(field('Operation', operation));
+                if (module.mathOperation === 'divide') {
+                    var rounding = document.createElement('select');
+                    [
+                        ['none', 'Do not round'],
+                        ['up', 'Round up'],
+                        ['down', 'Round down']
+                    ].forEach(function (optionData) {
+                        var option = document.createElement('option');
+                        option.value = optionData[0];
+                        option.textContent = optionData[1];
+                        option.selected = option.value === module.mathRounding;
+                        rounding.appendChild(option);
+                    });
+                    rounding.dataset.setting = 'mathRounding';
+                    inspector.appendChild(field('Rounding', rounding));
+                }
+            }
+
             if (module.type === 'group') {
                 var groupHint = document.createElement('p');
                 groupHint.className = 'studio-muted';
@@ -420,6 +491,14 @@
                 groupCanvas.dataset.groupCanvas = module.id;
                 renderModules(groupCanvas, module.children, false);
                 body.appendChild(groupCanvas);
+                return body;
+            }
+
+            if (module.type === 'math') {
+                var calculation = document.createElement('output');
+                calculation.className = 'math-result';
+                calculation.dataset.mathResult = module.id;
+                body.appendChild(calculation);
                 return body;
             }
 
@@ -477,7 +556,8 @@
 
         // render grouped modules recursively
         function renderModules(layout, list, root) {
-            list.forEach(function (module) {
+            var visibleModules = mode === 'playtest' ? list.filter(function (module) { return module.type !== 'math'; }) : list;
+            visibleModules.forEach(function (module) {
                 var card = document.createElement('article');
                 card.className = 'sheet-module' + (module.id === selectedId ? ' is-selected' : '') +
                     (selectedModuleIds.includes(module.id) ? ' is-multi-selected' : '');
@@ -533,7 +613,7 @@
                 }
                 layout.appendChild(card);
             });
-            if (root) emptyState.hidden = list.length > 0;
+            if (root) emptyState.hidden = visibleModules.length > 0;
         }
 
         // redraw the root canvas
@@ -551,6 +631,8 @@
             if (module.type === 'dice') {
                 var match = module.rollResult.match(/(?:=\s*)?(-?\d+)$/);
                 value = match ? Number(match[1]) : 0;
+            } else if (module.type === 'math') {
+                value = calculateMath(module, visited).result;
             } else if (module.source) {
                 value = resolveValue(module.source, visited);
             } else if (module.type === 'number') {
@@ -569,6 +651,30 @@
             }
             delete visited[id];
             return value;
+        }
+
+        function calculateMath(module, visited) {
+            var left = module.leftSource ? Number(resolveValue(module.leftSource, visited)) : Number(module.leftValue || 0);
+            var right = module.rightSource ? Number(resolveValue(module.rightSource, visited)) : Number(module.rightValue || 0);
+            var result;
+            switch (module.mathOperation) {
+                case 'subtract': result = left - right; break;
+                case 'multiply': result = left * right; break;
+                case 'divide':
+                    result = right === 0 ? NaN : left / right;
+                    if (module.mathRounding === 'up') result = Math.ceil(result);
+                    if (module.mathRounding === 'down') result = Math.floor(result);
+                    break;
+                case 'modulo': result = right === 0 ? NaN : left % right; break;
+                default: result = left + right;
+            }
+            return {
+                left: left,
+                right: right,
+                result: result,
+                error: (module.mathOperation === 'divide' || module.mathOperation === 'modulo') && right === 0 ?
+                    'Cannot divide or modulo by zero' : ''
+            };
         }
 
         function diceCount(module) {
@@ -614,6 +720,17 @@
             studio.querySelectorAll('[data-dice-formula]').forEach(function (formula) {
                 var module = findModule(formula.dataset.diceFormula);
                 if (module) formula.textContent = diceFormula(module);
+            });
+            studio.querySelectorAll('[data-math-result]').forEach(function (output) {
+                var module = findModule(output.dataset.mathResult);
+                if (!module) return;
+                var calculation = calculateMath(module, {});
+                if (!Number.isFinite(calculation.result)) {
+                    output.textContent = calculation.error || 'Invalid input';
+                    return;
+                }
+                var symbols = { add: '+', subtract: '−', multiply: '×', divide: '÷', modulo: '%' };
+                output.textContent = calculation.left + ' ' + symbols[module.mathOperation] + ' ' + calculation.right + ' = ' + calculation.result;
             });
         }
 

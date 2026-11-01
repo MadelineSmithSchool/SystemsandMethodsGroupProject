@@ -746,6 +746,14 @@ h2 {
   color: #f2f6f8;
 }
 
+.sheet-module[data-module-type="math"] .sheet-module-header {
+  background: #624c7b;
+}
+
+.sheet-studio[data-mode="playtest"] [data-module-type="math"] {
+  display: none;
+}
+
 .sheet-module-header strong {
   min-width: 0;
   flex: 1;
@@ -868,7 +876,8 @@ h2 {
 }
 
 .dice-result,
-.number-output {
+.number-output,
+.math-result {
   color: var(--teal);
   font-family: var(--font-head);
   font-size: 1.35rem;
