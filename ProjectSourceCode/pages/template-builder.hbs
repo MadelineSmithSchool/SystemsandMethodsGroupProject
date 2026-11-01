@@ -130,7 +130,8 @@
                 id: String(nextId++), type: type, name: names[type],
                 col: placement.col, row: placement.row,
                 colSpan: placement.colSpan, rowSpan: placement.rowSpan, value: type === 'number' ? '10' : '', checked: false,
-                count: 1, countSource: '', sides: 20, sidesSource: '', source: '', modifiers: [], rollResult: '', children: []
+                count: 1, countSource: '', sides: 20, sidesSource: '', source: '', modifiers: [], rollResult: '', children: [],
+                uncheckedValue: 0, checkedValue: 1, keepHighest: 0, keepHighestSource: '', bonusSource: ''
             };
             siblings.push(module);
             selectedId = module.id;
@@ -238,6 +239,15 @@
                 inspector.appendChild(field('Starting value', defaultValue));
             }
 
+            if (module.type === 'checkbox' && !module.source) {
+                var uncheckedValue = inputControl('number', module.uncheckedValue);
+                uncheckedValue.dataset.setting = 'uncheckedValue';
+                inspector.appendChild(field('Value when not checked', uncheckedValue));
+                var checkedValue = inputControl('number', module.checkedValue);
+                checkedValue.dataset.setting = 'checkedValue';
+                inspector.appendChild(field('Value when checked', checkedValue));
+            }
+
             if (module.type === 'number') {
                 var modifierHeading = document.createElement('strong');
                 modifierHeading.textContent = 'Conditional changes';
@@ -277,17 +287,28 @@
                 var countInput = inputControl('number', module.count, 1, 100);
                 countInput.dataset.setting = 'count';
                 inspector.appendChild(field('Number of dice', countInput));
+                var sidesInput = inputControl('number', module.sides, 2, 1000);
+                sidesInput.dataset.setting = 'sides';
+                inspector.appendChild(field('Die sides', sidesInput));
+                var keepHighestInput = inputControl('number', module.keepHighest, 0, 100);
+                keepHighestInput.dataset.setting = 'keepHighest';
+                inspector.appendChild(field('Keep highest', keepHighestInput));
                 var countSource = document.createElement('select');
                 selectOptions(countSource, valueModules().filter(function (item) { return item.id !== module.id; }), module.countSource, 'Fixed dice count');
                 countSource.dataset.setting = 'countSource';
                 inspector.appendChild(field('Count from', countSource));
-                var sidesInput = inputControl('number', module.sides, 2, 1000);
-                sidesInput.dataset.setting = 'sides';
-                inspector.appendChild(field('Die sides', sidesInput));
                 var sidesSource = document.createElement('select');
                 selectOptions(sidesSource, valueModules().filter(function (item) { return item.id !== module.id; }), module.sidesSource, 'Fixed die sides');
                 sidesSource.dataset.setting = 'sidesSource';
                 inspector.appendChild(field('Sides from', sidesSource));
+                var keepHighestSource = document.createElement('select');
+                selectOptions(keepHighestSource, valueModules().filter(function (item) { return item.id !== module.id; }), module.keepHighestSource, 'Use fixed keep highest');
+                keepHighestSource.dataset.setting = 'keepHighestSource';
+                inspector.appendChild(field('Keep highest from', keepHighestSource));
+                var bonusSource = document.createElement('select');
+                selectOptions(bonusSource, valueModules().filter(function (item) { return item.id !== module.id; }), module.bonusSource, 'No bonus');
+                bonusSource.dataset.setting = 'bonusSource';
+                inspector.appendChild(field('Add number value', bonusSource));
             }
 
             if (module.type === 'group') {
@@ -332,7 +353,7 @@
                 var formula = document.createElement('p');
                 formula.className = 'dice-formula';
                 formula.dataset.diceFormula = module.id;
-                formula.textContent = diceCount(module) + 'd' + diceSides(module);
+                formula.textContent = diceFormula(module);
                 var rollButton = document.createElement('button');
                 rollButton.type = 'button';
                 rollButton.className = 'btn dice-roll-button';
@@ -466,11 +487,10 @@
             } else if (module.type === 'number') {
                 value = Number(module.value || 0);
             } else if (module.type === 'checkbox') {
-                value = Boolean(module.checked);
+                value = Number(module.checked ? module.checkedValue : module.uncheckedValue);
             } else {
                 value = module.value || '';
             }
-            if (module.type === 'checkbox' && module.source) value = Boolean(value);
             if (module.type === 'number') {
                 value = Number(value) || 0;
                 module.modifiers.forEach(function (modifier) {
@@ -492,6 +512,24 @@
             return Math.max(2, Math.min(1000, Math.floor(linked || 20)));
         }
 
+        function diceKeepHighest(module) {
+            var linked = module.keepHighestSource ? Number(resolveValue(module.keepHighestSource, {})) : Number(module.keepHighest || 0);
+            return Math.max(0, Math.min(diceCount(module), Math.floor(linked || 0)));
+        }
+
+        function diceBonus(module) {
+            return module.bonusSource ? Number(resolveValue(module.bonusSource, {})) || 0 : 0;
+        }
+
+        function diceFormula(module) {
+            var count = diceCount(module);
+            var keepHighest = diceKeepHighest(module);
+            var formula = count + 'd' + diceSides(module) + (keepHighest ? 'kh' + keepHighest : '');
+            var bonus = diceBonus(module);
+            if (bonus) formula += bonus > 0 ? ' +' + bonus : ' ' + bonus;
+            return formula;
+        }
+
         // sync derived values
         function updateLiveValues() {
             studio.querySelectorAll('[data-module-value]').forEach(function (input) {
@@ -506,7 +544,7 @@
             });
             studio.querySelectorAll('[data-dice-formula]').forEach(function (formula) {
                 var module = findModule(formula.dataset.diceFormula);
-                if (module) formula.textContent = diceCount(module) + 'd' + diceSides(module);
+                if (module) formula.textContent = diceFormula(module);
             });
         }
 
@@ -737,9 +775,20 @@
                 var dice = findModule(roll.dataset.rollModule);
                 var count = diceCount(dice);
                 var sides = diceSides(dice);
+                var keepHighest = diceKeepHighest(dice);
                 var rolls = [];
                 for (var index = 0; index < count; index += 1) rolls.push(Math.floor(Math.random() * sides) + 1);
-                dice.rollResult = rolls.length === 1 ? String(rolls[0]) : rolls.join(' + ') + ' = ' + rolls.reduce(function (total, value) { return total + value; }, 0);
+                var kept = keepHighest ? rolls.slice().sort(function (first, second) { return second - first; }).slice(0, keepHighest) : rolls;
+                var rollTotal = kept.reduce(function (total, value) { return total + value; }, 0);
+                var bonus = diceBonus(dice);
+                var total = rollTotal + bonus;
+                if (keepHighest) {
+                    dice.rollResult = 'Rolls: ' + rolls.join(', ') + ' (kept ' + kept.join(', ') + ')' + (bonus ? (bonus > 0 ? ' + ' : ' ') + bonus : '') + ' = ' + total;
+                } else if (bonus) {
+                    dice.rollResult = rolls.join(' + ') + (bonus > 0 ? ' + ' : ' ') + bonus + ' = ' + total;
+                } else {
+                    dice.rollResult = rolls.length === 1 ? String(rolls[0]) : rolls.join(' + ') + ' = ' + total;
+                }
                 renderCanvas();
                 return;
             }
@@ -777,7 +826,7 @@
         function updateSetting(control, setting) {
             var module = findModule(selectedId);
             if (!module) return;
-            module[setting] = ['value', 'count', 'sides'].includes(setting) ? Number(control.value) : control.value;
+            module[setting] = ['value', 'count', 'sides', 'uncheckedValue', 'checkedValue', 'keepHighest'].includes(setting) ? Number(control.value) : control.value;
             if (setting === 'name') {
                 var header = studio.querySelector('[data-sheet-module="' + module.id + '"] [data-module-title]');
                 if (header) {
@@ -787,11 +836,11 @@
                 updateLiveValues();
                 return;
             }
-            if (setting === 'value' || setting === 'count' || setting === 'sides') {
+            if (setting === 'value' || setting === 'count' || setting === 'sides' || setting === 'uncheckedValue' || setting === 'checkedValue' || setting === 'keepHighest') {
                 updateLiveValues();
                 return;
             }
-            if (setting === 'source' || setting === 'countSource' || setting === 'sidesSource') module.rollResult = '';
+            if (setting === 'source' || setting === 'countSource' || setting === 'sidesSource' || setting === 'keepHighestSource' || setting === 'bonusSource') module.rollResult = '';
             refresh();
         }
 
