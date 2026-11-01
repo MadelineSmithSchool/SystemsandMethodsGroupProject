@@ -28,6 +28,20 @@ CREATE TABLE IF NOT EXISTS templates (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS presets (
+    preset_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    preset_name VARCHAR(50) NOT NULL,
+
+    preset_desc VARCHAR(255),
+
+    preset_data JSONB NOT NULL,
+
+    user_id INT NOT NULL REFERENCES users(user_id),
+
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS characters (
     character_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     

@@ -131,6 +131,24 @@ const auth = (req, res, next) => {
   next();
 };
 
+const apiAuth = (req, res, next) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Please log in to continue.' });
+  next();
+};
+
+const saveDraft = (req, res) => {
+  // TODO: add save functionality and add to database.
+  res.status(501).json({ error: 'you gotta code this.' });
+};
+
+const publishTemplate = (req, res) => {
+  // TODO: add publish functionality and add to database.
+  res.status(501).json({ error: 'this too bud.' });
+};
+//todo
+app.post('/template-builder/save-draft', apiAuth, saveDraft);
+app.post('/template-builder/publish', apiAuth, publishTemplate);
+
 app.get('/tutorial', auth, (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard tutorial' , login: true});
 });
