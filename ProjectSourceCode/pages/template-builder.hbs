@@ -12,8 +12,8 @@
                 <button type="button" role="tab" aria-selected="false" data-view-button="playtest">Playtest</button>
             </div>
             <button class="btn" type="button">Download .json</button>
-            <button class="btn" type="button">Save draft</button>
-            <button class="btn studio-publish" type="button">Publish</button>
+            <button class="btn" type="button" data-save-draft>Save draft</button>
+            <button class="btn studio-publish" type="button" data-publish-template>Publish</button>
         </div>
     </header>
 
@@ -92,6 +92,8 @@
         var rootCanvas = studio.querySelector('[data-root-canvas]');
         var inspector = studio.querySelector('[data-inspector]');
         var emptyState = studio.querySelector('[data-empty-state]');
+        var saveDraftButton = studio.querySelector('[data-save-draft]');
+        var publishButton = studio.querySelector('[data-publish-template]');
         var modules = [];
         var savedPresets = [];
         var selectedModuleIds = [];
@@ -1037,6 +1039,27 @@
 
         studio.querySelector('#sheet-name').addEventListener('input', function (event) {
             if (mode === 'playtest') studio.querySelector('[data-workspace-title]').textContent = event.target.value || 'Character sheet';
+        });
+
+        function postTemplateAction(endpoint) {
+            fetch(endpoint, { method: 'POST' })
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.json().then(function (result) {
+                            throw new Error(result.error || 'The request could not be completed.');
+                        });
+                    }
+                })
+                .catch(function (error) {
+                    window.alert(error.message);
+                });
+        }
+
+        saveDraftButton.addEventListener('click', function () {
+            postTemplateAction('/template-builder/save-draft');
+        });
+        publishButton.addEventListener('click', function () {
+            postTemplateAction('/template-builder/publish');
         });
 
         refresh();
