@@ -1,0 +1,288 @@
+<main class="dash" id="dash">
+
+  {{!-- ============ START SCREEN: how do you want to begin? ============ --}}
+  <section class="start" id="start-screen" aria-labelledby="start-title">
+    <div class="start-head">
+      <h1 id="start-title">Start your character</h1>
+      <p>Pick how you want to begin. You can name your character and add cards once you are in.</p>
+    </div>
+
+    <ul class="start-options">
+      <li>
+        {{!-- TODO: replace "#" with the Upload template page URL --}}
+        <a class="option" href="#">
+          <span class="option-title">Upload a template</span>
+          <span class="option-desc">Already have a template file? Bring it in and pick up where it left off.</span>
+        </a>
+      </li>
+      <li>
+        <button type="button" class="option" data-start="scratch">
+          <span class="option-title">Build from scratch</span>
+          <span class="option-desc">Start with an empty dashboard and add only the cards you want.</span>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="option" data-start="template">
+          <span class="option-title">Build from a template</span>
+          <span class="option-desc">Start from a pre-built template and change whatever you like.</span>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="option" data-start="previous">
+          <span class="option-title">Work on a previous template</span>
+          <span class="option-desc">Open one of the templates you already saved.</span>
+        </button>
+      </li>
+    </ul>
+  </section>
+
+  {{!-- ============ WORKSPACE: name + cards panel + dashboard ============ --}}
+  <section class="workspace" id="workspace" aria-label="Character dashboard" hidden>
+    <div class="workspace-bar">
+      <div class="name-field">
+        <label for="character-name">Character name</label>
+        <input type="text" id="character-name" maxlength="60" placeholder="Unnamed adventurer" autocomplete="off">
+        <p class="mode-note" id="mode-note"></p>
+      </div>
+
+      <div class="workspace-actions">
+        <button type="button" class="btn" id="toggle-sidebar" aria-expanded="true" aria-controls="sidebar">Hide cards panel</button>
+        <button type="button" class="btn btn--ghost" id="back-to-start">Back to start</button>
+      </div>
+    </div>
+
+    <div class="workspace-body">
+      <aside class="sidebar" id="sidebar" aria-label="Add cards">
+        <h2>Add cards</h2>
+        <h3 class="sidebar-group">Ability scores</h3>
+
+        <ul class="stat-list">
+          <li class="stat-item" data-stat="str" data-name="Strength" data-abbr="STR">
+            <div class="stat-info"><strong>Strength</strong><span>STR</span></div>
+            <button type="button" class="btn btn--sm" aria-label="Add Strength card">Add</button>
+          </li>
+          <li class="stat-item" data-stat="dex" data-name="Dexterity" data-abbr="DEX">
+            <div class="stat-info"><strong>Dexterity</strong><span>DEX</span></div>
+            <button type="button" class="btn btn--sm" aria-label="Add Dexterity card">Add</button>
+          </li>
+          <li class="stat-item" data-stat="con" data-name="Constitution" data-abbr="CON">
+            <div class="stat-info"><strong>Constitution</strong><span>CON &middot; endurance</span></div>
+            <button type="button" class="btn btn--sm" aria-label="Add Constitution card">Add</button>
+          </li>
+          <li class="stat-item" data-stat="int" data-name="Intelligence" data-abbr="INT">
+            <div class="stat-info"><strong>Intelligence</strong><span>INT</span></div>
+            <button type="button" class="btn btn--sm" aria-label="Add Intelligence card">Add</button>
+          </li>
+          <li class="stat-item" data-stat="wis" data-name="Wisdom" data-abbr="WIS">
+            <div class="stat-info"><strong>Wisdom</strong><span>WIS</span></div>
+            <button type="button" class="btn btn--sm" aria-label="Add Wisdom card">Add</button>
+          </li>
+          <li class="stat-item" data-stat="cha" data-name="Charisma" data-abbr="CHA">
+            <div class="stat-info"><strong>Charisma</strong><span>CHA</span></div>
+            <button type="button" class="btn btn--sm" aria-label="Add Charisma card">Add</button>
+          </li>
+        </ul>
+
+        <button type="button" class="btn btn--block" id="add-all">Add all six</button>
+      </aside>
+
+      <div class="canvas" id="canvas">
+        <p class="canvas-empty" id="canvas-empty">No cards yet. Use the cards panel to add your first one.</p>
+      </div>
+    </div>
+  </section>
+
+  {{!-- ============ POP-UP: build from a pre-built template ============ --}}
+  <dialog class="picker" id="template-dialog" aria-labelledby="template-dialog-title">
+    <div class="picker-inner">
+      <h2 id="template-dialog-title">Choose a template</h2>
+      {{!-- DATA: pass `prebuiltTemplates` from your route, e.g. [{ id: 1, name: 'Fighter' }] --}}
+      <ul class="picker-list">
+        {{#each prebuiltTemplates}}
+          <li>
+            <button type="button" class="picker-item" data-template-id="{{id}}" data-template-name="{{name}}">
+              <span>{{name}}</span>
+            </button>
+          </li>
+        {{else}}
+          <li class="picker-empty">Pre-built templates are coming soon.</li>
+        {{/each}}
+      </ul>
+      <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+    </div>
+  </dialog>
+
+  {{!-- ============ POP-UP: previous templates (from the database) ============ --}}
+  <dialog class="picker" id="previous-dialog" aria-labelledby="previous-dialog-title">
+    <div class="picker-inner">
+      <h2 id="previous-dialog-title">Your templates</h2>
+      {{!-- DATA: pass `templates` from your route, e.g. [{ id: 7, name: 'Elf Ranger', updated: 'Oct 12' }] --}}
+      <ul class="picker-list">
+        {{#each templates}}
+          <li>
+            <button type="button" class="picker-item" data-template-id="{{id}}" data-template-name="{{name}}">
+              <span>{{name}}</span>
+              {{#if updated}}<span class="picker-meta">{{updated}}</span>{{/if}}
+            </button>
+          </li>
+        {{else}}
+          <li class="picker-empty">You do not have any saved templates yet.</li>
+        {{/each}}
+      </ul>
+      <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+    </div>
+  </dialog>
+
+</main>
+
+<script>
+  (function () {
+    var startScreen = document.getElementById('start-screen');
+    var workspace = document.getElementById('workspace');
+    var nameInput = document.getElementById('character-name');
+    var modeNote = document.getElementById('mode-note');
+    var sidebar = document.getElementById('sidebar');
+    var toggleBtn = document.getElementById('toggle-sidebar');
+    var backBtn = document.getElementById('back-to-start');
+    var addAllBtn = document.getElementById('add-all');
+    var canvas = document.getElementById('canvas');
+    var emptyNote = document.getElementById('canvas-empty');
+    var templateDialog = document.getElementById('template-dialog');
+    var previousDialog = document.getElementById('previous-dialog');
+    var statItems = Array.prototype.slice.call(document.querySelectorAll('.stat-item'));
+
+    /* ---------- Start screen ---------- */
+    function openWorkspace(note, name) {
+      startScreen.hidden = true;
+      workspace.hidden = false;
+      modeNote.textContent = note;
+      nameInput.value = name || '';
+      nameInput.focus();
+    }
+
+    document.querySelectorAll('[data-start]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var choice = btn.dataset.start;
+        if (choice === 'scratch') openWorkspace('New template, built from scratch', '');
+        if (choice === 'template') templateDialog.showModal();
+        if (choice === 'previous') previousDialog.showModal();
+      });
+    });
+
+    // Pop-up lists: pick an item or cancel.
+    [templateDialog, previousDialog].forEach(function (dialog) {
+      dialog.addEventListener('click', function (e) {
+        if (e.target.closest('[data-close]')) {
+          dialog.close();
+          return;
+        }
+        var item = e.target.closest('.picker-item');
+        if (!item) return;
+        dialog.close();
+        // TODO: load the saved cards and scores for item.dataset.templateId from your database.
+        if (dialog === previousDialog) {
+          openWorkspace('Editing template: ' + item.dataset.templateName, item.dataset.templateName);
+        } else {
+          openWorkspace('Based on template: ' + item.dataset.templateName, '');
+        }
+      });
+    });
+
+    /* ---------- Cards panel (sidebar) ---------- */
+    toggleBtn.addEventListener('click', function () {
+      var willOpen = sidebar.hidden;
+      sidebar.hidden = !willOpen;
+      toggleBtn.setAttribute('aria-expanded', String(willOpen));
+      toggleBtn.textContent = willOpen ? 'Hide cards panel' : 'Show cards panel';
+    });
+
+    function el(tag, className, text) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    // D&D ability modifier: (score - 10) / 2, rounded down.
+    function modifier(score) {
+      var n = parseInt(score, 10);
+      if (isNaN(n)) return '\u2013';
+      var m = Math.floor((n - 10) / 2);
+      return (m >= 0 ? '+' : '') + m;
+    }
+
+    function setAdded(item, added) {
+      var btn = item.querySelector('button');
+      btn.disabled = added;
+      btn.textContent = added ? 'Added' : 'Add';
+      btn.setAttribute('aria-label', added ? item.dataset.name + ' card added' : 'Add ' + item.dataset.name + ' card');
+    }
+
+    function refresh() {
+      var count = canvas.querySelectorAll('.stat-card').length;
+      emptyNote.hidden = count > 0;
+      addAllBtn.disabled = count === statItems.length;
+    }
+
+    function addStat(item) {
+      var key = item.dataset.stat;
+      if (canvas.querySelector('.stat-card[data-stat="' + key + '"]')) return;
+
+      var card = el('article', 'stat-card');
+      card.dataset.stat = key;
+
+      var remove = el('button', 'card-remove', '\u00d7');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', 'Remove ' + item.dataset.name + ' card');
+
+      var modOut = el('output', 'stat-mod', modifier(10));
+      var inputId = 'score-' + key;
+      var label = el('label', 'stat-label', 'Score');
+      label.htmlFor = inputId;
+      var input = el('input', 'stat-score');
+      input.type = 'number';
+      input.id = inputId;
+      input.min = '1';
+      input.max = '30';
+      input.value = '10';
+
+      input.addEventListener('input', function () { modOut.textContent = modifier(input.value); });
+      remove.addEventListener('click', function () {
+        card.remove();
+        setAdded(item, false);
+        refresh();
+      });
+
+      card.appendChild(remove);
+      card.appendChild(el('h3', null, item.dataset.name));
+      card.appendChild(el('span', 'stat-abbr', item.dataset.abbr));
+      card.appendChild(modOut);
+      card.appendChild(el('span', 'stat-caption', 'modifier'));
+      card.appendChild(label);
+      card.appendChild(input);
+
+      canvas.appendChild(card);
+      setAdded(item, true);
+      refresh();
+    }
+
+    sidebar.addEventListener('click', function (e) {
+      var btn = e.target.closest('.stat-item button');
+      if (btn) addStat(btn.closest('.stat-item'));
+    });
+    addAllBtn.addEventListener('click', function () { statItems.forEach(addStat); });
+
+    /* ---------- Back to start ---------- */
+    backBtn.addEventListener('click', function () {
+      var hasCards = canvas.querySelectorAll('.stat-card').length > 0;
+      if (hasCards && !window.confirm('Go back to the start? The cards you added will be cleared.')) return;
+      canvas.querySelectorAll('.stat-card').forEach(function (card) { card.remove(); });
+      statItems.forEach(function (item) { setAdded(item, false); });
+      refresh();
+      workspace.hidden = true;
+      startScreen.hidden = false;
+    });
+
+    refresh();
+  })();
+</script>
