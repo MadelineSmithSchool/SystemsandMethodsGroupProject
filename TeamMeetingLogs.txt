@@ -14,3 +14,19 @@ Decisions made:
 
 Follow-up items:
 - Everyone: keep the release notes and these minutes updated every week
+
+== Week of 11/02/2026 - TA Meeting (Mon 11/02, 1:45 PM, Zoom) ==
+
+What everyone did:
+- Aidan Jiang: 
+- Sawyer Rockey: Added some of the partials for login and figured out the modular programming for the templates.
+- Kristin Kim: Added the handlebar partials and worked on the login and register forms.
+- Madeline Smith: Worked on the nav bar, tutorial page, added a basic dashboard, and error handling.
+- Lucas Moraca: Worked on the templates (upload and download + integrating it to the database)
+
+Decisions made:
+- 
+
+Follow-up items:
+- Everyone: 
+
