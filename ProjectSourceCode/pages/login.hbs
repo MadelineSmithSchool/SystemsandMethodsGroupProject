@@ -1,11 +1,12 @@
 <div class="d-flex justify-content-center">
     <div>
         <h2>Login</h2>
-        <form action="/login" method="GET">
+        {{> form-errors}}
+        <form action="/login" method="POST">
             <label for="username">Username</label><br>
-            <input type="text" id="username" name="username"><br><br>
+            <input type="text" id="username" name="username" maxlength="50" value="{{username}}" autocomplete="username" required><br><br>
             <label for="password">Password</label><br>
-            <input type="text" id="password" name="password"><br><br>
+            <input type="password" id="password" name="password" maxlength="72" autocomplete="current-password" required><br><br>
             <input type="submit" value="Login">
         </form>
         <p>Don't have an account? <a href="/register">Register</a></p>

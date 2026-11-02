@@ -247,7 +247,85 @@
   box-shadow: 6px 6px 0 var(--shadow);
 }
 
+<<<<<<< Updated upstream
 .stat-card h3 {
+=======
+/* ---------- Small screens ---------- */
+@media (max-width: 40rem) {
+  :root {
+    --card-w: 82vw;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+  }
+}
+
+/*login register form specific stuff*/
+.form{
+  margin-top:7vh;
+  background-color: white;
+  padding: 60px;
+  border-radius: 20%;
+  border-color: #17283a;
+  border-style: groove;
+}
+
+.form-error {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #b91c1c;
+  border-left-width: 4px;
+  border-radius: 0.35rem;
+  background-color: #fef2f2;
+  color: #7f1d1d;
+}
+
+.form-error p {
+  margin: 0;
+  font-weight: 700;
+}
+
+.form-error ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.25rem;
+}
+
+/* Temporary prototype warnings; keep visible until this design is replaced. */
+.prototype-flag {
+  margin: 0 0 0.35rem;
+  color: var(--teal);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.prototype-note {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--gold);
+  background: #fff7e6;
+  color: var(--ink);
+}
+/* Temporary developer/playtest studio; replace with the finalized sheet designer as needed. */
+.sheet-studio {
+  --layout-columns: 12;
+  flex: 1;
+  width: min(100%, 100rem);
+  margin: 0 auto;
+  padding: 1.75rem var(--pad) 3rem;
+}
+
+.studio-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.studio-header h1 {
+>>>>>>> Stashed changes
   margin: 0;
   font-family: var(--font-head);
   font-size: 1.2rem;
