@@ -1,5 +1,14 @@
 # Release Notes
 
+## Week of 11/30/2026
+- keep updated with what you work on in the past week (idk if we will have a meeting this week)
+
+## Week of 11/16/2026
+- keep updated with what you work on in the past week
+
+## Week of 11/9/2026
+- keep updated with what you work on in the past week
+
 ## Week of 11/2/2026
 - set up rester and sign in pages
 - set up dashboard
