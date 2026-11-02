@@ -190,6 +190,11 @@ app.get('/tutorial', auth, (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard tutorial' , login: true});
 });
 
+// This admin route is called /manage to make it marginally harder for bots to find.
+app.get('/manage', (req, res) => {
+  res.render('pages/admin', { title: 'Admin', admin: true });
+});
+
 // upload / send templates (routes/templates.js)
 app.use('/templates', require('./routes/templates')(db, auth));
 

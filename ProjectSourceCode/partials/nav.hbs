@@ -2,7 +2,12 @@
   <!-- TODO: rename the site and point this at your home page -->
   <a class="brand" href="/">RPG Templates</a>
   <nav aria-label="Main">
-    {{#if login}}
+    {{#if admin}}
+      <ul class="nav-list">
+        <li><input class="form-control" type="search" aria-label="User search" placeholder="Search users"></li>
+        <li><input class="form-control" type="search" aria-label="Library search" placeholder="Search library"></li>
+      </ul>
+    {{else if login}}
       <ul class="nav-list">
         <li><a href="/tutorial">Tutorial</a></li>
         <li><a href="/templates/upload">Upload Template</a></li>
