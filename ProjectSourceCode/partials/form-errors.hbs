@@ -1,0 +1,8 @@
+{{#if errors}}
+<div class="form-error" role="alert" aria-live="assertive">
+    <p>There was a problem:</p>
+    <ul>
+        {{#each errors}}<li>{{this}}</li>{{/each}}
+    </ul>
+</div>
+{{/if}}
