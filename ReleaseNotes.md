@@ -5,6 +5,8 @@
 - set up dashboard
 - db
 - connection to db
+- created empty admin page for placeholder
+- started work on modular sheet design
 
 ## Week of 10/26/2026
 - Set up the repo structure (MilestoneSubmissions, ProjectSourceCode, SourceCode)

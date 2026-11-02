@@ -28,5 +28,5 @@ Decisions made:
 - 
 
 Follow-up items:
-- Everyone: 
+- Everyone: keep track of releasenotes better in the future, due before each meeting, these logs are due midnight after meeting
 
