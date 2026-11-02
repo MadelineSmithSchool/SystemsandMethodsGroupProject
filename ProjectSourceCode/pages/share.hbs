@@ -1,0 +1,12 @@
+<main class="container my-4" style="max-width: 640px;">
+    <h2>Send {{template.template_name}}</h2>
+    <p class="text-muted">Anyone with this link can view and download this template.</p>
+
+    <div class="input-group mb-3">
+        <input id="link" class="form-control" type="text" value="{{link}}" readonly>
+        <button class="btn btn-primary" type="button"
+            onclick="navigator.clipboard.writeText(document.getElementById('link').value); this.textContent = 'Copied!';">Copy link</button>
+    </div>
+
+    <a href="/templates/{{template.template_id}}" class="btn btn-outline-secondary">Back</a>
+</main>

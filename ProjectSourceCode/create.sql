@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE NOT NULL,
 
     email VARCHAR(255) NOT NULL,
+
+    password_hash VARCHAR(60) NOT NULL,
     
     auth_token VARCHAR(32) UNIQUE NOT NULL,
     
@@ -17,8 +19,26 @@ CREATE TABLE IF NOT EXISTS templates (
 
     template_desc VARCHAR(255) NOT NULL,
 
+    template_data JSONB,
+
+    share_id VARCHAR(32) UNIQUE,
+
     user_id INT REFERENCES users(user_id),
     
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS presets (
+    preset_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    preset_name VARCHAR(50) NOT NULL,
+
+    preset_desc VARCHAR(255),
+
+    preset_data JSONB NOT NULL,
+
+    user_id INT NOT NULL REFERENCES users(user_id),
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

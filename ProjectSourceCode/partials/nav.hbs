@@ -1,15 +1,28 @@
 <header class="site-header">
   <!-- TODO: rename the site and point this at your home page -->
-  <a class="brand" href="/index">Character Builder</a>
+  <a class="brand" href="/">RPG Templates</a>
   <nav aria-label="Main">
-    <ul class="nav-list">
-      <!-- TODO: replace each "#" with the real page URL -->
-      <li><a href="#">Upload template</a></li>
-      <li><a href="#">Send template</a></li>
-      <li><a href="#">Build new template</a></li>
-      <li><a href="#">Template library</a></li>
-      <li><a href="/tutorial">Tutorial</a></li>
-    </ul>
+    {{#if login}}
+      <ul class="nav-list">
+        <li><a href="/tutorial">Tutorial</a></li>
+        <li><a href="/templates/upload">Upload Template</a></li>
+        {{!-- <li><a href="/templates">Send template</a></li> idrk what this is supposed to be so I left it  --}}
+        <li><a href="/templates/new">Build New Template</a></li>
+        {{!-- TODO: EVERYTHING BELOW THIS LINE IS NOT DONE AND NEEDS TO BE FINISHED --}}
+        <li><a href="#">My Templates</a></li>
+        <li><a href="/characters">My Characters</a></li>
+        <li><a href="/characters/new">Create A Character</a></li> 
+        <li><a href="/templates/library">Template Library</a></li>
+        <li><a href="/settings">Settings</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    {{else}}
+      <ul class="nav-list">
+        <!-- TODO: replace each "#" with the real page URL -->
+        <li><a href="/login">Login</a></li>
+        <li><a href="/register">Register</a></li>
+      </ul>
+    {{/if}}
   </nav>
 </header>
 

@@ -4,18 +4,12 @@
         {{> form-errors}}
         <form action="/register" method="POST">
             <label for="username">Username</label><br>
-<<<<<<< Updated upstream
-            <input type="text" id="username" name="username"><br><br>
-            <label for="password">Password</label><br>
-            <input type="text" id="password" name="password"><br><br>
-=======
             <input type="text" id="username" name="username" maxlength="50" value="{{username}}" autocomplete="username" required><br><br>
             <label for="email">Email</label><br>
             <input type="email" id="email" name="email" maxlength="255" value="{{email}}" autocomplete="email" required><br><br>
             <label for="password">Password</label><br>
             <input type="password" id="password" name="password" minlength="8" autocomplete="new-password" aria-describedby="password-requirements" required><br>
             <small id="password-requirements">Use at least 8 characters. Passwords must be no more than 72 bytes long.</small><br><br>
->>>>>>> Stashed changes
             <input type="submit" value="Register">
         </form>
         <p>Already have an account? <a href="/login">Login</a></p>

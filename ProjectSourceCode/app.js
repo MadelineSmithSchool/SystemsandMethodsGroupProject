@@ -63,23 +63,6 @@ const dbConfig = {
 
 const db = pgp(dbConfig);
 
-<<<<<<< Updated upstream
-// test your database
-db.connect()
-  .then(obj => {
-    console.log('Database connection successful'); // you can view this message in the docker compose logs
-    obj.done(); // success, release the connection;
-  })
-  .catch(error => {
-    console.log('ERROR:', error.message || error);
-  });
-//
-
-app.listen(3000);
-console.log('Server is listening on port 3000');
-
-=======
->>>>>>> Stashed changes
 //ROUTES//
 
 //TODO:
@@ -116,16 +99,6 @@ app.post('/register', async (req, res) => {
   }
 
   try {
-<<<<<<< Updated upstream
-    const hash = await bcrypt.hash(req.body.password, 10);
-    await db.none('INSERT INTO users (username, password) VALUES ($1, $2)',
-      [req.body.username, hash]);
-    res.redirect('/login');
-  } catch (err) {
-    // 23505 = unique violation (username taken)
-    const error = err.code === '23505' ? 'Username already taken' : 'Registration failed';
-    res.render('pages/register', { error });
-=======
     const hash = await bcrypt.hash(password, 10);
     const authToken = crypto.randomBytes(16).toString('hex');
     await db.none(
@@ -148,7 +121,6 @@ app.post('/register', async (req, res) => {
       username,
       email,
     });
->>>>>>> Stashed changes
   }
 });
 
@@ -175,14 +147,6 @@ app.post('/login', async (req, res) => {
 
   try {
     const user = await db.oneOrNone('SELECT * FROM users WHERE username = $1',
-<<<<<<< Updated upstream
-      [req.body.username]);
-    if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
-      return res.render('pages/login', { error: 'Invalid username or password' });
-    }
-    req.session.user = { id: user.id, username: user.username };
-    req.session.save(() => res.redirect('/tutorial')); // TODO: change to real landing page
-=======
       [username]);
     if (
       !user ||
@@ -206,7 +170,6 @@ app.post('/login', async (req, res) => {
       }
       res.redirect('/tutorial'); // TODO: change to real landing page
     });
->>>>>>> Stashed changes
   } catch (err) {
     console.error('Login failed:', err);
     res.status(500).render('pages/login', {
@@ -224,10 +187,6 @@ app.get('/logout', (req, res) => {
 });
 
 app.get('/tutorial', auth, (req, res) => {
-<<<<<<< Updated upstream
-  res.render('pages/tutorial', { title: 'Dashboard tutorial' });
-});
-=======
   res.render('pages/tutorial', { title: 'Dashboard tutorial' , login: true});
 });
 
@@ -254,4 +213,3 @@ const startServer = async () => {
 };
 
 startServer();
->>>>>>> Stashed changes

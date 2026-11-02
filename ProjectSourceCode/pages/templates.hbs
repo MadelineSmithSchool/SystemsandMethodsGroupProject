@@ -1,0 +1,16 @@
+<main class="container my-4" style="max-width: 640px;">
+    <h2>Your templates</h2>
+
+    <ul class="list-group mb-3">
+        {{#each templates}}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="/templates/{{template_id}}">{{template_name}}</a>
+                <a href="/templates/{{template_id}}/share" class="btn btn-sm btn-primary">Send</a>
+            </li>
+        {{else}}
+            <li class="list-group-item text-muted">No templates yet.</li>
+        {{/each}}
+    </ul>
+
+    <a href="/templates/upload" class="btn btn-outline-secondary">Upload a template</a>
+</main>

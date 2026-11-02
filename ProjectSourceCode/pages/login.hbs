@@ -1,5 +1,6 @@
+{{> message}}
 <div class="d-flex justify-content-center">
-    <div>
+    <div class="form">
         <h2>Login</h2>
         {{> form-errors}}
         <form action="/login" method="POST">
@@ -9,6 +10,7 @@
             <input type="password" id="password" name="password" maxlength="72" autocomplete="current-password" required><br><br>
             <input type="submit" value="Login">
         </form>
+        {{#if error}}<p role="alert">{{error}}</p>{{/if}}
         <p>Don't have an account? <a href="/register">Register</a></p>
     </div>
 </div>
