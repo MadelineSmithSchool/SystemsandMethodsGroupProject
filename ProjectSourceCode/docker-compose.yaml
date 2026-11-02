@@ -7,6 +7,11 @@ services:
     volumes:
       - group-project:/var/lib/postgresql/data
       - ./create.sql:/docker-entrypoint-initdb.d/create.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   web:
     image: node:lts
     user: 'node'
@@ -15,7 +20,8 @@ services:
     environment:
       - NODE_ENV=development
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - '3000:3000'
     volumes:
