@@ -154,6 +154,7 @@
                 id: String(nextId++), type: type, name: names[type],
                 col: placement.col, row: placement.row,
                 colSpan: placement.colSpan, rowSpan: placement.rowSpan, value: type === 'number' ? '10' : '', checked: false,
+                visibility: type === 'math' ? 'hidden' : 'shown',
                 count: 1, countSource: '', sides: 20, sidesSource: '', source: '', modifiers: [], rollResult: '', children: [],
                 uncheckedValue: 0, checkedValue: 1, keepHighest: 0, keepHighestSource: '', bonusSource: '',
                 mathOperation: 'add', mathRounding: 'none', leftValue: 0, leftSource: '', rightValue: 0, rightSource: ''
@@ -358,6 +359,10 @@
 
             var nameInput = settingInput('Module name', 'name', module.name);
             nameInput.maxLength = 40;
+            settingSelect('Module visibility', [
+                { id: 'shown', name: 'Shown' },
+                { id: 'hidden', name: 'Hidden' }
+            ], module.visibility || (module.type === 'math' ? 'hidden' : 'shown'), 'Choose visibility', 'visibility');
 
             if (module.type !== 'group' && module.type !== 'dice' && module.type !== 'math') {
                 settingSelect('Input from', valueModules().filter(function (item) { return item.id !== module.id; }), module.source, 'Player enters this value', 'source');
@@ -555,12 +560,17 @@
         }
 
         // render grouped modules recursively
+        function isModuleHidden(module) {
+            return module.visibility === 'hidden' || (!module.visibility && module.type === 'math');
+        }
+
         function renderModules(layout, list, root) {
-            var visibleModules = mode === 'playtest' ? list.filter(function (module) { return module.type !== 'math'; }) : list;
+            var visibleModules = mode === 'playtest' ? list.filter(function (module) { return !isModuleHidden(module); }) : list;
             visibleModules.forEach(function (module) {
                 var card = document.createElement('article');
                 card.className = 'sheet-module' + (module.id === selectedId ? ' is-selected' : '') +
-                    (selectedModuleIds.includes(module.id) ? ' is-multi-selected' : '');
+                    (selectedModuleIds.includes(module.id) ? ' is-multi-selected' : '') +
+                    (isModuleHidden(module) ? ' is-hidden' : '');
                 card.dataset.sheetModule = module.id;
                 card.dataset.moduleType = module.type;
                 setPlacement(card, module, layout);
