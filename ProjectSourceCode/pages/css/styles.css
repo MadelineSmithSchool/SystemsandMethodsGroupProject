@@ -1226,12 +1226,8 @@ h2 {
   color: #f2f6f8;
 }
 
-.sheet-module[data-module-type="math"] .sheet-module-header {
+.sheet-module.is-hidden .sheet-module-header {
   background: #624c7b;
-}
-
-.sheet-studio[data-mode="playtest"] [data-module-type="math"] {
-  display: none;
 }
 
 .sheet-module-header strong {
