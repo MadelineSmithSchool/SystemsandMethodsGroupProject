@@ -1,4 +1,4 @@
-{{!-- Temporary prototype: this browser-only builder may be replaced if the team chooses a better design. --}}
+{{!-- temporary prototype: this browser-only builder may be replaced if the team chooses a better design. --}}
 <main class="sheet-studio" data-sheet-studio data-mode="developer">
     <header class="studio-header">
         <div>
@@ -11,14 +11,14 @@
                 <button type="button" role="tab" aria-selected="true" data-view-button="developer">Developer</button>
                 <button type="button" role="tab" aria-selected="false" data-view-button="playtest">Playtest</button>
             </div>
-            <button class="btn" type="button">Download .json</button>
+            <button class="btn" type="button" data-download-template>Download .json</button>
             <button class="btn" type="button" data-save-draft>Save draft</button>
             <button class="btn studio-publish" type="button" data-publish-template>Publish</button>
         </div>
     </header>
 
     <div class="prototype-note">
-        <p><strong>WIP:</strong> this design is a mockup in desperate need of improvement, but this is generally how i wanted it to work THIS IS NOT CONNECTED TO THE DATABASE, SAVE AND PUBLISH AND DOWNLOAD DO NOTHING.</p>
+        <p><strong>WIP:</strong> this prototype is not connected to the database. Save, publish, and download are placeholders.</p>
         <ul>
             <li>connect to db(save should save as private, publish should change to public or unlisted as the status prolly)</li>
             <li>make the usability more fluid(like its stuck on the grid right now, but maybe outline where it will drop but still follow the mouse to look better)</li>
@@ -94,6 +94,7 @@
         var rootCanvas = studio.querySelector('[data-root-canvas]');
         var inspector = studio.querySelector('[data-inspector]');
         var emptyState = studio.querySelector('[data-empty-state]');
+        var downloadButton = studio.querySelector('[data-download-template]');
         var saveDraftButton = studio.querySelector('[data-save-draft]');
         var publishButton = studio.querySelector('[data-publish-template]');
         var modules = [];
@@ -104,24 +105,54 @@
         var mode = 'developer';
         var activeDrag = null;
         var suppressToolClick = false;
-        var names = { number: 'Number', text: 'Text', dice: 'Dice', checkbox: 'Checkbox', notes: 'Notes', math: 'Math', group: 'Group' };
-        var numericSettings = ['value', 'count', 'sides', 'uncheckedValue', 'checkedValue', 'keepHighest', 'leftValue', 'rightValue'];
+        var names = {
+            number: 'Number',
+            text: 'Text',
+            dice: 'Dice',
+            checkbox: 'Checkbox',
+            notes: 'Notes',
+            math: 'Math',
+            group: 'Group'
+        };
+        var numericSettings = [
+            'value',
+            'count',
+            'sides',
+            'uncheckedValue',
+            'checkedValue',
+            'keepHighest',
+            'leftValue',
+            'rightValue'
+        ];
 
         function placementsOverlap(first, second) {
             return first.col < second.col + second.colSpan && first.col + first.colSpan > second.col &&
                 first.row < second.row + second.rowSpan && first.row + first.rowSpan > second.row;
         }
 
-        // find nearest free area
+        // choose the available grid cell closest to the requested position
         function findOpenPlacement(list, columns, colSpan, rowSpan, preferred, ignoreId) {
             var lastRow = Math.max(24, preferred.row + 12);
-            list.forEach(function (item) { lastRow = Math.max(lastRow, item.row + item.rowSpan + 8); });
+            list.forEach(function (item) {
+                lastRow = Math.max(lastRow, item.row + item.rowSpan + 8);
+            });
             var best = null;
             var bestDistance = Infinity;
+
             for (var row = 1; row <= lastRow; row += 1) {
                 for (var col = 1; col <= columns - colSpan + 1; col += 1) {
-                    var candidate = { col: col, row: row, colSpan: colSpan, rowSpan: rowSpan };
-                    if (list.some(function (item) { return item.id !== ignoreId && placementsOverlap(candidate, item); })) continue;
+                    var candidate = {
+                        col: col,
+                        row: row,
+                        colSpan: colSpan,
+                        rowSpan: rowSpan
+                    };
+                    var overlaps = list.some(function (item) {
+                        return item.id !== ignoreId && placementsOverlap(candidate, item);
+                    });
+                    if (overlaps) continue;
+
+                    // weight vertical distance more heavily to favor a nearby row
                     var distance = Math.abs(col - preferred.col) + Math.abs(row - preferred.row) * 2;
                     if (distance < bestDistance) {
                         best = candidate;
@@ -132,7 +163,7 @@
             return best || { col: 1, row: lastRow + 1, colSpan: colSpan, rowSpan: rowSpan };
         }
 
-        // apply free grid placement
+        // apply the closest available grid position
         function placeAtNearestOpen(list, module, columns, preferred) {
             var placement = findOpenPlacement(list, columns, module.colSpan, module.rowSpan, preferred, module.id);
             module.col = placement.col;
@@ -151,13 +182,35 @@
                 row: 1 + Math.floor(siblings.length / 3) * 3
             });
             var module = {
-                id: String(nextId++), type: type, name: names[type],
-                col: placement.col, row: placement.row,
-                colSpan: placement.colSpan, rowSpan: placement.rowSpan, value: type === 'number' ? '10' : '', checked: false,
+                id: String(nextId++),
+                type: type,
+                name: names[type],
+                col: placement.col,
+                row: placement.row,
+                colSpan: placement.colSpan,
+                rowSpan: placement.rowSpan,
+                value: type === 'number' ? '10' : '',
+                checked: false,
                 visibility: type === 'math' ? 'hidden' : 'shown',
-                count: 1, countSource: '', sides: 20, sidesSource: '', source: '', modifiers: [], rollResult: '', children: [],
-                uncheckedValue: 0, checkedValue: 1, keepHighest: 0, keepHighestSource: '', bonusSource: '',
-                mathOperation: 'add', mathRounding: 'none', leftValue: 0, leftSource: '', rightValue: 0, rightSource: ''
+                count: 1,
+                countSource: '',
+                sides: 20,
+                sidesSource: '',
+                source: '',
+                modifiers: [],
+                rollResult: '',
+                children: [],
+                uncheckedValue: 0,
+                checkedValue: 1,
+                keepHighest: 0,
+                keepHighestSource: '',
+                bonusSource: '',
+                mathOperation: 'add',
+                mathRounding: 'none',
+                leftValue: 0,
+                leftSource: '',
+                rightValue: 0,
+                rightSource: ''
             };
             siblings.push(module);
             selectedId = module.id;
@@ -169,7 +222,14 @@
             var collection = list || modules;
             for (var index = 0; index < collection.length; index += 1) {
                 var module = collection[index];
-                if (module.id === id) return { module: module, list: collection, parent: parent || null, index: index };
+                if (module.id === id) {
+                    return {
+                        module: module,
+                        list: collection,
+                        parent: parent || null,
+                        index: index
+                    };
+                }
                 var nested = findModuleEntry(id, module.children, module);
                 if (nested) return nested;
             }
@@ -222,6 +282,7 @@
                     remapReferences(module.children || []);
                 });
             }
+            // rebuild ids before remapping links between the copied modules
             assignIds(clones);
             remapReferences(clones);
             return clones;
@@ -293,7 +354,9 @@
         function updatePresetSelection() {
             var count = selectedModuleIds.length;
             var status = studio.querySelector('[data-preset-selection]');
-            status.textContent = count ? count + (count === 1 ? ' module selected.' : ' modules selected.') : 'Select modules by dragging across the canvas.';
+            status.textContent = count ?
+                count + (count === 1 ? ' module selected.' : ' modules selected.') :
+                'Select modules by dragging across the canvas.';
             studio.querySelector('[data-save-preset]').disabled = count === 0;
             rootCanvas.querySelectorAll('[data-sheet-module]').forEach(function (element) {
                 element.classList.toggle('is-multi-selected', selectedModuleIds.includes(element.dataset.sheetModule));
@@ -565,12 +628,17 @@
         }
 
         function renderModules(layout, list, root) {
-            var visibleModules = mode === 'playtest' ? list.filter(function (module) { return !isModuleHidden(module); }) : list;
+            var visibleModules = mode === 'playtest' ?
+                list.filter(function (module) { return !isModuleHidden(module); }) :
+                list;
             visibleModules.forEach(function (module) {
                 var card = document.createElement('article');
-                card.className = 'sheet-module' + (module.id === selectedId ? ' is-selected' : '') +
-                    (selectedModuleIds.includes(module.id) ? ' is-multi-selected' : '') +
-                    (isModuleHidden(module) ? ' is-hidden' : '');
+                card.className = [
+                    'sheet-module',
+                    module.id === selectedId ? 'is-selected' : '',
+                    selectedModuleIds.includes(module.id) ? 'is-multi-selected' : '',
+                    isModuleHidden(module) ? 'is-hidden' : ''
+                ].filter(Boolean).join(' ');
                 card.dataset.sheetModule = module.id;
                 card.dataset.moduleType = module.type;
                 setPlacement(card, module, layout);
@@ -664,8 +732,12 @@
         }
 
         function calculateMath(module, visited) {
-            var left = module.leftSource ? Number(resolveValue(module.leftSource, visited)) : Number(module.leftValue || 0);
-            var right = module.rightSource ? Number(resolveValue(module.rightSource, visited)) : Number(module.rightValue || 0);
+            var left = module.leftSource ?
+                Number(resolveValue(module.leftSource, visited)) :
+                Number(module.leftValue || 0);
+            var right = module.rightSource ?
+                Number(resolveValue(module.rightSource, visited)) :
+                Number(module.rightValue || 0);
             var result;
             switch (module.mathOperation) {
                 case 'subtract': result = left - right; break;
@@ -683,22 +755,29 @@
                 right: right,
                 result: result,
                 error: (module.mathOperation === 'divide' || module.mathOperation === 'modulo') && right === 0 ?
-                    'Cannot divide or modulo by zero' : ''
+                    'Cannot divide or modulo by zero' :
+                    ''
             };
         }
 
         function diceCount(module) {
-            var linked = module.countSource ? Number(resolveValue(module.countSource, {})) : Number(module.count || 1);
+            var linked = module.countSource ?
+                Number(resolveValue(module.countSource, {})) :
+                Number(module.count || 1);
             return Math.max(1, Math.min(100, Math.floor(linked || 1)));
         }
 
         function diceSides(module) {
-            var linked = module.sidesSource ? Number(resolveValue(module.sidesSource, {})) : Number(module.sides || 20);
+            var linked = module.sidesSource ?
+                Number(resolveValue(module.sidesSource, {})) :
+                Number(module.sides || 20);
             return Math.max(2, Math.min(1000, Math.floor(linked || 20)));
         }
 
         function diceKeepHighest(module) {
-            var linked = module.keepHighestSource ? Number(resolveValue(module.keepHighestSource, {})) : Number(module.keepHighest || 0);
+            var linked = module.keepHighestSource ?
+                Number(resolveValue(module.keepHighestSource, {})) :
+                Number(module.keepHighest || 0);
             return Math.max(0, Math.min(diceCount(module), Math.floor(linked || 0)));
         }
 
@@ -709,7 +788,8 @@
         function diceFormula(module) {
             var count = diceCount(module);
             var keepHighest = diceKeepHighest(module);
-            var formula = count + 'd' + diceSides(module) + (keepHighest ? 'kh' + keepHighest : '');
+            var formula = count + 'd' + diceSides(module) +
+                (keepHighest ? 'kh' + keepHighest : '');
             var bonus = diceBonus(module);
             if (bonus) formula += bonus > 0 ? ' +' + bonus : ' ' + bonus;
             return formula;
@@ -725,7 +805,8 @@
                 output.textContent = String(resolveValue(output.dataset.sourceValue, {}));
             });
             studio.querySelectorAll('[data-effective-number]').forEach(function (output) {
-                output.textContent = 'Effective: ' + resolveValue(output.dataset.effectiveNumber, {});
+                output.textContent = 'Effective: ' +
+                    resolveValue(output.dataset.effectiveNumber, {});
             });
             studio.querySelectorAll('[data-dice-formula]').forEach(function (formula) {
                 var module = findModule(formula.dataset.diceFormula);
@@ -740,7 +821,9 @@
                     return;
                 }
                 var symbols = { add: '+', subtract: '−', multiply: '×', divide: '÷', modulo: '%' };
-                output.textContent = calculation.left + ' ' + symbols[module.mathOperation] + ' ' + calculation.right + ' = ' + calculation.result;
+                output.textContent = calculation.left + ' ' +
+                    symbols[module.mathOperation] + ' ' +
+                    calculation.right + ' = ' + calculation.result;
             });
         }
 
@@ -786,7 +869,15 @@
         studio.addEventListener('pointerdown', function (event) {
             var tool = event.target.closest('[data-module-tool]');
             if (tool && mode === 'developer') {
-                activeDrag = { kind: 'palette', pointerId: event.pointerId, type: tool.dataset.moduleTool, tool: tool, startX: event.clientX, startY: event.clientY, dragged: false };
+                activeDrag = {
+                    kind: 'palette',
+                    pointerId: event.pointerId,
+                    type: tool.dataset.moduleTool,
+                    tool: tool,
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    dragged: false
+                };
                 tool.setPointerCapture(event.pointerId);
                 return;
             }
@@ -817,9 +908,20 @@
             var layout = element.parentElement.closest('[data-layout-canvas]');
             (move || resize).setPointerCapture(event.pointerId);
             activeDrag = {
-                kind: 'module', pointerId: event.pointerId, module: module, element: element, layout: layout,
+                kind: 'module',
+                pointerId: event.pointerId,
+                module: module,
+                element: element,
+                layout: layout,
                 resize: !!resize,
-                start: { x: event.clientX, y: event.clientY, col: module.col, row: module.row, colSpan: module.colSpan, rowSpan: module.rowSpan }
+                start: {
+                    x: event.clientX,
+                    y: event.clientY,
+                    col: module.col,
+                    row: module.row,
+                    colSpan: module.colSpan,
+                    rowSpan: module.rowSpan
+                }
             };
             event.preventDefault();
         });
@@ -861,7 +963,12 @@
                 return;
             }
             var owner = findModuleEntry(activeDrag.module.id);
-            var previous = { col: activeDrag.module.col, row: activeDrag.module.row, colSpan: activeDrag.module.colSpan, rowSpan: activeDrag.module.rowSpan };
+            var previous = {
+                col: activeDrag.module.col,
+                row: activeDrag.module.row,
+                colSpan: activeDrag.module.colSpan,
+                rowSpan: activeDrag.module.rowSpan
+            };
             setSnappedPlacement(activeDrag.module, activeDrag.layout, activeDrag.start, event.clientX, event.clientY, activeDrag.resize);
             if (owner && owner.list.some(function (item) { return item !== activeDrag.module && placementsOverlap(activeDrag.module, item); })) {
                 activeDrag.module.col = previous.col;
@@ -1177,10 +1284,15 @@
                         });
                     }
                 })
-                .catch(function (error) {
-                    window.alert(error.message);
+                .catch(function () {
+                    window.alert('todo');
                 });
         }
+
+        // keep the download placeholder visible until json export is implemented
+        downloadButton.addEventListener('click', function () {
+            window.alert('todo');
+        });
 
         saveDraftButton.addEventListener('click', function () {
             postTemplateAction('/template-builder/save-draft');
