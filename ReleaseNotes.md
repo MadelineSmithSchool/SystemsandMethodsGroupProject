@@ -8,6 +8,8 @@
 
 ## Week of 11/9/2026
 - keep updated with what you work on in the past week
+- added visibility toggle to module setting
+- general housekeeping + code readabilty
 
 ## Week of 11/2/2026
 - set up rester and sign in pages

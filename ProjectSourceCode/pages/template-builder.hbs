@@ -88,6 +88,7 @@
         var saveDraftButton = studio.querySelector('[data-save-draft]');
         var publishButton = studio.querySelector('[data-publish-template]');
         var modules = [];
+        var templateModules = modules;
         var savedPresets = [];
         var selectedModuleIds = [];
         var nextId = 1;
@@ -113,6 +114,15 @@
             'keepHighest',
             'leftValue',
             'rightValue'
+        ];
+        var sourceSettings = [
+            'source',
+            'countSource',
+            'sidesSource',
+            'keepHighestSource',
+            'bonusSource',
+            'leftSource',
+            'rightSource'
         ];
 
         function placementsOverlap(first, second) {
@@ -231,6 +241,12 @@
             return entry && entry.module;
         }
 
+        function containsModule(module, id) {
+            return (module.children || []).some(function (child) {
+                return child.id === id || containsModule(child, id);
+            });
+        }
+
         // flatten nested module groups
         function flatten(list, output) {
             (list || modules).forEach(function (module) {
@@ -276,6 +292,10 @@
             assignIds(clones);
             remapReferences(clones);
             return clones;
+        }
+
+        function cloneModuleTree(moduleList) {
+            return JSON.parse(JSON.stringify(moduleList));
         }
 
         function addConnectedPreset(presetName) {
@@ -532,9 +552,9 @@
         // apply module grid position
         function setPlacement(element, module, layout) {
             var columns = layoutColumns(layout);
-            module.colSpan = Math.min(module.colSpan, columns);
-            module.col = Math.max(1, Math.min(columns - module.colSpan + 1, module.col));
-            element.style.gridColumn = module.col + ' / span ' + module.colSpan;
+            var colSpan = Math.min(module.colSpan, columns);
+            var col = Math.max(1, Math.min(columns - colSpan + 1, module.col));
+            element.style.gridColumn = col + ' / span ' + colSpan;
             element.style.gridRow = module.row + ' / span ' + module.rowSpan;
         }
 
@@ -688,6 +708,7 @@
         function renderCanvas() {
             rootCanvas.querySelectorAll('[data-sheet-module]').forEach(function (element) { element.remove(); });
             renderModules(rootCanvas, modules, true);
+            updateLiveValues();
         }
 
         // compute linked field values
@@ -826,7 +847,22 @@
 
         function removeModule(id) {
             var entry = findModuleEntry(id);
-            if (entry) entry.list.splice(entry.index, 1);
+            if (!entry) return;
+            var removedIds = {};
+            function collectIds(module) {
+                removedIds[module.id] = true;
+                (module.children || []).forEach(collectIds);
+            }
+            collectIds(entry.module);
+            entry.list.splice(entry.index, 1);
+            flatten(modules, []).forEach(function (module) {
+                sourceSettings.forEach(function (setting) {
+                    if (removedIds[module[setting]]) module[setting] = '';
+                });
+                module.modifiers = (module.modifiers || []).filter(function (modifier) {
+                    return !removedIds[modifier.source];
+                });
+            });
         }
 
         // find canvas under pointer
@@ -1000,6 +1036,10 @@
             }
 
             var drop = canvasForPoint(event.clientX, event.clientY);
+            if (drop && drop.owner && containsModule(drag.module, drop.owner.id)) {
+                renderCanvas();
+                return;
+            }
             if (drop && drop.owner && drop.owner.id !== drag.module.id) {
                 var owner = findModuleEntry(drag.module.id);
                 if (owner && owner.parent !== drop.owner) {
@@ -1071,7 +1111,11 @@
         studio.addEventListener('click', function (event) {
             var viewButton = event.target.closest('[data-view-button]');
             if (viewButton) {
-                mode = viewButton.dataset.viewButton;
+                var nextMode = viewButton.dataset.viewButton;
+                if (nextMode !== mode) {
+                    modules = nextMode === 'playtest' ? cloneModuleTree(templateModules) : templateModules;
+                    mode = nextMode;
+                }
                 studio.dataset.mode = mode;
                 selectedModuleIds = [];
                 updatePresetSelection();
