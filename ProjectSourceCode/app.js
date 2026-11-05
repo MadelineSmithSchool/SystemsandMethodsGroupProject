@@ -89,6 +89,17 @@ app.get('/dashboard', auth, (req, res) => {
 app.get('/tutorial', auth, (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard Tutorial' , login: true});
 });
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.redirect('/login');
+  });
+});
+
+// This admin route is called /manage to make it marginally harder for bots to find.
+app.get('/manage', (req, res) => {
+  res.render('pages/admin', { title: 'Admin', admin: true });
+});
 
 app.post('/register', async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
@@ -194,18 +205,6 @@ app.post('/login', async (req, res) => {
       username,
     });
   }
-});
-
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie('connect.sid');
-    res.redirect('/login');
-  });
-});
-
-// This admin route is called /manage to make it marginally harder for bots to find.
-app.get('/manage', (req, res) => {
-  res.render('pages/admin', { title: 'Admin', admin: true });
 });
 
 // upload / send templates (routes/templates.js)
