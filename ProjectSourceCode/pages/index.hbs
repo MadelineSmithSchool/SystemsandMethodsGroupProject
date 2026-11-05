@@ -6,41 +6,31 @@
         <h1 id="home-title">Welcome back{{#if user.username}}, {{user.username}}{{/if}}</h1>
         <p>Pick up where you left off, or start something new.</p>
       </div>
-
-      <ul class="start-options">
-        <li>
-          {{!-- TODO: replace "#" with the Upload template page URL --}}
+      <div class="row index-main">
+        <div class="col">
           <a class="option" href="#">
             <span class="option-title">Upload template</span>
             <span class="option-desc">Bring in a template file you already have.</span>
           </a>
-        </li>
-        <li>
-          {{!-- TODO: replace "#" with the Send template page URL --}}
+        </div>
+        <div class="col">
           <a class="option" href="#">
             <span class="option-title">Send template</span>
             <span class="option-desc">Share one of your templates with another player.</span>
           </a>
-        </li>
-        <li>
+        </div>
+        <div class="col">
           <a class="option" href="/dashboard">
             <span class="option-title">Build new template</span>
             <span class="option-desc">Design a character sheet from cards you choose.</span>
           </a>
-        </li>
-        <li>
-          {{!-- TODO: replace "#" with the Template library page URL --}}
+        </div>
+        <div class="col">
           <a class="option" href="#">
             <span class="option-title">Template library</span>
             <span class="option-desc">Browse and reopen your saved templates.</span>
           </a>
-        </li>
-        <li>
-          <a class="option" href="/tutorial">
-            <span class="option-title">Tutorial</span>
-            <span class="option-desc">Learn how the modular dashboard works, step by step.</span>
-          </a>
-        </li>
+        </div>
       </ul>
     </section>
   {{else}}
