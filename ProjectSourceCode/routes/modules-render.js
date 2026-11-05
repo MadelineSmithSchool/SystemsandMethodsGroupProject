@@ -1,7 +1,7 @@
-// draws the canvas and settings from state; the main file calls it and shares helpers.
+// draws the sheet and settings, the main file gives it the sheet data and shared helpers.
 import { findModule, flatten, layoutColumns } from './modules-helper.js';
 
-// These helpers create the controls used by the inspector and module cards.
+// make the fields and buttons used on the sheet.
 function field(labelText, control) {
     var label = document.createElement('label');
     label.className = 'inspector-field';
@@ -60,7 +60,7 @@ function createControl(module, doc, player, helpers, typeTable, mode) {
     var kind = typeTable[module.type].control;
 
     if (kind === 'group') {
-        // Groups draw their child modules in a smaller canvas.
+        // show group modules inside their own smaller canvas.
         var groupCanvas = document.createElement('div');
         groupCanvas.className = 'group-canvas';
         groupCanvas.dataset.layoutCanvas = '';
@@ -96,7 +96,7 @@ function createControl(module, doc, player, helpers, typeTable, mode) {
     }
 
     if (module.source) {
-        // Linked modules show a value instead of asking the player to enter one.
+        // show the linked value instead of asking for another entry.
         var output = document.createElement('output');
         output.className = 'module-output';
         output.dataset.sourceValue = module.id;
@@ -132,7 +132,7 @@ function createControl(module, doc, player, helpers, typeTable, mode) {
 }
 
 function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, ui, emptyState) {
-    // Hidden modules stay visible in the editor, but not during playtest.
+    // show hidden modules while editing, but leave them out of playtest.
     var visible = mode === 'playtest' ? list.filter(function (module) { return !moduleHidden(module, typeTable); }) : list;
     visible.forEach(function (module) {
         var card = document.createElement('article');
@@ -199,7 +199,7 @@ export function updateLiveValues(studio, state, helpers) {
     var doc = state.document;
     var ui = state.ui;
     var player = state.player;
-    // Refresh linked values and results without rebuilding the module cards.
+    // update linked values and results without redrawing the whole sheet.
     studio.querySelectorAll('[data-module-value]').forEach(function (input) {
         if (input !== document.activeElement) {
             var value = ui.mode === 'playtest' ? player.values[input.dataset.moduleValue] : undefined;
@@ -239,7 +239,7 @@ export function renderCanvas(studio, state, helpers) {
     var emptyState = studio.querySelector('[data-empty-state]');
     rootCanvas.querySelectorAll('[data-sheet-module]').forEach(function (element) { element.remove(); });
     drawModules(rootCanvas, doc.modules, true, doc, player, helpers, typeTable, ui.mode, ui, emptyState);
-    // Recalculate values after every redraw, including drops and rolls.
+    // update values after the sheet changes or a roll is made.
     updateLiveValues(studio, state, helpers);
 }
 
@@ -280,7 +280,7 @@ export function renderInspector(studio, state, helpers) {
         { id: 'hidden', name: 'Hidden' }
     ], module.visibility || config.defaults.visibility, 'Choose visibility', 'visibility');
 
-    // Only other value modules can be selected as inputs.
+    // let this module use another value module as its input.
     var candidates = flatten(doc.modules).filter(function (item) {
         return item.type !== 'group' && item.id !== module.id;
     });

@@ -10,7 +10,7 @@
 - keep updated with what you work on in the past week
 - added visibility toggle to module setting
 - general housekeeping + code readabilty
-- there was a lot of temporary js in template-builder.hbs, so it was moved to a 5 new .js files and overall slimmed everything down
+- there was a lot of temporary js in template-builder.hbs, so it was moved to a 5 new .js files and overall slimmed everything down. this was a lot of work
 
 ## Week of 11/2/2026
 - set up rester and sign in pages
