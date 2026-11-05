@@ -1,4 +1,4 @@
-// helpers used by the database, main, and render files.
+// shared utilities for the main, render, database, and config files.
 export var linkSettings = [
     'source', 'countSource', 'sidesSource', 'keepHighestSource',
     'bonusSource', 'leftSource', 'rightSource'

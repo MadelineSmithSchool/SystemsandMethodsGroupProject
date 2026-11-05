@@ -1,3 +1,4 @@
+// saves, restores, and checks builder data; the main file calls it and it uses shared helpers.
 import { flatten, linkSettings } from './modules-helper.js';
 
 var defaultKey = 'sheet-studio-draft';

@@ -1,3 +1,4 @@
+// defines module types and presets; the main file uses these to create modules.
 import { clone, flatten, linkSettings } from './modules-helper.js';
 
 export var moduleSize = { colSpan: 4, rowSpan: 3 };

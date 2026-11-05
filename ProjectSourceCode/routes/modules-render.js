@@ -1,3 +1,4 @@
+// draws the canvas and settings from state; the main file calls it and shares helpers.
 import { findModule, flatten, layoutColumns } from './modules-helper.js';
 
 // These helpers create the controls used by the inspector and module cards.

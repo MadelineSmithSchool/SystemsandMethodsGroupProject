@@ -1,3 +1,4 @@
+// handles builder actions and state, using the config, render, database, and helper files.
 import { autosave, downloadJson, restore, save, validate } from './modules-database.js';
 import {
     renderCanvas,
