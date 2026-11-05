@@ -80,7 +80,12 @@ const db = pgp(dbConfig);
 //TODO:
 //add auth param to anything that needs auth to use (like app.get('/tutorial', auth, ...))
 
-app.get('/', (req, res) => res.render('pages/index'));
+app.get('/', (req, res) => {
+  if (!req.session.user) {
+    res.render('pages/index');
+  }
+  res.redirect('/dashboard')
+});
 app.get('/login', (req, res) => res.render('pages/login'));
 app.get('/register', (req, res) => res.render('pages/register'));
 app.get('/dashboard', auth, (req, res) => {
@@ -88,6 +93,12 @@ app.get('/dashboard', auth, (req, res) => {
 });
 app.get('/tutorial', auth, (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard Tutorial' , login: true});
+});
+app.get('/library', auth, (req, res) => {
+  res.render('pages/library', { title: 'Template' , login: true });
+});
+app.get('/characters', auth, (req, res) => {
+  res.render('pages/characters', { title: 'My Characters' , login: true });
 });
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
