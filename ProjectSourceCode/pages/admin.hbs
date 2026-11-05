@@ -23,6 +23,9 @@
                                 <button type="submit" class="btn btn-sm btn-outline-success">Recover</button>
                             </form>
                         {{else}}
+                            <form class="d-inline" action="/manage/users/{{user_id}}/admin" method="POST">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">{{#if is_admin}}Remove admin{{else}}Make admin{{/if}}</button>
+                            </form>
                             <form class="d-inline" action="/manage/users/{{user_id}}/delete" method="POST" onsubmit="return confirm('Delete this account?');">
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                             </form>
@@ -46,7 +49,16 @@
                     <td>{{template_name}}</td>
                     <td>{{username}}</td>
                     <td>{{created}}</td>
-                    <td>{{#if share_id}}<a href="/templates/shared/{{share_id}}">View</a>{{else}}<span class="text-muted">Not shared</span>{{/if}}</td>
+                    <td>
+                        {{#if share_id}}
+                            <a href="/templates/shared/{{share_id}}">View</a>
+                            <form class="d-inline" action="/manage/templates/{{template_id}}/unshare" method="POST">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Unshare</button>
+                            </form>
+                        {{else}}
+                            <span class="text-muted">Not shared</span>
+                        {{/if}}
+                    </td>
                 </tr>
             {{else}}
                 <tr><td colspan="4" class="text-muted">No templates found.</td></tr>

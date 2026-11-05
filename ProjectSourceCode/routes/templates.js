@@ -178,7 +178,11 @@ module.exports = (db, auth) => {
     );
   };
 
-  const getShared = (req) => db.oneOrNone('SELECT * FROM templates WHERE share_id = $1', [req.params.shareId]);
+  // links stop working if the owner's account got deleted
+  const getShared = (req) => db.oneOrNone(
+    'SELECT t.* FROM templates t JOIN users u ON u.user_id = t.user_id WHERE t.share_id = $1 AND u.deleted_at IS NULL',
+    [req.params.shareId]
+  );
 
   // list of your templates (pick one to send)
   router.get('/', auth, async (req, res, next) => {

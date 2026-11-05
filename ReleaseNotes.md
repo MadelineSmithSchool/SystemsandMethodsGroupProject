@@ -13,7 +13,14 @@
 - there was a lot of temporary js in template-builder.hbs, so it was moved to a 5 new .js files and overall slimmed everything down. this was a lot of work
 - uploading a template now works with template studio
 - created good looking error page instead of blank html 
-- admin page (/manage): admin only, search users and templates, delete and recover accounts
+- lab 10 tests: mocha/chai setup with its own test db in docker, tests for register and the welcome route
+- npm test always runs in test mode so it cant touch the dev db
+- removed the Zone.Identifier file that broke git pull on windows
+- admin page (/manage) is admin only now
+- admin can search users and templates from the nav search bars
+- admin can delete and recover accounts (deleted accounts cant log in)
+- admin can make/remove other admins and unshare templates, admin link added to nav
+- shared template links stop working if the owner's account is deleted
 
 ## Week of 11/2/2026
 - set up rester and sign in pages

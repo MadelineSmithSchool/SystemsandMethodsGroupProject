@@ -11,6 +11,12 @@ module.exports = (db) => {
     next();
   });
 
+  // ids in the url have to be numbers
+  router.param('id', (req, res, next, id) => {
+    if (!/^\d{1,9}$/.test(id)) return res.status(404).send('Not found.');
+    next();
+  });
+
   // search users and templates (?users=... and ?templates=... from the nav search boxes)
   router.get('/', async (req, res, next) => {
     const userSearch = typeof req.query.users === 'string' ? req.query.users.trim() : '';
@@ -47,7 +53,6 @@ module.exports = (db) => {
 
   // delete just marks the account, so it can be recovered later
   router.post('/users/:id/delete', async (req, res, next) => {
-    if (!/^\d{1,9}$/.test(req.params.id)) return res.status(404).send('User not found.');
     if (Number(req.params.id) === req.session.user.id) return res.status(400).send('You can not delete your own account.');
     try {
       await db.none('UPDATE users SET deleted_at = NOW() WHERE user_id = $1', [req.params.id]);
@@ -58,9 +63,29 @@ module.exports = (db) => {
   });
 
   router.post('/users/:id/recover', async (req, res, next) => {
-    if (!/^\d{1,9}$/.test(req.params.id)) return res.status(404).send('User not found.');
     try {
       await db.none('UPDATE users SET deleted_at = NULL WHERE user_id = $1', [req.params.id]);
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // make admin / remove admin (they have to log in again for it to kick in)
+  router.post('/users/:id/admin', async (req, res, next) => {
+    if (Number(req.params.id) === req.session.user.id) return res.status(400).send('You can not change your own admin status.');
+    try {
+      await db.none('UPDATE users SET is_admin = NOT is_admin WHERE user_id = $1', [req.params.id]);
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // turns off a template's share link
+  router.post('/templates/:id/unshare', async (req, res, next) => {
+    try {
+      await db.none('UPDATE templates SET share_id = NULL WHERE template_id = $1', [req.params.id]);
       res.redirect('/manage');
     } catch (err) {
       next(err);
