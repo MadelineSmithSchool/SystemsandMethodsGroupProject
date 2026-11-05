@@ -1,9 +1,9 @@
-// saves, restores, and checks builder data; the main file calls it and it uses shared helpers.
+// checks, saves, and restores the sheet, the main file calls it and it uses shared helpers.
 import { flatten, linkSettings } from './modules-helper.js';
 
 var defaultKey = 'sheet-studio-draft';
 
-// keep saved data in one stable shape.
+// keep the saved sheet in the same format.
 export function serialize(doc) {
     return {
         schemaVersion: 1,
@@ -23,7 +23,7 @@ export function validate(doc) {
     if (!doc.name || !doc.name.trim()) problems.push('Enter a sheet name.');
     if (!modules.length) problems.push('Add at least one module.');
 
-    // value links and conditional change sources both count as links.
+    // check both regular links and links used for conditional changes.
     function linksOf(module) {
         return linkSettings.map(function (key) { return module[key]; })
             .concat((module.modifiers || []).map(function (modifier) { return modifier.source; }))
@@ -42,7 +42,7 @@ export function validate(doc) {
         });
     });
 
-    // marks: 1 means on the current path, 2 means fully checked.
+    // track which modules are being checked so linked modules cannot loop forever.
     function hasCycle(id) {
         if (marks[id] === 1) return true;
         if (marks[id] === 2 || !entries.has(id)) return false;
@@ -60,7 +60,7 @@ export function downloadJson(doc) {
     return JSON.stringify(serialize(doc), null, 2);
 }
 
-// used for both drafts and publishing, only the url differs.
+// use the same save request for drafts and publishing.
 export async function save(doc, url, csrfToken) {
     var headers = { 'Content-Type': 'application/json' };
     if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
@@ -73,7 +73,7 @@ export async function save(doc, url, csrfToken) {
 }
 
 export function autosave(doc, key) {
-    // saved presets stay in the local draft even though exports omit them.
+    // keep saved presets in the local draft; they are not part of an export.
     var draft = Object.assign(serialize(doc), { savedPresets: doc.savedPresets || [] });
     localStorage.setItem(key || defaultKey, JSON.stringify(draft));
 }
