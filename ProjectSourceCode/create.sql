@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     auth_token VARCHAR(32) UNIQUE NOT NULL,
 
     is_admin BOOLEAN DEFAULT FALSE,
+
+    deleted_at TIMESTAMPTZ,
     
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

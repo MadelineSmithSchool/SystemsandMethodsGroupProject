@@ -1,12 +1,13 @@
 <main class="container my-4">
     <h2>Admin</h2>
+    <p>{{counts.users}} users ({{counts.deleted}} deleted) &middot; {{counts.templates}} templates ({{counts.shared}} shared)</p>
     {{#if userSearch}}<p class="text-muted">Users matching "{{userSearch}}" <a href="/manage">(clear)</a></p>{{/if}}
     {{#if templateSearch}}<p class="text-muted">Templates matching "{{templateSearch}}" <a href="/manage">(clear)</a></p>{{/if}}
 
     <h4 class="mt-4">Users</h4>
     <table class="table table-sm align-middle">
         <thead>
-            <tr><th>Username</th><th>Email</th><th>Templates</th><th>Joined</th></tr>
+            <tr><th>Username</th><th>Email</th><th>Templates</th><th>Joined</th><th></th></tr>
         </thead>
         <tbody>
             {{#each users}}
@@ -15,9 +16,21 @@
                     <td>{{email}}</td>
                     <td>{{template_count}}</td>
                     <td>{{joined}}</td>
+                    <td>
+                        {{#if deleted}}
+                            <span class="text-muted">Deleted {{deleted}}</span>
+                            <form class="d-inline" action="/manage/users/{{user_id}}/recover" method="POST">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Recover</button>
+                            </form>
+                        {{else}}
+                            <form class="d-inline" action="/manage/users/{{user_id}}/delete" method="POST" onsubmit="return confirm('Delete this account?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        {{/if}}
+                    </td>
                 </tr>
             {{else}}
-                <tr><td colspan="4" class="text-muted">No users found.</td></tr>
+                <tr><td colspan="5" class="text-muted">No users found.</td></tr>
             {{/each}}
         </tbody>
     </table>

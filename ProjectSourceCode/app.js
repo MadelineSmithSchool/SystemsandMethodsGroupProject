@@ -187,6 +187,12 @@ app.post('/login', async (req, res) => {
         username,
       });
     }
+    if (user.deleted_at) {
+      return res.status(403).render('pages/login', {
+        errors: ['This account has been deleted. Ask an admin if you want it back.'],
+        username,
+      });
+    }
     req.session.user = { id: user.user_id, username: user.username, admin: user.is_admin };
     req.session.save(error => {
       if (error) {
