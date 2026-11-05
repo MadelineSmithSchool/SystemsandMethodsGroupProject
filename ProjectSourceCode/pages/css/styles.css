@@ -481,6 +481,11 @@ option {
 }
 
 /* ---------- 6. Home page + tutorial ---------- */
+.index-cards {
+  width:auto;
+  max-height:100px;
+}
+
 .tutorial {
   flex: 1;
   display: flex;
