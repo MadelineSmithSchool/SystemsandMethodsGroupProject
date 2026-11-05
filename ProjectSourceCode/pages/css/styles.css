@@ -762,10 +762,15 @@ h2 {
 .form{
   margin-top:7vh;
   background-color: white;
-  padding: 60px;
+  padding-left: 8%;
   border-radius: 20%;
   border-color: #17283a;
   border-style: groove;
+  width:35%;
+}
+
+.form input{
+  width:80%;
 }
 
 /* prototype notices */

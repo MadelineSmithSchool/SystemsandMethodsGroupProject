@@ -1,29 +1,33 @@
 <header class="site-header">
   <!-- TODO: rename the site and point this at your home page -->
   <a class="brand" href="/">RPG Templates</a>
-  <nav aria-label="Main">
+  <!-- navbar dropdown wip-->
+  <nav class="navbar" aria-label="Main">
     {{#if admin}}
       <ul class="nav-list">
         <li><input class="form-control" type="search" aria-label="User search" placeholder="Search users"></li>
         <li><input class="form-control" type="search" aria-label="Library search" placeholder="Search library"></li>
       </ul>
     {{else if login}}
-      <ul class="nav-list">
-        <li><a href="/tutorial">Tutorial</a></li>
-        <li><a href="/templates/upload">Upload Template</a></li>
-        {{!-- <li><a href="/templates">Send template</a></li> idrk what this is supposed to be so I left it  --}}
-        <li><a href="/templates/new">Build New Template</a></li>
-        {{!-- TODO: EVERYTHING BELOW THIS LINE IS NOT DONE AND NEEDS TO BE FINISHED --}}
-        <li><a href="#">My Templates</a></li>
-        <li><a href="/characters">My Characters</a></li>
-        <li><a href="/characters/new">Create A Character</a></li> 
-        <li><a href="/templates/library">Template Library</a></li>
-        <li><a href="/settings">Settings</a></li>
-        <li><a href="/logout">Logout</a></li>
-      </ul>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="nav-list">
+          <li><a href="/tutorial">Tutorial</a></li>
+          <li><a href="/templates/upload">Upload Template</a></li>
+          <li><a href="/templates/new">Build New Template</a></li>
+          {{!-- TODO: EVERYTHING BELOW THIS LINE IS NOT DONE AND NEEDS TO BE FINISHED --}}
+          <li><a href="#">My Templates</a></li>
+          <li><a href="/characters">My Characters</a></li>
+          <li><a href="/characters/new">Create A Character</a></li> 
+          <li><a href="/templates/library">Template Library</a></li>
+          <li><a href="/settings">Settings</a></li>
+          <li><a href="/logout">Logout</a></li>
+        </ul>
+      </div>
     {{else}}
       <ul class="nav-list">
-        <!-- TODO: replace each "#" with the real page URL -->
         <li><a href="/login">Login</a></li>
         <li><a href="/register">Register</a></li>
       </ul>

@@ -82,6 +82,7 @@ const db = pgp(dbConfig);
 app.get('/', (req, res) => res.render('pages/index'));
 app.get('/login', (req, res) => res.render('pages/login'));
 app.get('/register', (req, res) => res.render('pages/register'));
+app.get('/register', (req, res) => res.render('pages/dashboard'));
 
 app.post('/register', async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
@@ -126,7 +127,6 @@ app.post('/register', async (req, res) => {
         email,
       });
     }
-
     res.status(500).render('pages/register', {
       errors: ['We could not create your account right now. Please try again later.'],
       username,
@@ -212,9 +212,9 @@ app.use('/templates', require('./routes/templates')(db, auth));
 const startServer = async () => {
   try {
     const migration = fs.readFileSync(
-      path.join(__dirname, 'migrations', '001_add_password_hash.sql'),
+      path.join(__dirname, 'create.sql'),
       'utf8'
-    );
+    ); 
     await db.none(migration);
     console.log('Database connection successful');
   } catch (error) {
