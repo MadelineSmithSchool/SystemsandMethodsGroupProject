@@ -2,14 +2,14 @@
 /* ---------- 1. Tokens ---------- */
 :root {
   /* Brand accents */
-  --green: #007621;
-  --purple: #4a4650;
-  --plum: #34343b;
-  --midnight: #24252b;
+  --bronze: #D58936;
+  --rust: #A44200;
+  --garnett: #69140e;
+  --midnight: #3c1518;
 
   /* Neutrals and text colors */
-  --green-dark: #005c19;
-  --green-bright: #4fd679;
+  --bronze-dark: #e79600;
+  --bronze-bright: #eed12b;
   --text: #f3f2f4;
   --muted: #c2c0c6;
   --line: rgba(255, 255, 255, 0.14);
@@ -19,8 +19,8 @@
 
   /* Roles: use these in new CSS instead of the raw colors */
   --bg: var(--midnight);
-  --surface: var(--plum);
-  --surface-raised: var(--purple);
+  --surface: var(--garnett);
+  --surface-raised: var(--rust);
   --field: var(--midnight);
 
   --radius: 12px;
@@ -39,8 +39,8 @@
   --ink-soft: var(--muted);
   --card: var(--surface);
   --mat: var(--bg);
-  --teal: var(--green-bright);
-  --gold: var(--green-bright);
+  --teal: var(--bronze-bright);
+  --gold: var(--bronze-bright);
 }
 
 /* ---------- 2. Base ---------- */
@@ -86,7 +86,7 @@ h4 {
 }
 
 a {
-  color: var(--green-bright);
+  color: var(--bronze-bright);
   text-underline-offset: 0.2em;
 }
 
@@ -95,7 +95,7 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 3px solid var(--green-bright);
+  outline: 3px solid var(--bronze-bright);
   outline-offset: 2px;
 }
 
@@ -178,16 +178,16 @@ button:disabled {
 .btn--primary,
 .studio-publish,
 input[type="submit"] {
-  border-color: var(--green);
-  background: var(--green);
+  border-color: var(--bronze);
+  background: var(--bronze);
   color: #fff;
 }
 
 .btn--primary:hover:not(:disabled),
 .studio-publish:hover:not(:disabled),
 input[type="submit"]:hover:not(:disabled) {
-  border-color: var(--green-dark);
-  background: var(--green-dark);
+  border-color: var(--bronze-dark);
+  background: var(--bronze-dark);
   color: #fff;
 }
 
@@ -241,7 +241,7 @@ input[type="submit"]:hover:not(:disabled) {
   width: 0.8rem;
   height: 0.8rem;
   border-radius: 3px;
-  background: var(--green);
+  background: var(--bronze);
   transform: rotate(45deg);
 }
 
@@ -272,7 +272,7 @@ input[type="submit"]:hover:not(:disabled) {
 }
 
 .nav-list a[aria-current="page"] {
-  background: var(--green);
+  background: var(--bronze);
   color: #fff;
   font-weight: 700;
 }
@@ -368,13 +368,13 @@ textarea::placeholder {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--green-bright);
+  border-color: var(--bronze-bright);
 }
 
 input[type="checkbox"],
 input[type="radio"],
 input[type="range"] {
-  accent-color: var(--green);
+  accent-color: var(--bronze);
 }
 
 option {
@@ -445,7 +445,7 @@ option {
 }
 
 .alert-success {
-  border-color: var(--green-bright);
+  border-color: var(--bronze-bright);
   border-left-width: 4px;
   background: rgba(0, 118, 33, 0.25);
   color: #b7f2c9;
@@ -464,7 +464,7 @@ option {
 
 .prototype-flag {
   margin: 0 0 0.35rem;
-  color: var(--green-bright);
+  color: var(--bronze-bright);
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -474,7 +474,7 @@ option {
 .prototype-note {
   margin: 1.25rem 0;
   padding: 0.75rem 1rem;
-  border-left: 4px solid var(--green);
+  border-left: 4px solid var(--bronze);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: rgba(0, 118, 33, 0.18);
   color: var(--text);
@@ -540,7 +540,7 @@ option {
   display: block;
   width: 0;
   height: 100%;
-  background: var(--green-bright);
+  background: var(--bronze-bright);
 }
 
 .track {
@@ -549,7 +549,7 @@ option {
   scroll-snap-type: x proximity;
   scroll-padding-inline: var(--pad);
   overscroll-behavior-x: contain;
-  scrollbar-color: var(--green) transparent;
+  scrollbar-color: var(--bronze) transparent;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -596,7 +596,7 @@ option {
   width: var(--token);
   height: var(--token);
   border-radius: 50%;
-  background: var(--green);
+  background: var(--bronze);
   box-shadow: 0 0 0 5px var(--bg);
   color: #fff;
   font-family: var(--font-head);
@@ -701,7 +701,7 @@ option {
 }
 
 .option:hover {
-  border-color: var(--green-bright);
+  border-color: var(--bronze-bright);
   background: var(--surface-raised);
   color: var(--text);
 }
@@ -862,7 +862,7 @@ option {
 
 .stat-mod {
   margin-top: 0.5rem;
-  color: var(--green-bright);
+  color: var(--bronze-bright);
   font-family: var(--font-head);
   font-weight: 700;
   font-size: 2.75rem;
@@ -957,7 +957,7 @@ option {
 }
 
 .picker-item:hover {
-  border-color: var(--green-bright);
+  border-color: var(--bronze-bright);
   background: var(--surface-raised);
 }
 
@@ -1032,7 +1032,7 @@ option {
 }
 
 .studio-view-switch button[aria-selected="true"] {
-  background: var(--green);
+  background: var(--bronze);
   color: #fff;
 }
 
@@ -1169,7 +1169,7 @@ option {
 .module-preset:hover,
 .module-save-preset:not(:disabled):hover,
 .module-tool:hover {
-  border-color: var(--green-bright);
+  border-color: var(--bronze-bright);
   background: var(--surface-raised);
 }
 
@@ -1185,7 +1185,7 @@ option {
   place-items: center;
   height: 1.9rem;
   border-radius: 6px;
-  background: var(--green);
+  background: var(--bronze);
   color: #fff;
   font-family: var(--font-head);
   font-size: 0.72rem;
@@ -1277,7 +1277,7 @@ option {
 .module-selection-marquee {
   position: absolute;
   z-index: 3;
-  border: 1px solid var(--green-bright);
+  border: 1px solid var(--bronze-bright);
   background: rgba(79, 214, 121, 0.15);
   pointer-events: none;
 }
@@ -1321,13 +1321,13 @@ option {
 }
 
 .sheet-module.is-selected {
-  outline: 2px solid var(--green-bright);
+  outline: 2px solid var(--bronze-bright);
   outline-offset: 2px;
   z-index: 1;
 }
 
 .sheet-module.is-multi-selected {
-  outline: 2px dashed var(--green-bright);
+  outline: 2px dashed var(--bronze-bright);
   outline-offset: 2px;
   z-index: 2;
 }
@@ -1396,7 +1396,7 @@ option {
 .module-dev-summary {
   margin: 0;
   padding: 0.25rem 0.55rem 0;
-  color: var(--green-bright);
+  color: var(--bronze-bright);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -1435,8 +1435,8 @@ option {
   height: 0.85rem;
   padding: 0;
   border: 0;
-  border-right: 3px solid var(--green-bright);
-  border-bottom: 3px solid var(--green-bright);
+  border-right: 3px solid var(--bronze-bright);
+  border-bottom: 3px solid var(--bronze-bright);
   background: transparent;
   cursor: nwse-resize;
   touch-action: none;
@@ -1460,7 +1460,7 @@ option {
 .dice-result,
 .module-output,
 .math-result {
-  color: var(--green-bright);
+  color: var(--bronze-bright);
   font-family: var(--font-head);
   font-size: 1.35rem;
   font-weight: 700;

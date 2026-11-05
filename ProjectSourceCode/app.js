@@ -210,6 +210,11 @@ app.post('/login', async (req, res) => {
 // upload / send templates (routes/templates.js)
 app.use('/templates', auth, require('./routes/templates')(db, auth));
 
+// testing
+app.get('/welcome', (req, res) => {
+  res.json({status: 'success', message: 'Welcome!'});
+});
+
 const startServer = async () => {
   try {
     const migration = fs.readFileSync(
@@ -228,5 +233,7 @@ const startServer = async () => {
     console.log('Server is listening on port 3000');
   });
 };
+// // testing
+// module.exports = app;
 
 startServer();
