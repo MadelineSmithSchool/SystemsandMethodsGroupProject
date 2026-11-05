@@ -169,7 +169,7 @@ app.post('/login', async (req, res) => {
         username,
       });
     }
-    req.session.user = { id: user.user_id, username: user.username };
+    req.session.user = { id: user.user_id, username: user.username, admin: user.is_admin };
     req.session.save(error => {
       if (error) {
         console.error('Login session could not be saved:', error);
@@ -202,9 +202,8 @@ app.get('/tutorial', auth, (req, res) => {
 });
 
 // This admin route is called /manage to make it marginally harder for bots to find.
-app.get('/manage', (req, res) => {
-  res.render('pages/admin', { title: 'Admin', admin: true });
-});
+// make someone an admin with: UPDATE users SET is_admin = TRUE WHERE username = '...';
+app.use('/manage', require('./routes/admin')(db));
 
 // upload / send templates (routes/templates.js)
 app.use('/templates', auth, require('./routes/templates')(db, auth));
@@ -216,6 +215,7 @@ const startServer = async () => {
       'utf8'
     ); 
     await db.none(migration);
+    await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '002_admin.sql'), 'utf8'));
     console.log('Database connection successful');
   } catch (error) {
     console.error('Database initialization failed:', error);

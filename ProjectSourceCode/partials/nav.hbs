@@ -5,8 +5,9 @@
   <nav class="navbar" aria-label="Main">
     {{#if admin}}
       <ul class="nav-list">
-        <li><input class="form-control" type="search" aria-label="User search" placeholder="Search users"></li>
-        <li><input class="form-control" type="search" aria-label="Library search" placeholder="Search library"></li>
+        <li><form action="/manage" method="GET"><input class="form-control" type="search" name="users" value="{{userSearch}}" aria-label="User search" placeholder="Search users"></form></li>
+        <li><form action="/manage" method="GET"><input class="form-control" type="search" name="templates" value="{{templateSearch}}" aria-label="Library search" placeholder="Search library"></form></li>
+        <li><a href="/logout">Logout</a></li>
       </ul>
     {{else if login}}
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">

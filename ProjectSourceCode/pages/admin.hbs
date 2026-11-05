@@ -1,1 +1,43 @@
-<main></main>
+<main class="container my-4">
+    <h2>Admin</h2>
+    {{#if userSearch}}<p class="text-muted">Users matching "{{userSearch}}" <a href="/manage">(clear)</a></p>{{/if}}
+    {{#if templateSearch}}<p class="text-muted">Templates matching "{{templateSearch}}" <a href="/manage">(clear)</a></p>{{/if}}
+
+    <h4 class="mt-4">Users</h4>
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr><th>Username</th><th>Email</th><th>Templates</th><th>Joined</th></tr>
+        </thead>
+        <tbody>
+            {{#each users}}
+                <tr>
+                    <td>{{username}} {{#if is_admin}}<span class="badge bg-secondary">admin</span>{{/if}}</td>
+                    <td>{{email}}</td>
+                    <td>{{template_count}}</td>
+                    <td>{{joined}}</td>
+                </tr>
+            {{else}}
+                <tr><td colspan="4" class="text-muted">No users found.</td></tr>
+            {{/each}}
+        </tbody>
+    </table>
+
+    <h4 class="mt-4">Templates</h4>
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr><th>Name</th><th>Owner</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody>
+            {{#each templates}}
+                <tr>
+                    <td>{{template_name}}</td>
+                    <td>{{username}}</td>
+                    <td>{{created}}</td>
+                    <td>{{#if share_id}}<a href="/templates/shared/{{share_id}}">View</a>{{else}}<span class="text-muted">Not shared</span>{{/if}}</td>
+                </tr>
+            {{else}}
+                <tr><td colspan="4" class="text-muted">No templates found.</td></tr>
+            {{/each}}
+        </tbody>
+    </table>
+</main>

@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(60) NOT NULL,
     
     auth_token VARCHAR(32) UNIQUE NOT NULL,
+
+    is_admin BOOLEAN DEFAULT FALSE,
     
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
