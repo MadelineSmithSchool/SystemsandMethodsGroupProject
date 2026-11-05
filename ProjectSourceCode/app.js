@@ -6,7 +6,6 @@ const Handlebars = require('handlebars');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const pgp = require('pg-promise')();
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
@@ -64,16 +63,8 @@ app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
   });
 });
 
-// database configuration
-const dbConfig = {
-  host: 'db', // the database server
-  port: 5432, // the database port
-  database: process.env.POSTGRES_DB, // the database name
-  user: process.env.POSTGRES_USER, // the user account to connect with
-  password: process.env.POSTGRES_PASSWORD, // the password of the user account
-};
-
-const db = pgp(dbConfig);
+// db connection lives in src/db.js so the tests use the same one
+const { db } = require('./src/db');
 
 //ROUTES//
 
@@ -97,9 +88,8 @@ app.get('/logout', (req, res) => {
 });
 
 // This admin route is called /manage to make it marginally harder for bots to find.
-app.get('/manage', (req, res) => {
-  res.render('pages/admin', { title: 'Admin', admin: true });
-});
+// make someone an admin with: UPDATE users SET is_admin = TRUE WHERE username = '...';
+app.use('/manage', require('./routes/admin')(db));
 
 app.post('/register', async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
@@ -186,7 +176,7 @@ app.post('/login', async (req, res) => {
         username,
       });
     }
-    req.session.user = { id: user.user_id, username: user.username };
+    req.session.user = { id: user.user_id, username: user.username, admin: user.is_admin };
     req.session.save(error => {
       if (error) {
         console.error('Login session could not be saved:', error);
@@ -222,6 +212,7 @@ const startServer = async () => {
       'utf8'
     ); 
     await db.none(migration);
+    await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '002_admin.sql'), 'utf8'));
     console.log('Database connection successful');
   } catch (error) {
     console.error('Database initialization failed:', error);
@@ -233,7 +224,11 @@ const startServer = async () => {
     console.log('Server is listening on port 3000');
   });
 };
-// // testing
-// module.exports = app;
 
-startServer();
+// only start the server when you run app.js (npm start / nodemon app.js)
+// the tests require app.js, this way they get the app without it starting a server
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
