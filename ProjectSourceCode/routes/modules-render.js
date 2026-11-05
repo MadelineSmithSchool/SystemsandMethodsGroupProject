@@ -1,3 +1,6 @@
+import { findModule, flatten, layoutColumns } from './modules-helper.js';
+
+// These helpers create the controls used by the inspector and module cards.
 function field(labelText, control) {
     var label = document.createElement('label');
     label.className = 'inspector-field';
@@ -28,19 +31,7 @@ function selectOptions(select, items, selected, emptyLabel) {
     });
 }
 
-function flatten(list, output) {
-    (list || []).forEach(function (module) {
-        output.push(module);
-        flatten(module.children, output);
-    });
-    return output;
-}
-
-function layoutColumns(layout) {
-    return Number(getComputedStyle(layout).getPropertyValue('--layout-columns').trim()) || 12;
-}
-
-function setPlacement(element, module, layout) {
+export function setPlacement(element, module, layout) {
     var columns = layoutColumns(layout);
     var colSpan = Math.min(module.colSpan, columns);
     var col = Math.max(1, Math.min(columns - colSpan + 1, module.col));
@@ -68,6 +59,7 @@ function createControl(module, doc, player, helpers, typeTable, mode) {
     var kind = typeTable[module.type].control;
 
     if (kind === 'group') {
+        // Groups draw their child modules in a smaller canvas.
         var groupCanvas = document.createElement('div');
         groupCanvas.className = 'group-canvas';
         groupCanvas.dataset.layoutCanvas = '';
@@ -89,7 +81,7 @@ function createControl(module, doc, player, helpers, typeTable, mode) {
         var formula = document.createElement('p');
         formula.className = 'dice-formula';
         formula.dataset.diceFormula = module.id;
-        formula.textContent = helpers.diceFormula(module, doc, player);
+        formula.textContent = helpers.diceFormula(module);
         var rollButton = document.createElement('button');
         rollButton.type = 'button';
         rollButton.className = 'btn dice-roll-button';
@@ -103,6 +95,7 @@ function createControl(module, doc, player, helpers, typeTable, mode) {
     }
 
     if (module.source) {
+        // Linked modules show a value instead of asking the player to enter one.
         var output = document.createElement('output');
         output.className = 'module-output';
         output.dataset.sourceValue = module.id;
@@ -138,6 +131,7 @@ function createControl(module, doc, player, helpers, typeTable, mode) {
 }
 
 function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, ui, emptyState) {
+    // Hidden modules stay visible in the editor, but not during playtest.
     var visible = mode === 'playtest' ? list.filter(function (module) { return !moduleHidden(module, typeTable); }) : list;
     visible.forEach(function (module) {
         var card = document.createElement('article');
@@ -200,28 +194,32 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
     if (root && emptyState) emptyState.hidden = visible.length > 0;
 }
 
-export function updateLiveValues(studio, doc, ui, player, helpers) {
+export function updateLiveValues(studio, state, helpers) {
+    var doc = state.document;
+    var ui = state.ui;
+    var player = state.player;
+    // Refresh linked values and results without rebuilding the module cards.
     studio.querySelectorAll('[data-module-value]').forEach(function (input) {
         if (input !== document.activeElement) {
             var value = ui.mode === 'playtest' ? player.values[input.dataset.moduleValue] : undefined;
-            var module = helpers.findModule(doc.modules, input.dataset.moduleValue);
+            var module = findModule(doc.modules, input.dataset.moduleValue);
             input.value = value !== undefined ? value : module && module.value || '';
         }
     });
     studio.querySelectorAll('[data-source-value]').forEach(function (output) {
-        output.textContent = String(helpers.resolveValue(doc, player, output.dataset.sourceValue, {}));
+        output.textContent = String(helpers.resolveValue(output.dataset.sourceValue));
     });
     studio.querySelectorAll('[data-effective-number]').forEach(function (output) {
-        output.textContent = 'Effective: ' + helpers.resolveValue(doc, player, output.dataset.effectiveNumber, {});
+        output.textContent = 'Effective: ' + helpers.resolveValue(output.dataset.effectiveNumber);
     });
     studio.querySelectorAll('[data-dice-formula]').forEach(function (formula) {
-        var module = helpers.findModule(doc.modules, formula.dataset.diceFormula);
-        if (module) formula.textContent = helpers.diceFormula(module, doc, player);
+        var module = findModule(doc.modules, formula.dataset.diceFormula);
+        if (module) formula.textContent = helpers.diceFormula(module);
     });
     studio.querySelectorAll('[data-math-result]').forEach(function (output) {
-        var module = helpers.findModule(doc.modules, output.dataset.mathResult);
+        var module = findModule(doc.modules, output.dataset.mathResult);
         if (!module) return;
-        var result = helpers.calculateMath(doc, player, module, {});
+        var result = helpers.calculateMath(module);
         if (!Number.isFinite(result.result)) {
             output.textContent = result.error || 'Invalid input';
             return;
@@ -231,18 +229,26 @@ export function updateLiveValues(studio, doc, ui, player, helpers) {
     });
 }
 
-export function renderCanvas(studio, doc, ui, player, helpers, typeTable) {
+export function renderCanvas(studio, state, helpers) {
+    var doc = state.document;
+    var ui = state.ui;
+    var player = state.player;
+    var typeTable = helpers.types;
     var rootCanvas = studio.querySelector('[data-root-canvas]');
     var emptyState = studio.querySelector('[data-empty-state]');
     rootCanvas.querySelectorAll('[data-sheet-module]').forEach(function (element) { element.remove(); });
     drawModules(rootCanvas, doc.modules, true, doc, player, helpers, typeTable, ui.mode, ui, emptyState);
-    updateLiveValues(studio, doc, ui, player, helpers);
+    // Recalculate values after every redraw, including drops and rolls.
+    updateLiveValues(studio, state, helpers);
 }
 
-export function renderInspector(studio, doc, ui, helpers, typeTable) {
+export function renderInspector(studio, state, helpers) {
+    var doc = state.document;
+    var ui = state.ui;
+    var typeTable = helpers.types;
     var inspector = studio.querySelector('[data-inspector]');
     inspector.replaceChildren();
-    var module = helpers.findModule(doc.modules, ui.selectedId);
+    var module = findModule(doc.modules, ui.selectedId);
     if (!module) {
         var empty = document.createElement('p');
         empty.className = 'studio-muted';
@@ -273,7 +279,8 @@ export function renderInspector(studio, doc, ui, helpers, typeTable) {
         { id: 'hidden', name: 'Hidden' }
     ], module.visibility || config.defaults.visibility, 'Choose visibility', 'visibility');
 
-    var candidates = helpers.flatten(doc.modules).filter(function (item) {
+    // Only other value modules can be selected as inputs.
+    var candidates = flatten(doc.modules).filter(function (item) {
         return item.type !== 'group' && item.id !== module.id;
     });
 
@@ -301,7 +308,7 @@ export function renderInspector(studio, doc, ui, helpers, typeTable) {
             row.dataset.modifierIndex = index;
             row.dataset.moduleId = module.id;
             var checkbox = document.createElement('select');
-            selectOptions(checkbox, helpers.flatten(doc.modules).filter(function (item) { return item.type === 'checkbox'; }), modifier.source, 'Choose a checkbox');
+            selectOptions(checkbox, flatten(doc.modules).filter(function (item) { return item.type === 'checkbox'; }), modifier.source, 'Choose a checkbox');
             checkbox.dataset.modifierSetting = 'source';
             var amount = inputControl('number', modifier.amount, -99, 99);
             amount.dataset.modifierSetting = 'amount';

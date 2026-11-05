@@ -1,3 +1,8 @@
+import { flatten, linkSettings } from './modules-helper.js';
+
+var defaultKey = 'sheet-studio-draft';
+
+// keep saved data in one stable shape.
 export function serialize(doc) {
     return {
         schemaVersion: 1,
@@ -8,37 +13,26 @@ export function serialize(doc) {
 }
 
 export function validate(doc) {
-    var problems = [];
     if (!doc || typeof doc !== 'object') return ['Template data is missing.'];
+    var problems = [];
     var modules = Array.isArray(doc.modules) ? doc.modules : [];
-    var entries = new Map();
-    var references = [
-        'source',
-        'countSource',
-        'sidesSource',
-        'keepHighestSource',
-        'bonusSource',
-        'leftSource',
-        'rightSource'
-    ];
+    var entries = new Map(flatten(modules).map(function (module) { return [module.id, module]; }));
+    var marks = {};
 
     if (!doc.name || !doc.name.trim()) problems.push('Enter a sheet name.');
     if (!modules.length) problems.push('Add at least one module.');
 
-    function collect(list) {
-        list.forEach(function (module) {
-            entries.set(module.id, module);
-            collect(module.children || []);
-        });
+    // value links and conditional change sources both count as links.
+    function linksOf(module) {
+        return linkSettings.map(function (key) { return module[key]; })
+            .concat((module.modifiers || []).map(function (modifier) { return modifier.source; }))
+            .filter(Boolean);
     }
-    collect(modules);
 
     entries.forEach(function (module) {
         if (!module.name || !module.name.trim()) problems.push('Every module needs a name.');
-        references.forEach(function (key) {
-            if (module[key] && !entries.has(module[key])) {
-                problems.push('"' + module.name + '" links to a missing module.');
-            }
+        linkSettings.forEach(function (key) {
+            if (module[key] && !entries.has(module[key])) problems.push('"' + module.name + '" links to a missing module.');
         });
         (module.modifiers || []).forEach(function (modifier) {
             if (modifier.source && !entries.has(modifier.source)) {
@@ -47,29 +41,16 @@ export function validate(doc) {
         });
     });
 
-    var visiting = new Set();
-    var visited = new Set();
-    function visit(id) {
-        if (visiting.has(id)) return true;
-        if (visited.has(id)) return false;
-        visiting.add(id);
-        var module = entries.get(id);
-        var linked = module ? references.map(function (key) { return module[key]; }).filter(Boolean)
-            .concat((module.modifiers || []).map(function (modifier) { return modifier.source; }).filter(Boolean)) : [];
-        for (var index = 0; index < linked.length; index += 1) {
-            if (entries.has(linked[index]) && visit(linked[index])) return true;
-        }
-        visiting.delete(id);
-        visited.add(id);
-        return false;
+    // marks: 1 means on the current path, 2 means fully checked.
+    function hasCycle(id) {
+        if (marks[id] === 1) return true;
+        if (marks[id] === 2 || !entries.has(id)) return false;
+        marks[id] = 1;
+        var found = linksOf(entries.get(id)).some(hasCycle);
+        marks[id] = 2;
+        return found;
     }
-    entries.forEach(function (module, id) {
-        if (visit(id)) {
-            problems.push('Module links contain a cycle.');
-            visiting.clear();
-            visited.clear();
-        }
-    });
+    if (Array.from(entries.keys()).some(hasCycle)) problems.push('Module links contain a cycle.');
 
     return Array.from(new Set(problems));
 }
@@ -78,42 +59,25 @@ export function downloadJson(doc) {
     return JSON.stringify(serialize(doc), null, 2);
 }
 
-export async function saveDraft(doc, url, csrfToken) {
-    return post(doc, url, csrfToken);
-}
-
-export async function publish(doc, url, csrfToken) {
-    return post(doc, url, csrfToken);
-}
-
-async function post(doc, url, csrfToken) {
+// used for both drafts and publishing, only the url differs.
+export async function save(doc, url, csrfToken) {
     var headers = { 'Content-Type': 'application/json' };
     if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-    var response = await fetch(url, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(serialize(doc))
-    });
+    var response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(serialize(doc)) });
     if (!response.ok) {
-        var message = 'The request could not be completed.';
-        try {
-            var result = await response.json();
-            message = result.error || message;
-        } catch (error) {
-            if (response.status !== 404) throw error;
-        }
-        throw new Error(message);
+        var result = await response.json().catch(function () { return {}; });
+        throw new Error(result.error || 'The request could not be completed.');
     }
     return response;
 }
 
 export function autosave(doc, key) {
-    var draft = serialize(doc);
-    draft.savedPresets = doc.savedPresets || [];
-    localStorage.setItem(key || 'sheet-studio-draft', JSON.stringify(draft));
+    // saved presets stay in the local draft even though exports omit them.
+    var draft = Object.assign(serialize(doc), { savedPresets: doc.savedPresets || [] });
+    localStorage.setItem(key || defaultKey, JSON.stringify(draft));
 }
 
 export function restore(key) {
-    var saved = localStorage.getItem(key || 'sheet-studio-draft');
+    var saved = localStorage.getItem(key || defaultKey);
     return saved ? JSON.parse(saved) : null;
 }

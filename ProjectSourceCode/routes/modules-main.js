@@ -1,20 +1,16 @@
-import {
-    autosave,
-    downloadJson,
-    publish,
-    restore,
-    saveDraft,
-    validate
-} from './modules-database.js';
+import { autosave, downloadJson, restore, save, validate } from './modules-database.js';
 import {
     renderCanvas,
     renderInspector,
     renderSavedPresets,
-    updatePresetSelection,
-    updateLiveValues
+    setPlacement,
+    updateLiveValues,
+    updatePresetSelection
 } from './modules-render.js';
+import { builtinPresets, clonePresetModules, moduleSize, moduleTypes } from './modules-config.js';
+import { clone, findModule, flatten, layoutColumns, linkSettings } from './modules-helper.js';
 
-/* 1. State */
+/* 1. state */
 var studio = document.querySelector('[data-sheet-studio]');
 if (studio) {
     var rootCanvas = studio.querySelector('[data-root-canvas]');
@@ -22,112 +18,21 @@ if (studio) {
         'value', 'count', 'sides', 'uncheckedValue', 'checkedValue',
         'keepHighest', 'leftValue', 'rightValue'
     ];
-    var linkSettings = [
-        'source', 'countSource', 'sidesSource', 'keepHighestSource',
-        'bonusSource', 'leftSource', 'rightSource'
+    // actions that change the template, so they are undoable and autosaved.
+    var documentActions = [
+        'add-module', 'remove-modules', 'update-setting', 'update-modifier',
+        'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module',
+        'reparent-module', 'update-document-value', 'update-document-meta', 'restore-document'
     ];
 
+    // keep template data, editor state, and playtest values separate.
     var state = {
-        document: {
-            name: '',
-            description: '',
-            modules: [],
-            savedPresets: []
-        },
-        ui: {
-            mode: 'developer',
-            selectedId: null,
-            selectedModuleIds: [],
-            activeDrag: null,
-            suppressToolClick: false
-        },
-        player: {
-            values: {},
-            checked: {},
-            rollResults: {}
-        },
-        history: {
-            undo: [],
-            redo: []
-        },
+        document: { name: '', description: '', modules: [], savedPresets: [] },
+        ui: { mode: 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
+        player: { values: {}, checked: {}, rollResults: {} },
+        history: { undo: [], redo: [] },
         nextModuleId: 1
     };
-
-    /* 2. Module type table */
-    var moduleTypes = {
-        number: {
-            name: 'Number', control: 'number', valueKind: 'number', inspector: ['source', 'value', 'conditional'],
-            links: ['source'], defaults: {
-                value: '10', checked: false, visibility: 'shown', count: 1, countSource: '',
-                sides: 20, sidesSource: '', source: '', modifiers: [], children: [],
-                uncheckedValue: 0, checkedValue: 1, keepHighest: 0, keepHighestSource: '',
-                bonusSource: '', mathOperation: 'add', mathRounding: 'none',
-                leftValue: 0, leftSource: '', rightValue: 0, rightSource: ''
-            }
-        },
-        text: {
-            name: 'Text', control: 'text', valueKind: 'input', inspector: ['source'], links: ['source'],
-            defaults: { value: '', source: '', visibility: 'shown', modifiers: [], children: [] }
-        },
-        dice: {
-            name: 'Dice', control: 'dice', valueKind: 'dice', inspector: ['dice'],
-            links: ['countSource', 'sidesSource', 'keepHighestSource', 'bonusSource'],
-            defaults: {
-                value: '', count: 1, countSource: '', sides: 20, sidesSource: '',
-                keepHighest: 0, keepHighestSource: '', bonusSource: '', source: '',
-                visibility: 'shown', modifiers: [], children: []
-            }
-        },
-        checkbox: {
-            name: 'Checkbox', control: 'checkbox', valueKind: 'checkbox', inspector: ['source', 'checkbox'],
-            links: ['source'],
-            defaults: {
-                value: '', checked: false, uncheckedValue: 0, checkedValue: 1,
-                source: '', visibility: 'shown', modifiers: [], children: []
-            }
-        },
-        notes: {
-            name: 'Notes', control: 'notes', valueKind: 'input', inspector: ['source'], links: ['source'],
-            defaults: { value: '', source: '', visibility: 'shown', modifiers: [], children: [] }
-        },
-        math: {
-            name: 'Math', control: 'math', valueKind: 'math', inspector: ['math'],
-            links: ['leftSource', 'rightSource'],
-            defaults: {
-                value: '', visibility: 'hidden', count: 1, countSource: '', sides: 20,
-                sidesSource: '', source: '', modifiers: [], children: [], uncheckedValue: 0,
-                checkedValue: 1, keepHighest: 0, keepHighestSource: '', bonusSource: '',
-                mathOperation: 'add', mathRounding: 'none', leftValue: 0, leftSource: '',
-                rightValue: 0, rightSource: ''
-            }
-        },
-        group: {
-            name: 'Group', control: 'group', valueKind: 'group', inspector: ['group'], links: [],
-            defaults: { value: '', visibility: 'shown', source: '', modifiers: [], children: [] }
-        }
-    };
-
-    function clone(value) {
-        return JSON.parse(JSON.stringify(value));
-    }
-
-    function flatten(list, output) {
-        (list || []).forEach(function (module) {
-            output.push(module);
-            flatten(module.children, output);
-        });
-        return output;
-    }
-
-    function findModule(list, id) {
-        for (var index = 0; index < (list || []).length; index += 1) {
-            var module = list[index];
-            if (module.id === id) return module;
-            var nested = findModule(module.children, id);
-            if (nested) return nested;
-        }
-        return null;
-    }
 
     function findModuleEntry(id, list, parent) {
         var collection = list || state.document.modules;
@@ -142,25 +47,16 @@ if (studio) {
 
     function makeModule(type, id, siblings) {
         var columns = siblings === state.document.modules ? 12 : 6;
-        var defaults = clone(moduleTypes[type].defaults);
-        var span = Math.min(4, columns);
-        var preferred = {
-            col: 1 + (siblings.length % 3) * 4,
-            row: 1 + Math.floor(siblings.length / 3) * 3
-        };
-        var placement = findOpenPlacement(siblings, columns, span, 3, preferred);
-        return Object.assign({
-            id: id,
-            type: type,
-            name: moduleTypes[type].name,
-            col: placement.col,
-            row: placement.row,
-            colSpan: placement.colSpan,
-            rowSpan: placement.rowSpan
-        }, defaults);
+        var preferred = { col: 1 + (siblings.length % 3) * 4, row: 1 + Math.floor(siblings.length / 3) * 3 };
+        return Object.assign(
+            { id: id, type: type, name: moduleTypes[type].name },
+            findOpenPlacement(siblings, columns, moduleSize.colSpan, moduleSize.rowSpan, preferred),
+            clone(moduleTypes[type].defaults)
+        );
     }
 
-    /* 3. Grid math */
+    /* 3. grid placement */
+    // these functions choose open cells and snap pointer movement to the grid.
     function placementsOverlap(first, second) {
         return first.col < second.col + second.colSpan && first.col + first.colSpan > second.col &&
             first.row < second.row + second.rowSpan && first.row + first.rowSpan > second.row;
@@ -174,9 +70,7 @@ if (studio) {
         for (var row = 1; row <= lastRow; row += 1) {
             for (var col = 1; col <= columns - colSpan + 1; col += 1) {
                 var candidate = { col: col, row: row, colSpan: colSpan, rowSpan: rowSpan };
-                if (list.some(function (item) {
-                    return item.id !== ignoreId && placementsOverlap(candidate, item);
-                })) continue;
+                if (list.some(function (item) { return item.id !== ignoreId && placementsOverlap(candidate, item); })) continue;
                 var distance = Math.abs(col - preferred.col) + Math.abs(row - preferred.row) * 2;
                 if (distance < bestDistance) {
                     best = candidate;
@@ -192,251 +86,168 @@ if (studio) {
     }
 
     function snappedPlacement(module, layout, start, x, y, resize) {
-        var columns = Number(getComputedStyle(layout).getPropertyValue('--layout-columns').trim()) || 12;
-        var bounds = layout.getBoundingClientRect();
-        var columnStep = bounds.width / columns;
-        var rowStep = parseFloat(getComputedStyle(layout).gridAutoRows) || 64;
-        var deltaColumns = Math.round((x - start.x) / columnStep);
-        var deltaRows = Math.round((y - start.y) / rowStep);
+        var columns = layoutColumns(layout);
+        var columnsMoved = Math.round((x - start.x) / (layout.getBoundingClientRect().width / columns));
+        var rowsMoved = Math.round((y - start.y) / (parseFloat(getComputedStyle(layout).gridAutoRows) || 64));
         if (resize) {
             return Object.assign({}, module, {
-                colSpan: Math.max(2, Math.min(columns - module.col + 1, start.colSpan + deltaColumns)),
-                rowSpan: Math.max(2, start.rowSpan + deltaRows)
+                colSpan: Math.max(2, Math.min(columns - module.col + 1, start.colSpan + columnsMoved)),
+                rowSpan: Math.max(2, start.rowSpan + rowsMoved)
             });
         }
         return Object.assign({}, module, {
-            col: Math.max(1, Math.min(columns - module.colSpan + 1, start.col + deltaColumns)),
-            row: Math.max(1, start.row + deltaRows)
+            col: Math.max(1, Math.min(columns - module.colSpan + 1, start.col + columnsMoved)),
+            row: Math.max(1, start.row + rowsMoved)
         });
     }
 
-    /* 4. Value resolving */
-    function resolveValue(doc, player, id, visited, mode) {
-        var module = findModule(doc.modules, id);
-        var seen = visited || {};
+    /* 4. values and rolls */
+    // links resolve with the current mode's values, without changing template data.
+    var mathOperations = {
+        add: function (a, b) { return a + b; },
+        subtract: function (a, b) { return a - b; },
+        multiply: function (a, b) { return a * b; },
+        divide: function (a, b) { return b === 0 ? NaN : a / b; },
+        modulo: function (a, b) { return b === 0 ? NaN : a % b; }
+    };
+
+    function resolveValue(id, seen) {
+        var module = findModule(state.document.modules, id);
+        seen = seen || {};
         if (!module || module.type === 'group' || seen[id]) return '';
         seen[id] = true;
-        var value;
-        var playerValue = mode === 'playtest' ? player.values[id] : undefined;
-        var checked = mode === 'playtest' ? Boolean(player.checked[id]) : Boolean(module.checked);
-        var roll = mode === 'playtest' ? player.rollResults[id] : null;
+        var playtest = state.ui.mode === 'playtest';
+        var typed = playtest ? state.player.values[id] : undefined;
         var kind = moduleTypes[module.type].valueKind;
+        var value;
         if (kind === 'dice') {
+            var roll = playtest ? state.player.rollResults[id] : null;
             value = roll ? roll.total : 0;
         } else if (kind === 'math') {
-            value = calculateMath(doc, player, module, seen, mode).result;
+            value = calculateMath(module, seen).result;
         } else if (module.source) {
-            value = resolveValue(doc, player, module.source, seen, mode);
+            value = resolveValue(module.source, seen);
         } else if (kind === 'number') {
-            value = Number(playerValue !== undefined ? playerValue : module.value || 0);
+            value = typed !== undefined ? typed : module.value || 0;
         } else if (kind === 'checkbox') {
+            var checked = playtest ? state.player.checked[id] : module.checked;
             value = Number(checked ? module.checkedValue : module.uncheckedValue);
         } else {
-            value = playerValue !== undefined ? playerValue : module.value || '';
+            value = typed !== undefined ? typed : module.value || '';
         }
         if (kind === 'number') {
             value = Number(value) || 0;
             (module.modifiers || []).forEach(function (modifier) {
-                var source = findModule(doc.modules, modifier.source);
-                if (source && Boolean(resolveValue(doc, player, source.id, seen, mode))) {
-                    value += Number(modifier.amount || 0);
-                }
+                if (resolveValue(modifier.source, seen)) value += Number(modifier.amount || 0);
             });
         }
         delete seen[id];
         return value;
     }
 
-    function calculateMath(doc, player, module, visited, mode) {
-        var left = module.leftSource ? Number(resolveValue(doc, player, module.leftSource, visited, mode)) : Number(module.leftValue || 0);
-        var right = module.rightSource ? Number(resolveValue(doc, player, module.rightSource, visited, mode)) : Number(module.rightValue || 0);
-        var result;
-        switch (module.mathOperation) {
-            case 'subtract': result = left - right; break;
-            case 'multiply': result = left * right; break;
-            case 'divide':
-                result = right === 0 ? NaN : left / right;
-                if (module.mathRounding === 'up') result = Math.ceil(result);
-                if (module.mathRounding === 'down') result = Math.floor(result);
-                break;
-            case 'modulo': result = right === 0 ? NaN : left % right; break;
-            default: result = left + right;
+    function calculateMath(module, seen) {
+        function side(name) {
+            var source = module[name + 'Source'];
+            return Number(source ? resolveValue(source, seen) : module[name + 'Value'] || 0);
         }
+        var left = side('left');
+        var right = side('right');
+        var result = (mathOperations[module.mathOperation] || mathOperations.add)(left, right);
+        if (module.mathOperation === 'divide' && module.mathRounding === 'up') result = Math.ceil(result);
+        if (module.mathOperation === 'divide' && module.mathRounding === 'down') result = Math.floor(result);
+        var zeroError = Number.isNaN(result) && right === 0;
+        return { left: left, right: right, result: result, error: zeroError ? 'Cannot divide or modulo by zero' : '' };
+    }
+
+    // a dice setting comes from its linked module when one is set.
+    function diceSetting(module, name, fallback, min, max) {
+        var source = module[name + 'Source'];
+        var value = source ? resolveValue(source) : module[name];
+        return Math.max(min, Math.min(max, Math.floor(Number(value) || fallback)));
+    }
+
+    function diceStats(module) {
+        var count = diceSetting(module, 'count', 1, 1, 100);
         return {
-            left: left,
-            right: right,
-            result: result,
-            error: (module.mathOperation === 'divide' || module.mathOperation === 'modulo') && right === 0 ?
-                'Cannot divide or modulo by zero' : ''
+            count: count,
+            sides: diceSetting(module, 'sides', 20, 2, 1000),
+            keep: diceSetting(module, 'keepHighest', 0, 0, count),
+            bonus: module.bonusSource ? Number(resolveValue(module.bonusSource)) || 0 : 0
         };
     }
 
-    function diceCount(doc, player, module, mode) {
-        var value = module.countSource ? resolveValue(doc, player, module.countSource, {}, mode) : module.count;
-        return Math.max(1, Math.min(100, Math.floor(Number(value) || 1)));
+    function diceFormula(module) {
+        var dice = diceStats(module);
+        var formula = dice.count + 'd' + dice.sides + (dice.keep ? 'kh' + dice.keep : '');
+        return formula + (dice.bonus ? (dice.bonus > 0 ? ' +' : ' ') + dice.bonus : '');
     }
 
-    function diceSides(doc, player, module, mode) {
-        var value = module.sidesSource ? resolveValue(doc, player, module.sidesSource, {}, mode) : module.sides;
-        return Math.max(2, Math.min(1000, Math.floor(Number(value) || 20)));
-    }
-
-    function diceKeepHighest(doc, player, module, mode) {
-        var count = diceCount(doc, player, module, mode);
-        var value = module.keepHighestSource ? resolveValue(doc, player, module.keepHighestSource, {}, mode) : module.keepHighest;
-        return Math.max(0, Math.min(count, Math.floor(Number(value) || 0)));
-    }
-
-    function diceBonus(doc, player, module, mode) {
-        return module.bonusSource ? Number(resolveValue(doc, player, module.bonusSource, {}, mode)) || 0 : 0;
-    }
-
-    function diceFormula(module, doc, player, mode) {
-        var keep = diceKeepHighest(doc, player, module, mode);
-        var formula = diceCount(doc, player, module, mode) + 'd' + diceSides(doc, player, module, mode) + (keep ? 'kh' + keep : '');
-        var bonus = diceBonus(doc, player, module, mode);
-        return formula + (bonus ? (bonus > 0 ? ' +' : ' ') + bonus : '');
-    }
-
-    function helpers() {
-        return {
-            flatten: function (list) { return flatten(list, []); },
-            findModule: findModule,
-            resolveValue: function (doc, player, id, visited) {
-                return resolveValue(doc, player, id, visited, state.ui.mode);
-            },
-            calculateMath: function (doc, player, module, visited) {
-                return calculateMath(doc, player, module, visited, state.ui.mode);
-            },
-            diceFormula: function (module, doc, player) {
-                return diceFormula(module, doc, player, state.ui.mode);
-            }
-        };
-    }
+    // everything the render file needs from this file.
+    var api = {
+        types: moduleTypes,
+        resolveValue: resolveValue,
+        calculateMath: calculateMath,
+        diceFormula: diceFormula
+    };
 
     function refresh() {
-        renderCanvas(studio, state.document, state.ui, state.player, helpers(), moduleTypes);
-        renderInspector(studio, state.document, state.ui, helpers(), moduleTypes);
+        renderCanvas(studio, state, api);
+        renderInspector(studio, state, api);
         updatePresetSelection(studio, state.ui);
     }
 
-    function snapshotDocument() {
-        return clone(state.document);
+    /* 6. actions */
+    // this is the only function that updates application state.
+    function setUi(values, render) {
+        dispatch({ type: 'ui', values: values, render: render });
     }
 
-    function removeFromDocument(id, doc) {
-        var entry = findModuleEntry(id);
-        if (!entry) return;
-        var removed = {};
-        function collect(module) {
-            removed[module.id] = true;
-            (module.children || []).forEach(collect);
-        }
-        collect(entry.module);
-        entry.list.splice(entry.index, 1);
-        flatten(doc.modules, []).forEach(function (module) {
-            linkSettings.forEach(function (setting) {
-                if (removed[module[setting]]) module[setting] = '';
-            });
-            module.modifiers = (module.modifiers || []).filter(function (item) { return !removed[item.source]; });
-        });
+    function choose(id, ids) {
+        state.ui.selectedId = id;
+        state.ui.selectedModuleIds = ids || [];
     }
 
-    function clonePresetModules(presetModules, firstId) {
-        var copies = clone(presetModules);
-        var idMap = {};
-        var candidate = firstId;
-        flatten(copies, []).forEach(function (module) {
-            var oldId = module.id;
-            idMap[oldId] = String(candidate);
-            module.id = String(candidate);
-            candidate += 1;
-        });
-        flatten(copies, []).forEach(function (module) {
-            linkSettings.forEach(function (setting) {
-                if (module[setting]) module[setting] = idMap[module[setting]] || '';
-            });
-            module.modifiers = (module.modifiers || []).filter(function (item) { return idMap[item.source]; })
-                .map(function (item) { return { source: idMap[item.source], amount: item.amount }; });
-        });
-        return { modules: copies, nextId: candidate };
-    }
-
-    /* 5. Presets */
-    var builtinPresets = {
-        'ability-check': [
-            { id: 'check', type: 'checkbox', name: 'Proficient', col: 1, row: 1, colSpan: 4, rowSpan: 3, checked: false, checkedValue: 1, uncheckedValue: 0, visibility: 'shown', modifiers: [], children: [] },
-            { id: 'modifier', type: 'number', name: 'Ability modifier', col: 5, row: 1, colSpan: 4, rowSpan: 3, value: '0', source: '', visibility: 'shown', modifiers: [{ source: 'check', amount: 2 }], children: [] },
-            { id: 'roll', type: 'dice', name: 'Ability check', col: 9, row: 1, colSpan: 4, rowSpan: 3, count: 1, sides: 20, bonusSource: 'modifier', visibility: 'shown', modifiers: [], children: [] }
-        ],
-        'advantage-attack': [
-            { id: 'check', type: 'checkbox', name: 'Proficient', col: 1, row: 1, colSpan: 4, rowSpan: 3, checked: false, checkedValue: 1, uncheckedValue: 0, visibility: 'shown', modifiers: [], children: [] },
-            { id: 'modifier', type: 'number', name: 'Attack modifier', col: 5, row: 1, colSpan: 4, rowSpan: 3, value: '0', source: '', visibility: 'shown', modifiers: [{ source: 'check', amount: 2 }], children: [] },
-            { id: 'roll', type: 'dice', name: 'Attack roll', col: 9, row: 1, colSpan: 4, rowSpan: 3, count: 2, sides: 20, keepHighest: 1, bonusSource: 'modifier', visibility: 'shown', modifiers: [], children: [] }
-        ],
-        'ability-score-bonus': [
-            { id: 'level', type: 'number', name: 'level', col: 1, row: 1, colSpan: 4, rowSpan: 3, value: '10', visibility: 'shown', modifiers: [], children: [] },
-            { id: 'subtract', type: 'math', name: 'subtract 10', col: 5, row: 1, colSpan: 4, rowSpan: 3, leftSource: 'level', rightValue: 10, mathOperation: 'subtract', visibility: 'hidden', modifiers: [], children: [] },
-            { id: 'divide', type: 'math', name: 'divide', col: 9, row: 1, colSpan: 4, rowSpan: 3, leftSource: 'subtract', rightValue: 2, mathOperation: 'divide', mathRounding: 'down', visibility: 'hidden', modifiers: [], children: [] },
-            { id: 'bonus', type: 'number', name: 'Ability Bonus', col: 1, row: 4, colSpan: 4, rowSpan: 3, source: 'divide', visibility: 'shown', modifiers: [], children: [] }
-        ]
-    };
-
-    /* 6. Actions */
     function dispatch(action) {
-        var documentAction = [
-            'add-module', 'remove-modules', 'update-setting', 'update-modifier',
-            'add-modifier', 'remove-modifier', 'load-preset', 'save-preset',
-            'move-module', 'reparent-module', 'update-document-value', 'update-document-meta', 'restore-document'
-        ].includes(action.type);
-        if (documentAction && action.recordHistory !== false) {
-            state.history.undo.push(snapshotDocument());
+        var edits = documentActions.includes(action.type);
+        if (edits && action.recordHistory !== false) {
+            state.history.undo.push(clone(state.document));
             state.history.redo = [];
         }
 
         switch (action.type) {
-            case 'set-mode':
-                state.ui.mode = action.mode;
-                state.ui.selectedId = null;
-                state.ui.selectedModuleIds = [];
-                state.ui.activeDrag = null;
+            case 'ui':
+                Object.assign(state.ui, action.values);
                 break;
-            case 'select':
-                state.ui.selectedId = action.id;
-                state.ui.selectedModuleIds = action.multi || [];
-                break;
-            case 'selection':
-                state.ui.selectedModuleIds = action.ids;
-                break;
-            case 'drag-start':
-                state.ui.activeDrag = action.drag;
-                break;
-            case 'drag-update':
-                state.ui.activeDrag = Object.assign({}, state.ui.activeDrag, action.values);
-                break;
-            case 'drag-end':
-                state.ui.activeDrag = null;
-                break;
-            case 'suppress-tool-click':
-                state.ui.suppressToolClick = action.value;
+            case 'player':
+                state.player[action.key][action.id] = action.value;
                 break;
             case 'add-module': {
                 var parent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
                 if (action.parentId && !parent) break;
                 var siblings = parent ? parent.children : state.document.modules;
-                var added = makeModule(action.moduleType, String(state.nextModuleId), siblings);
+                var added = Object.assign(makeModule(action.moduleType, String(state.nextModuleId), siblings), action.placement);
                 state.nextModuleId += 1;
-                if (action.placement) Object.assign(added, action.placement);
                 siblings.push(added);
-                state.ui.selectedId = added.id;
-                state.ui.selectedModuleIds = [];
+                choose(added.id);
                 break;
             }
-            case 'remove-modules':
-                action.ids.forEach(function (id) { removeFromDocument(id, state.document); });
-                state.ui.selectedModuleIds = [];
-                state.ui.selectedId = null;
+            case 'remove-modules': {
+                var removed = {};
+                action.ids.forEach(function (id) {
+                    var entry = findModuleEntry(id);
+                    if (!entry) return;
+                    flatten([entry.module]).forEach(function (module) { removed[module.id] = true; });
+                    entry.list.splice(entry.index, 1);
+                });
+                flatten(state.document.modules).forEach(function (module) {
+                    linkSettings.forEach(function (setting) {
+                        if (removed[module[setting]]) module[setting] = '';
+                    });
+                    module.modifiers = (module.modifiers || []).filter(function (item) { return !removed[item.source]; });
+                });
+                choose(null);
                 break;
+            }
             case 'update-setting': {
                 var target = findModule(state.document.modules, action.id);
                 if (!target) break;
@@ -454,11 +265,10 @@ if (studio) {
             }
             case 'add-modifier': {
                 var numberModule = findModule(state.document.modules, action.id);
-                if (numberModule) {
-                    var firstCheckbox = flatten(state.document.modules, []).find(function (item) { return item.type === 'checkbox'; });
-                    numberModule.modifiers.push({ source: firstCheckbox ? firstCheckbox.id : '', amount: -1 });
-                    state.ui.selectedId = numberModule.id;
-                }
+                if (!numberModule) break;
+                var firstCheckbox = flatten(state.document.modules).find(function (item) { return item.type === 'checkbox'; });
+                numberModule.modifiers.push({ source: firstCheckbox ? firstCheckbox.id : '', amount: -1 });
+                state.ui.selectedId = numberModule.id;
                 break;
             }
             case 'remove-modifier': {
@@ -467,24 +277,21 @@ if (studio) {
                 break;
             }
             case 'load-preset': {
-                var presetModules = action.modules;
-                var cloneResult = clonePresetModules(presetModules, state.nextModuleId);
-                var copied = cloneResult.modules;
-                state.nextModuleId = cloneResult.nextId;
-                var rootColumns = Number(getComputedStyle(rootCanvas).getPropertyValue('--layout-columns').trim()) || 12;
-                copied.forEach(function (module) {
+                var loaded = clonePresetModules(action.modules, state.nextModuleId);
+                var rootColumns = layoutColumns(rootCanvas);
+                state.nextModuleId = loaded.nextId;
+                loaded.modules.forEach(function (module) {
                     module.colSpan = Math.min(module.colSpan, rootColumns);
-                    var placement = nearestPlacement(state.document.modules, module, rootColumns, { col: module.col, row: module.row });
-                    Object.assign(module, placement);
+                    Object.assign(module, nearestPlacement(state.document.modules, module, rootColumns, module));
                     state.document.modules.push(module);
                 });
-                state.ui.selectedId = copied.length ? copied[copied.length - 1].id : null;
-                state.ui.selectedModuleIds = [];
+                choose(loaded.modules.length ? loaded.modules[loaded.modules.length - 1].id : null);
                 break;
             }
             case 'save-preset': {
-                var selectedSet = new Set(state.ui.selectedModuleIds);
-                var selected = state.document.modules.filter(function (module) { return selectedSet.has(module.id); });
+                var selected = state.document.modules.filter(function (module) {
+                    return state.ui.selectedModuleIds.includes(module.id);
+                });
                 state.document.savedPresets.push({
                     name: action.name || 'Preset ' + (state.document.savedPresets.length + 1),
                     modules: clone(selected)
@@ -494,25 +301,19 @@ if (studio) {
             }
             case 'move-module': {
                 var moving = findModule(state.document.modules, action.id);
-                if (moving) {
-                    moving.col = action.placement.col;
-                    moving.row = action.placement.row;
-                    moving.colSpan = action.placement.colSpan;
-                    moving.rowSpan = action.placement.rowSpan;
-                }
+                if (moving) Object.assign(moving, action.placement);
                 break;
             }
             case 'reparent-module': {
                 var movingEntry = findModuleEntry(action.id);
                 var newParent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
                 if (!movingEntry || (action.parentId && !newParent)) break;
-                movingEntry.list.splice(movingEntry.index, 1);
                 var targetList = newParent ? newParent.children : state.document.modules;
-                var columns = newParent ? 6 : (Number(getComputedStyle(rootCanvas).getPropertyValue('--layout-columns').trim()) || 12);
-                var movingModule = movingEntry.module;
-                movingModule.colSpan = Math.min(movingModule.colSpan, newParent ? columns : 4);
-                Object.assign(movingModule, nearestPlacement(targetList, movingModule, columns, action.preferred || { col: 1, row: 1 }));
-                targetList.push(movingModule);
+                var columns = newParent ? 6 : layoutColumns(rootCanvas);
+                movingEntry.list.splice(movingEntry.index, 1);
+                movingEntry.module.colSpan = Math.min(movingEntry.module.colSpan, newParent ? columns : moduleSize.colSpan);
+                Object.assign(movingEntry.module, nearestPlacement(targetList, movingEntry.module, columns, { col: 1, row: 1 }));
+                targetList.push(movingEntry.module);
                 break;
             }
             case 'update-document-value': {
@@ -523,153 +324,139 @@ if (studio) {
             case 'update-document-meta':
                 state.document[action.key] = action.value;
                 break;
-            case 'player-value':
-                state.player.values[action.id] = action.value;
-                break;
-            case 'player-checked':
-                state.player.checked[action.id] = action.value;
-                break;
-            case 'player-roll':
-                state.player.rollResults[action.id] = action.result;
-                break;
             case 'undo':
-                if (state.history.undo.length) {
-                    state.history.redo.push(snapshotDocument());
-                    state.document = state.history.undo.pop();
+            case 'redo': {
+                var from = action.type === 'undo' ? state.history.undo : state.history.redo;
+                var to = action.type === 'undo' ? state.history.redo : state.history.undo;
+                if (from.length) {
+                    to.push(clone(state.document));
+                    state.document = from.pop();
                 }
                 break;
-            case 'redo':
-                if (state.history.redo.length) {
-                    state.history.undo.push(snapshotDocument());
-                    state.document = state.history.redo.pop();
-                }
-                break;
+            }
             case 'restore-document':
                 state.document = Object.assign({ savedPresets: [] }, action.document);
-                state.nextModuleId = flatten(state.document.modules, []).reduce(function (next, module) {
+                state.nextModuleId = flatten(state.document.modules).reduce(function (next, module) {
                     var numericId = Number(module.id);
                     return Number.isFinite(numericId) ? Math.max(next, numericId + 1) : next;
                 }, 1);
-                state.ui.selectedId = null;
-                state.ui.selectedModuleIds = [];
-                break;
-            case 'update-selection':
-                state.ui.selectedModuleIds = action.ids;
+                choose(null);
                 break;
             default:
                 return;
         }
 
-        if (documentAction || action.type === 'undo' || action.type === 'redo') {
+        if (edits || action.type === 'undo' || action.type === 'redo') {
             try {
                 autosave(state.document);
             } catch (error) {
                 console.error('Template builder autosave failed:', error);
             }
         }
-        if (action.render !== false) {
-            refresh();
-            if (action.type === 'save-preset' || action.type === 'load-preset') {
-                renderSavedPresets(studio, state.document.savedPresets);
-            }
+        if (action.render === false) return;
+        refresh();
+        if (action.type === 'save-preset' || action.type === 'load-preset') {
+            renderSavedPresets(studio, state.document.savedPresets);
         }
     }
 
-    /* 7. Interactions */
+    /* 7. interactions */
+    // event handlers turn user input into actions.
     function canvasForPoint(x, y) {
         var target = document.elementFromPoint(x, y);
         var groupCanvas = target && target.closest('[data-group-canvas]');
-        if (groupCanvas) return { element: groupCanvas, owner: findModule(state.document.modules, groupCanvas.dataset.groupCanvas) };
+        if (groupCanvas) {
+            return { element: groupCanvas, owner: findModule(state.document.modules, groupCanvas.dataset.groupCanvas) };
+        }
         return target && rootCanvas.contains(target) ? { element: rootCanvas, owner: null } : null;
     }
 
     function containsModule(module, id) {
-        return (module.children || []).some(function (child) {
-            return child.id === id || containsModule(child, id);
-        });
+        return flatten(module.children).some(function (child) { return child.id === id; });
     }
 
     function deleteSelected() {
-        if (state.ui.mode !== 'developer') return;
         var ids = state.ui.selectedModuleIds.slice();
-        if (!ids.length && state.ui.selectedId && findModule(state.document.modules, state.ui.selectedId)) {
-            ids.push(state.ui.selectedId);
-        }
+        if (!ids.length && findModule(state.document.modules, state.ui.selectedId)) ids.push(state.ui.selectedId);
         if (!ids.length) return;
         if (!window.confirm(ids.length === 1 ? 'Do you want to delete the selected module?' : 'Do you want to delete the selected modules?')) return;
         dispatch({ type: 'remove-modules', ids: ids });
     }
 
     function startPointer(event) {
+        if (state.ui.mode !== 'developer') return;
         var target = event.target;
         var tool = target.closest('[data-module-tool]');
-        if (tool && state.ui.mode === 'developer') {
-            dispatch({ type: 'drag-start', drag: {
+        if (tool) {
+            setUi({ activeDrag: {
                 kind: 'palette', pointerId: event.pointerId, type: tool.dataset.moduleTool,
                 tool: tool, startX: event.clientX, startY: event.clientY, dragged: false
-            }, render: false });
+            } }, false);
             tool.setPointerCapture(event.pointerId);
             return;
         }
-        if (state.ui.mode === 'developer' && rootCanvas.contains(target) && !target.closest('[data-sheet-module]')) {
+        if (rootCanvas.contains(target) && !target.closest('[data-sheet-module]')) {
             var marquee = document.createElement('div');
             marquee.className = 'module-selection-marquee';
             rootCanvas.appendChild(marquee);
-            dispatch({ type: 'select', id: null, multi: [] , render: false });
-            dispatch({ type: 'drag-start', drag: {
-                kind: 'selection', pointerId: event.pointerId, startX: event.clientX,
-                startY: event.clientY, marquee: marquee
-            }, render: false });
+            setUi({
+                selectedId: null,
+                selectedModuleIds: [],
+                activeDrag: { kind: 'selection', pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, marquee: marquee }
+            }, false);
             rootCanvas.setPointerCapture(event.pointerId);
             rootCanvas.focus();
             refresh();
             event.preventDefault();
             return;
         }
-        var move = target.closest('[data-move-module]');
         var resize = target.closest('[data-resize-module]');
-        if ((!move && !resize) || state.ui.mode !== 'developer') return;
+        var handle = resize || target.closest('[data-move-module]');
+        if (!handle) return;
         var card = target.closest('[data-sheet-module]');
         var module = findModule(state.document.modules, card.dataset.sheetModule);
-        var layout = card.parentElement.closest('[data-layout-canvas]');
-        (move || resize).setPointerCapture(event.pointerId);
-        dispatch({ type: 'drag-start', drag: {
+        var placement = { col: module.col, row: module.row, colSpan: module.colSpan, rowSpan: module.rowSpan };
+        handle.setPointerCapture(event.pointerId);
+        setUi({ activeDrag: {
             kind: 'module', pointerId: event.pointerId, id: module.id, element: card,
-            layout: layout, resize: Boolean(resize),
-            start: { x: event.clientX, y: event.clientY, col: module.col, row: module.row, colSpan: module.colSpan, rowSpan: module.rowSpan },
-            placement: { col: module.col, row: module.row, colSpan: module.colSpan, rowSpan: module.rowSpan }
-        }, render: false });
+            layout: card.parentElement.closest('[data-layout-canvas]'), resize: Boolean(resize),
+            start: Object.assign({ x: event.clientX, y: event.clientY }, placement),
+            placement: placement
+        } }, false);
         event.preventDefault();
     }
 
+    // the active drag is short-lived and never rendered, so move events update it directly.
     function movePointer(event) {
         var drag = state.ui.activeDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
         if (drag.kind === 'palette') {
-            var dragged = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 6;
-            if (dragged) {
+            var far = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 6;
+            if (far) {
                 drag.tool.classList.add('is-dragging');
                 event.preventDefault();
             }
-            dispatch({ type: 'drag-update', values: { dragged: dragged || drag.dragged }, render: false });
+            drag.dragged = far || drag.dragged;
             return;
         }
         if (drag.kind === 'selection') {
-            var bounds = {
+            var box = {
                 left: Math.min(drag.startX, event.clientX), right: Math.max(drag.startX, event.clientX),
                 top: Math.min(drag.startY, event.clientY), bottom: Math.max(drag.startY, event.clientY)
             };
             var canvasBounds = rootCanvas.getBoundingClientRect();
-            drag.marquee.style.left = bounds.left - canvasBounds.left + rootCanvas.scrollLeft + 'px';
-            drag.marquee.style.top = bounds.top - canvasBounds.top + rootCanvas.scrollTop + 'px';
-            drag.marquee.style.width = bounds.right - bounds.left + 'px';
-            drag.marquee.style.height = bounds.bottom - bounds.top + 'px';
-            var selected = Array.prototype.filter.call(rootCanvas.children, function (element) {
+            Object.assign(drag.marquee.style, {
+                left: box.left - canvasBounds.left + rootCanvas.scrollLeft + 'px',
+                top: box.top - canvasBounds.top + rootCanvas.scrollTop + 'px',
+                width: box.right - box.left + 'px',
+                height: box.bottom - box.top + 'px'
+            });
+            var ids = Array.prototype.filter.call(rootCanvas.children, function (element) {
                 if (!element.matches('[data-sheet-module]')) return false;
                 var rect = element.getBoundingClientRect();
-                return rect.left < bounds.right && rect.right > bounds.left && rect.top < bounds.bottom && rect.bottom > bounds.top;
+                return rect.left < box.right && rect.right > box.left && rect.top < box.bottom && rect.bottom > box.top;
             }).map(function (element) { return element.dataset.sheetModule; });
-            dispatch({ type: 'selection', ids: selected, render: false });
+            setUi({ selectedModuleIds: ids }, false);
             updatePresetSelection(studio, state.ui);
             event.preventDefault();
             return;
@@ -678,211 +465,184 @@ if (studio) {
         var module = findModule(state.document.modules, drag.id);
         var preview = snappedPlacement(module, drag.layout, drag.start, event.clientX, event.clientY, drag.resize);
         var entry = findModuleEntry(drag.id);
-        if (entry && entry.list.some(function (item) { return item.id !== module.id && placementsOverlap(preview, item); })) return;
-        dispatch({ type: 'drag-update', values: {
-            placement: { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan }
-        }, render: false });
-        preview.element = drag.element;
-        var columns = Number(getComputedStyle(drag.layout).getPropertyValue('--layout-columns').trim()) || 12;
-        preview.style = drag.element.style;
-        preview.style.gridColumn = Math.max(1, Math.min(columns - preview.colSpan + 1, preview.col)) + ' / span ' + Math.min(preview.colSpan, columns);
-        preview.style.gridRow = preview.row + ' / span ' + preview.rowSpan;
+        if (entry.list.some(function (item) { return item.id !== module.id && placementsOverlap(preview, item); })) return;
+        drag.placement = { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan };
+        setPlacement(drag.element, preview, drag.layout);
+    }
+
+    function dropTool(drag, event) {
+        setUi({ suppressToolClick: true }, false);
+        window.setTimeout(function () { setUi({ suppressToolClick: false }, false); }, 50);
+        var destination = canvasForPoint(event.clientX, event.clientY);
+        if (!destination) return;
+        var columns = layoutColumns(destination.element);
+        var siblings = destination.owner ? destination.owner.children : state.document.modules;
+        var rect = destination.element.getBoundingClientRect();
+        var rowStep = parseFloat(getComputedStyle(destination.element).gridAutoRows) || 64;
+        var placement = nearestPlacement(siblings, moduleSize, columns, {
+            col: Math.max(1, Math.min(columns - moduleSize.colSpan + 1, Math.floor((event.clientX - rect.left) / (rect.width / columns)) + 1)),
+            row: Math.max(1, Math.floor((event.clientY - rect.top) / rowStep) + 1)
+        });
+        dispatch({ type: 'add-module', moduleType: drag.type, parentId: destination.owner && destination.owner.id, placement: placement });
+    }
+
+    function dropModule(drag, event) {
+        var drop = canvasForPoint(event.clientX, event.clientY);
+        var entry = findModuleEntry(drag.id);
+        // dropping outside a canvas or onto itself keeps the current parent.
+        var owner = drop ? drop.owner : entry.parent;
+        if (owner && owner.id === drag.id) owner = entry.parent;
+        if (owner && containsModule(entry.module, owner.id)) {
+            refresh();
+            return;
+        }
+        if (owner === entry.parent) dispatch({ type: 'move-module', id: drag.id, placement: drag.placement });
+        else dispatch({ type: 'reparent-module', id: drag.id, parentId: owner && owner.id });
     }
 
     function finishPointer(event, cancelled) {
         var drag = state.ui.activeDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
-        dispatch({ type: 'drag-end', render: false });
-        if (drag.kind === 'palette') {
-            drag.tool.classList.remove('is-dragging');
-            if (!cancelled && drag.dragged) {
-                dispatch({ type: 'suppress-tool-click', value: true, render: false });
-                window.setTimeout(function () { dispatch({ type: 'suppress-tool-click', value: false, render: false }); }, 50);
-                var destination = canvasForPoint(event.clientX, event.clientY);
-                if (destination) {
-                    var columns = Number(getComputedStyle(destination.element).getPropertyValue('--layout-columns').trim()) || 12;
-                    var siblings = destination.owner ? destination.owner.children : state.document.modules;
-                    var module = makeModule(drag.type, 'pending', siblings);
-                    var rect = destination.element.getBoundingClientRect();
-                    var rowStep = parseFloat(getComputedStyle(destination.element).gridAutoRows) || 64;
-                    var placement = nearestPlacement(siblings, module, columns, {
-                        col: Math.max(1, Math.min(columns - module.colSpan + 1, Math.floor((event.clientX - rect.left) / (rect.width / columns)) + 1)),
-                        row: Math.max(1, Math.floor((event.clientY - rect.top) / rowStep) + 1)
-                    });
-                    dispatch({ type: 'add-module', moduleType: drag.type, parentId: destination.owner && destination.owner.id, placement: placement });
-                }
-            } else {
-                refresh();
-            }
-            return;
-        }
+        setUi({ activeDrag: null }, false);
         if (drag.kind === 'selection') {
             drag.marquee.remove();
             updatePresetSelection(studio, state.ui);
-            return;
-        }
-        if (cancelled) {
+        } else if (drag.kind === 'palette') {
+            drag.tool.classList.remove('is-dragging');
+            if (!cancelled && drag.dragged) dropTool(drag, event);
+            else refresh();
+        } else if (cancelled) {
             refresh();
-            return;
-        }
-        var drop = canvasForPoint(event.clientX, event.clientY);
-        var module = findModule(state.document.modules, drag.id);
-        var entry = findModuleEntry(drag.id);
-        if (drop && drop.owner && containsModule(module, drop.owner.id)) {
-            refresh();
-            return;
-        }
-        if (drop && drop.owner && drop.owner.id !== drag.id && entry && entry.parent !== drop.owner) {
-            dispatch({ type: 'reparent-module', id: drag.id, parentId: drop.owner.id, preferred: { col: 1, row: 1 } });
-        } else if (drop && !drop.owner && entry && entry.parent) {
-            dispatch({ type: 'reparent-module', id: drag.id, parentId: null, preferred: { col: 1, row: 1 } });
         } else {
-            dispatch({ type: 'move-module', id: drag.id, placement: drag.placement });
+            dropModule(drag, event);
         }
     }
 
+    // keep the roll details so linked values can use its numeric total.
     function rollDice(module) {
-        var count = diceCount(state.document, state.player, module, state.ui.mode);
-        var sides = diceSides(state.document, state.player, module, state.ui.mode);
-        var keep = diceKeepHighest(state.document, state.player, module, state.ui.mode);
-        var rolls = [];
-        for (var index = 0; index < count; index += 1) rolls.push(Math.floor(Math.random() * sides) + 1);
-        var kept = keep ? rolls.slice().sort(function (a, b) { return b - a; }).slice(0, keep) : rolls.slice();
-        var bonus = diceBonus(state.document, state.player, module, state.ui.mode);
-        dispatch({
-            type: 'player-roll',
-            id: module.id,
-            result: {
-                rolls: rolls,
-                kept: kept,
-                keepHighest: keep,
-                bonus: bonus,
-                total: kept.reduce(function (sum, roll) { return sum + roll; }, 0) + bonus
-            }
-        });
+        var dice = diceStats(module);
+        var rolls = Array.from({ length: dice.count }, function () { return Math.floor(Math.random() * dice.sides) + 1; });
+        var kept = dice.keep ? rolls.slice().sort(function (a, b) { return b - a; }).slice(0, dice.keep) : rolls;
+        dispatch({ type: 'player', key: 'rollResults', id: module.id, value: {
+            rolls: rolls,
+            kept: kept,
+            keepHighest: dice.keep,
+            bonus: dice.bonus,
+            total: kept.reduce(function (sum, roll) { return sum + roll; }, 0) + dice.bonus
+        } });
     }
 
+    // delegated clicks mean generated controls need no inline handlers.
     function handleClick(event) {
         var target = event.target;
+        var developer = state.ui.mode === 'developer';
         var view = target.closest('[data-view-button]');
         if (view) {
-            dispatch({ type: 'set-mode', mode: view.dataset.viewButton });
+            setUi({ mode: view.dataset.viewButton, selectedId: null, selectedModuleIds: [], activeDrag: null });
+            developer = state.ui.mode === 'developer';
             studio.dataset.mode = state.ui.mode;
             studio.querySelectorAll('[data-view-button]').forEach(function (button) {
                 button.setAttribute('aria-selected', String(button === view));
             });
-            studio.querySelector('[data-workspace-title]').textContent = state.ui.mode === 'developer' ?
+            studio.querySelector('[data-workspace-title]').textContent = developer ?
                 'Developer canvas' : (state.document.name || 'Character sheet');
-            studio.querySelector('[data-workspace-help]').textContent = state.ui.mode === 'developer' ?
+            studio.querySelector('[data-workspace-help]').textContent = developer ?
                 'Snap modules into the grid. Drag modules into a group to keep related fields together.' :
                 'Enter values, toggle conditions, and roll dice to test the sheet.';
             return;
         }
-        var preset = target.closest('[data-load-preset]');
-        if (preset && state.ui.mode === 'developer') {
-            dispatch({ type: 'load-preset', modules: builtinPresets[preset.dataset.loadPreset] });
-            return;
-        }
-        var savedPreset = target.closest('[data-saved-preset]');
-        if (savedPreset && state.ui.mode === 'developer') {
-            var saved = state.document.savedPresets[Number(savedPreset.dataset.savedPreset)];
-            if (saved) dispatch({ type: 'load-preset', modules: saved.modules });
-            return;
-        }
-        if (target.closest('[data-save-preset]') && state.ui.selectedModuleIds.length) {
-            var name = studio.querySelector('#preset-name').value.trim();
-            dispatch({ type: 'save-preset', name: name });
-            studio.querySelector('#preset-name').value = '';
-            return;
-        }
-        var tool = target.closest('[data-module-tool]');
-        if (tool && state.ui.mode === 'developer') {
-            if (!state.ui.suppressToolClick) dispatch({ type: 'add-module', moduleType: tool.dataset.moduleTool });
-            return;
-        }
-        var remove = target.closest('[data-remove-module]');
-        if (remove && state.ui.mode === 'developer') {
-            dispatch({ type: 'remove-modules', ids: [remove.dataset.removeModule] });
-            return;
-        }
-        var edit = target.closest('[data-edit-module]');
-        if (edit && state.ui.mode === 'developer') {
-            dispatch({ type: 'select', id: edit.dataset.editModule, multi: [] });
-            return;
-        }
         var addModifier = target.closest('[data-add-modifier]');
-        if (addModifier) {
-            dispatch({ type: 'add-modifier', id: addModifier.dataset.addModifier });
-            return;
-        }
+        if (addModifier) return dispatch({ type: 'add-modifier', id: addModifier.dataset.addModifier });
         var removeModifier = target.closest('[data-remove-modifier]');
         if (removeModifier) {
             var row = removeModifier.closest('[data-modifier-index]');
-            dispatch({ type: 'remove-modifier', id: row.dataset.moduleId, index: Number(row.dataset.modifierIndex) });
-            return;
+            return dispatch({ type: 'remove-modifier', id: row.dataset.moduleId, index: Number(row.dataset.modifierIndex) });
         }
         var roll = target.closest('[data-roll-module]');
         if (roll) {
             var dice = findModule(state.document.modules, roll.dataset.rollModule);
             if (dice) rollDice(dice);
+            return;
         }
+        if (!developer) return;
+
+        var preset = target.closest('[data-load-preset]');
+        if (preset) return dispatch({ type: 'load-preset', modules: builtinPresets[preset.dataset.loadPreset] });
+        var savedPreset = target.closest('[data-saved-preset]');
+        if (savedPreset) {
+            var saved = state.document.savedPresets[Number(savedPreset.dataset.savedPreset)];
+            if (saved) dispatch({ type: 'load-preset', modules: saved.modules });
+            return;
+        }
+        if (target.closest('[data-save-preset]') && state.ui.selectedModuleIds.length) {
+            var nameInput = studio.querySelector('#preset-name');
+            dispatch({ type: 'save-preset', name: nameInput.value.trim() });
+            nameInput.value = '';
+            return;
+        }
+        var tool = target.closest('[data-module-tool]');
+        if (tool) {
+            if (!state.ui.suppressToolClick) dispatch({ type: 'add-module', moduleType: tool.dataset.moduleTool });
+            return;
+        }
+        var remove = target.closest('[data-remove-module]');
+        if (remove) return dispatch({ type: 'remove-modules', ids: [remove.dataset.removeModule] });
+        var edit = target.closest('[data-edit-module]');
+        if (edit) setUi({ selectedId: edit.dataset.editModule, selectedModuleIds: [] });
     }
 
+    // playtest input updates player state, and editor input updates the template.
     function handleInputs(event) {
         var target = event.target;
+        var playtest = state.ui.mode === 'playtest';
+        var isSelect = target.tagName === 'SELECT';
         var valueInput = target.closest('[data-module-value]');
         if (valueInput && event.type === 'input') {
             var id = valueInput.dataset.moduleValue;
-            dispatch(state.ui.mode === 'playtest' ?
-                { type: 'player-value', id: id, value: valueInput.value, render: false } :
+            dispatch(playtest ?
+                { type: 'player', key: 'values', id: id, value: valueInput.value, render: false } :
                 { type: 'update-document-value', id: id, value: valueInput.value, render: false });
-            updateLiveValues(studio, state.document, state.ui, state.player, helpers());
+            updateLiveValues(studio, state, api);
             return;
         }
-        if (event.type === 'change') {
-            var checkbox = target.closest('[data-module-checked]');
-            if (checkbox) {
-                if (state.ui.mode === 'playtest') dispatch({ type: 'player-checked', id: checkbox.dataset.moduleChecked, value: checkbox.checked });
-                else {
-                    var checkboxModule = findModule(state.document.modules, checkbox.dataset.moduleChecked);
-                    if (checkboxModule) dispatch({ type: 'update-setting', id: checkboxModule.id, setting: 'checked', value: checkbox.checked });
-                }
-                return;
-            }
+        var checkbox = event.type === 'change' && target.closest('[data-module-checked]');
+        if (checkbox) {
+            var checkId = checkbox.dataset.moduleChecked;
+            dispatch(playtest ?
+                { type: 'player', key: 'checked', id: checkId, value: checkbox.checked } :
+                { type: 'update-setting', id: checkId, setting: 'checked', value: checkbox.checked });
+            return;
         }
-        var isSelect = target.tagName === 'SELECT';
+        // text fields update on input, and selects update on change.
+        if (!((event.type === 'input' && !isSelect) || (event.type === 'change' && isSelect))) return;
         var setting = target.dataset.setting;
-        if (setting && state.ui.mode === 'developer' && ((event.type === 'input' && !isSelect) || (event.type === 'change' && isSelect))) {
+        if (setting && !playtest) {
             var selected = findModule(state.document.modules, state.ui.selectedId);
-            if (selected) {
-                var inPlace = setting === 'name' || numericSettings.includes(setting);
-                dispatch({ type: 'update-setting', id: selected.id, setting: setting, value: target.value, render: !inPlace });
-                if (inPlace) {
-                    if (setting === 'name') {
-                        var title = studio.querySelector('[data-sheet-module="' + selected.id + '"] [data-module-title]');
-                        if (title) title.textContent = target.value || moduleTypes[selected.type].name;
-                    } else {
-                        updateLiveValues(studio, state.document, state.ui, state.player, helpers());
-                    }
-                }
+            if (!selected) return;
+            var inPlace = setting === 'name' || numericSettings.includes(setting);
+            dispatch({ type: 'update-setting', id: selected.id, setting: setting, value: target.value, render: !inPlace });
+            if (setting === 'name') {
+                var title = studio.querySelector('[data-sheet-module="' + selected.id + '"] [data-module-title]');
+                if (title) title.textContent = target.value || moduleTypes[selected.type].name;
+            } else if (inPlace) {
+                updateLiveValues(studio, state, api);
             }
             return;
         }
-        var modifierSetting = target.dataset.modifierSetting;
-        if (modifierSetting && ((event.type === 'input' && !isSelect) || (event.type === 'change' && isSelect))) {
-            var row = target.closest('[data-modifier-index]');
+        if (target.dataset.modifierSetting) {
+            var modifierRow = target.closest('[data-modifier-index]');
             dispatch({
-                type: 'update-modifier', id: row.dataset.moduleId,
-                index: Number(row.dataset.modifierIndex), setting: modifierSetting, value: target.value,
-                recordHistory: true
+                type: 'update-modifier', id: modifierRow.dataset.moduleId,
+                index: Number(modifierRow.dataset.modifierIndex),
+                setting: target.dataset.modifierSetting, value: target.value
             });
         }
     }
 
+    // validate before publish, and keep the placeholder notice for missing endpoints.
     async function saveAction(kind) {
-        var url = kind === 'draft' ? studio.dataset.saveDraftUrl : studio.dataset.publishUrl;
-        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
-        var token = studio.dataset.csrfToken || (csrfMeta && csrfMeta.content);
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        var token = studio.dataset.csrfToken || (meta && meta.content);
         try {
             if (kind === 'publish') {
                 var problems = validate(state.document);
@@ -890,10 +650,8 @@ if (studio) {
                     window.alert(problems.join('\n'));
                     return;
                 }
-                await publish(state.document, url, token);
-            } else {
-                await saveDraft(state.document, url, token);
             }
+            await save(state.document, kind === 'draft' ? studio.dataset.saveDraftUrl : studio.dataset.publishUrl, token);
         } catch (error) {
             console.error('Template builder ' + kind + ' failed:', error);
             window.alert('todo');
@@ -901,8 +659,7 @@ if (studio) {
     }
 
     function downloadTemplate() {
-        var blob = new Blob([downloadJson(state.document)], { type: 'application/json' });
-        var url = URL.createObjectURL(blob);
+        var url = URL.createObjectURL(new Blob([downloadJson(state.document)], { type: 'application/json' }));
         var link = document.createElement('a');
         link.href = url;
         link.download = (state.document.name || 'template').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.json';
@@ -911,37 +668,36 @@ if (studio) {
     }
 
     function handleKeydown(event) {
-        var command = event.ctrlKey || event.metaKey;
         var editing = event.target.closest('input, textarea, select, [contenteditable="true"]');
-        if (command && !editing && event.key.toLowerCase() === 'z') {
+        if (editing) return;
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
             event.preventDefault();
             dispatch({ type: event.shiftKey ? 'redo' : 'undo' });
-            return;
-        }
-        if ((event.key === 'Backspace' || event.key === 'Delete') && state.ui.mode === 'developer' && !editing) {
+        } else if ((event.key === 'Backspace' || event.key === 'Delete') && state.ui.mode === 'developer') {
             event.preventDefault();
             deleteSelected();
         }
     }
 
-    /* 8. Startup */
+    /* 8. startup */
+    // restore the last draft before drawing the first canvas.
     function attachListeners() {
         studio.addEventListener('pointerdown', startPointer);
         studio.addEventListener('pointermove', movePointer);
-        studio.addEventListener('pointerup', function (event) { finishPointer(event, false); });
-        studio.addEventListener('pointercancel', function (event) { finishPointer(event, true); });
+        ['pointerup', 'pointercancel'].forEach(function (type) {
+            studio.addEventListener(type, function (event) { finishPointer(event, type === 'pointercancel'); });
+        });
         studio.addEventListener('keydown', handleKeydown);
         studio.addEventListener('click', handleClick);
         studio.addEventListener('input', handleInputs);
         studio.addEventListener('change', handleInputs);
-        studio.querySelector('#sheet-name').addEventListener('input', function (event) {
-            dispatch({ type: 'update-document-meta', key: 'name', value: event.target.value, render: false });
-            if (state.ui.mode === 'playtest') {
-                studio.querySelector('[data-workspace-title]').textContent = event.target.value || 'Character sheet';
-            }
-        });
-        studio.querySelector('#sheet-description').addEventListener('input', function (event) {
-            dispatch({ type: 'update-document-meta', key: 'description', value: event.target.value, render: false });
+        [['name', '#sheet-name'], ['description', '#sheet-description']].forEach(function (pair) {
+            studio.querySelector(pair[1]).addEventListener('input', function (event) {
+                dispatch({ type: 'update-document-meta', key: pair[0], value: event.target.value, render: false });
+                if (pair[0] === 'name' && state.ui.mode === 'playtest') {
+                    studio.querySelector('[data-workspace-title]').textContent = event.target.value || 'Character sheet';
+                }
+            });
         });
         studio.querySelector('[data-download-template]').addEventListener('click', downloadTemplate);
         studio.querySelector('[data-save-draft]').addEventListener('click', function () { saveAction('draft'); });

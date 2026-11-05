@@ -5,6 +5,7 @@ const handlebars = require('express-handlebars');
 const Handlebars = require('handlebars');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const pgp = require('pg-promise')();
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
@@ -50,7 +51,13 @@ const auth = (req, res, next) => {
 // Serve the stylesheet at /css/styles.css no matter what the folder is called
 // (CSS, css, ...) or how deep it sits inside ProjectSourceCode.
 app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
-['modules-main.js', 'modules-render.js', 'modules-database.js'].forEach((file) => {
+[
+  'modules-main.js',
+  'modules-render.js',
+  'modules-database.js',
+  'modules-helper.js',
+  'modules-config.js',
+].forEach((file) => {
   app.get('/js/' + file, (req, res) => {
     res.sendFile(path.join(__dirname, 'routes', file));
   });
