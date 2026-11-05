@@ -40,6 +40,7 @@ app.use(session({
 
 app.use((req, res, next) => {
   res.locals.user = req.session.user;
+  res.locals.login = Boolean(req.session.user);
   next();
 });
 
@@ -82,7 +83,9 @@ const db = pgp(dbConfig);
 app.get('/', (req, res) => res.render('pages/index'));
 app.get('/login', (req, res) => res.render('pages/login'));
 app.get('/register', (req, res) => res.render('pages/register'));
-app.get('/register', (req, res) => res.render('pages/dashboard'));
+app.get('/dashboard', auth, (req, res) => {
+  res.render('pages/dashboard', { login: true });
+});
 
 app.post('/register', async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
@@ -179,7 +182,7 @@ app.post('/login', async (req, res) => {
           username,
         });
       }
-      res.redirect('/tutorial'); // TODO: change to real landing page
+      res.redirect('/');
     });
   } catch (err) {
     console.error('Login failed:', err);
@@ -207,7 +210,7 @@ app.get('/manage', (req, res) => {
 });
 
 // upload / send templates (routes/templates.js)
-app.use('/templates', require('./routes/templates')(db, auth));
+app.use('/templates', auth, require('./routes/templates')(db, auth));
 
 const startServer = async () => {
   try {
