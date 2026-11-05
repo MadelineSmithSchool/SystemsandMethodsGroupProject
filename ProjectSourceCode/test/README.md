@@ -32,6 +32,7 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 
 - `app.js` builds the app and exports it. `index.js` starts the server (`npm start`).
 - `src/db.js` is the one db connection, used by the routes and the tests. It won't run tests unless the db name ends in `_test`.
+- `test/setup.js` loads first and turns on test mode, so running `npm test` against the dev db just errors out instead of touching it.
 - The test db gets its tables from `create.sql`.
 - `server.spec.js` closes the db pool after all the tests finish.
 
