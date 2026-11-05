@@ -1,7 +1,5 @@
 <header class="site-header">
-  <!-- TODO: rename the site and point this at your home page -->
-  <a class="brand" href="/">RPG Templates</a>
-  <!-- navbar dropdown wip-->
+  <a class="brand" href="/dashboard">RPG Templates</a>
   <nav class="navbar" aria-label="Main">
     {{#if admin}}
       <ul class="nav-list">
@@ -10,23 +8,24 @@
         <li><a href="/logout">Logout</a></li>
       </ul>
     {{else if login}}
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNavDropdown">
-        <ul class="nav-list">
-          <li><a href="/tutorial">Tutorial</a></li>
-          <li><a href="/templates/upload">Upload Template</a></li>
-          <li><a href="/templates/new">Build New Template</a></li>
-          {{!-- TODO: EVERYTHING BELOW THIS LINE IS NOT DONE AND NEEDS TO BE FINISHED --}}
-          <li><a href="#">My Templates</a></li>
-          <li><a href="/characters">My Characters</a></li>
-          <li><a href="/characters/new">Create A Character</a></li> 
-          <li><a href="/templates/library">Template Library</a></li>
-          <li><a href="/settings">Settings</a></li>
-          <li><a href="/logout">Logout</a></li>
-        </ul>
-      </div>
+      <ul class="nav-list">
+        <li><a href="/tutorial">Tutorial</a></li>
+        <li class="nav-dropdown">
+          <details>
+            {{!-- change this to image maybe or icon --}}
+            <summary>Navigation</summary> 
+            <ul class="nav-dropdown-menu">
+              <li><a href="/dashboard">Open Dashboard</a></li>
+              <li><a href="/templates/new">Build Template From Scratch</a></li>
+              <li><a href="/templates">My Templates</a></li>
+              <li><a href="/library">Browse Templates</a></li>
+              <li><a href="/characters">My Characters</a></li>
+              <li><a href="/characters/new">Create New Character</a></li>
+            </ul>
+          </details>
+        </li>
+        <li><a href="/logout">Log out</a></li>
+      </ul>
     {{else}}
       <ul class="nav-list">
         <li><a href="/login">Login</a></li>
@@ -43,9 +42,16 @@
     document.querySelectorAll('.nav-list a').forEach(function (a) {
       var href = a.getAttribute('href');
       if (!href || href.charAt(0) === '#') return;
-      var target = href.replace(/\/+$/, '') || '/';
-      if (target === here) a.setAttribute('aria-current', 'page');
+      var target = new URL(href, window.location.href);
+      var targetPath = target.pathname.replace(/\/+$/, '') || '/';
+      if (targetPath === here && target.search === location.search) {
+        a.setAttribute('aria-current', 'page');
+        var dropdown = a.closest('.nav-dropdown');
+        if (dropdown) {
+          dropdown.querySelector('details').open = true;
+          dropdown.querySelector('summary').setAttribute('aria-current', 'page');
+        }
+      }
     });
   })();
 </script>
-<body>

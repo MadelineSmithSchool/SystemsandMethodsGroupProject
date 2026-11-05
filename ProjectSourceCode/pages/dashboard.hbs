@@ -6,34 +6,53 @@
       <h1 id="start-title">Start your character</h1>
       <p>Pick how you want to begin. You can name your character and add cards once you are in.</p>
     </div>
-
-    <ul class="start-options">
-      <li>
-        {{!-- TODO: replace "#" with the Upload template page URL --}}
-        <a class="option" href="#">
+    <!-- TODO: Add images for the cards-->
+    <div class="row" style="margin-bottom:10px;">
+      <div class="col">
+        <a class="option" href="/upload">
           <span class="option-title">Upload a template</span>
+          <img class="index-cards" src="" alt="image">
           <span class="option-desc">Already have a template file? Bring it in and pick up where it left off.</span>
         </a>
-      </li>
-      <li>
+      </div>
+      <div class="col">
+        <a class="option" href="/share">
+          <span class="option-title">Send template</span>
+          <img class="index-cards" src="" alt="image">
+          <span class="option-desc">Share one of your templates with another player.</span>
+        </a>
+      </div>
+      <div class="col">
+        <a class="option" href="#">
+          <span class="option-title">Template library</span>
+          <img class="index-cards" src="" alt="image">
+          <span class="option-desc">Browse and reopen your saved templates.</span>
+        </a>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
         <button type="button" class="option" data-start="scratch">
           <span class="option-title">Build from scratch</span>
+          <img class="index-cards" src="" alt="image">
           <span class="option-desc">Start with an empty dashboard and add only the cards you want.</span>
         </button>
-      </li>
-      <li>
+      </div>
+      <div class="col">
         <button type="button" class="option" data-start="template">
           <span class="option-title">Build from a template</span>
+          <img class="index-cards" src="" alt="image">
           <span class="option-desc">Start from a pre-built template and change whatever you like.</span>
         </button>
-      </li>
-      <li>
+      </div>
+      <div class="col">
         <button type="button" class="option" data-start="previous">
           <span class="option-title">Work on a previous template</span>
+          <img class="index-cards" src="" alt="image">
           <span class="option-desc">Open one of the templates you already saved.</span>
         </button>
-      </li>
-    </ul>
+      </div>
+    </div>
   </section>
 
   {{!-- ============ WORKSPACE: name + cards panel + dashboard ============ --}}
@@ -162,12 +181,15 @@
 
     document.querySelectorAll('[data-start]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var choice = btn.dataset.start;
-        if (choice === 'scratch') openWorkspace('New template, built from scratch', '');
-        if (choice === 'template') templateDialog.showModal();
-        if (choice === 'previous') previousDialog.showModal();
+        startChoice(btn.dataset.start);
       });
     });
+
+    function startChoice(choice) {
+      if (choice === 'scratch') openWorkspace('New template, built from scratch', '');
+      if (choice === 'template') templateDialog.showModal();
+      if (choice === 'previous') previousDialog.showModal();
+    }
 
     // Pop-up lists: pick an item or cancel.
     [templateDialog, previousDialog].forEach(function (dialog) {
@@ -187,6 +209,11 @@
         }
       });
     });
+
+    var requestedStart = new URLSearchParams(window.location.search).get('start');
+    if (['scratch', 'template', 'previous'].indexOf(requestedStart) !== -1) {
+      startChoice(requestedStart);
+    }
 
     /* ---------- Cards panel (sidebar) ---------- */
     toggleBtn.addEventListener('click', function () {

@@ -40,6 +40,7 @@ app.use(session({
 
 app.use((req, res, next) => {
   res.locals.user = req.session.user;
+  res.locals.login = Boolean(req.session.user);
   next();
 });
 
@@ -74,7 +75,22 @@ const { db } = require('./src/db');
 app.get('/', (req, res) => res.render('pages/index'));
 app.get('/login', (req, res) => res.render('pages/login'));
 app.get('/register', (req, res) => res.render('pages/register'));
-app.get('/register', (req, res) => res.render('pages/dashboard'));
+app.get('/dashboard', auth, (req, res) => {
+  res.render('pages/dashboard', { title: 'Dashboard' , login: true });
+});
+app.get('/tutorial', auth, (req, res) => {
+  res.render('pages/tutorial', { title: 'Dashboard Tutorial' , login: true});
+});
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.redirect('/login');
+  });
+});
+
+// This admin route is called /manage to make it marginally harder for bots to find.
+// make someone an admin with: UPDATE users SET is_admin = TRUE WHERE username = '...';
+app.use('/manage', require('./routes/admin')(db));
 
 app.post('/register', async (req, res) => {
   // checks are in src/validateRegistration.js
@@ -153,7 +169,7 @@ app.post('/login', async (req, res) => {
           username,
         });
       }
-      res.redirect('/tutorial'); // TODO: change to real landing page
+      res.redirect('/dashboard');
     });
   } catch (err) {
     console.error('Login failed:', err);
@@ -163,21 +179,6 @@ app.post('/login', async (req, res) => {
     });
   }
 });
-
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie('connect.sid');
-    res.redirect('/login');
-  });
-});
-
-app.get('/tutorial', auth, (req, res) => {
-  res.render('pages/tutorial', { title: 'Dashboard tutorial' , login: true});
-});
-
-// This admin route is called /manage to make it marginally harder for bots to find.
-// make someone an admin with: UPDATE users SET is_admin = TRUE WHERE username = '...';
-app.use('/manage', require('./routes/admin')(db));
 
 // upload / send templates (routes/templates.js)
 app.use('/templates', auth, require('./routes/templates')(db, auth));
