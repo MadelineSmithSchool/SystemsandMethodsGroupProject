@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 *.env
+*.env.test
 
 #database
 /src/
