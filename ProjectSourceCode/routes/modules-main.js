@@ -1,4 +1,4 @@
-// handles builder actions and state, using the config, render, database, and helper files.
+// handles clicks and keeps track of the sheet, it uses the other modules to build and save it.
 import { autosave, downloadJson, restore, save, validate } from './modules-database.js';
 import {
     renderCanvas,
@@ -11,7 +11,7 @@ import {
 import { builtinPresets, clonePresetModules, moduleSize, moduleTypes } from './modules-config.js';
 import { clone, findModule, flatten, layoutColumns, linkSettings } from './modules-helper.js';
 
-/* 1. state */
+/* sheet state */
 var studio = document.querySelector('[data-sheet-studio]');
 if (studio) {
     var rootCanvas = studio.querySelector('[data-root-canvas]');
@@ -19,14 +19,14 @@ if (studio) {
         'value', 'count', 'sides', 'uncheckedValue', 'checkedValue',
         'keepHighest', 'leftValue', 'rightValue'
     ];
-    // actions that change the template, so they are undoable and autosaved.
+    // sheet changes can be undone and are saved as you work.
     var documentActions = [
         'add-module', 'remove-modules', 'update-setting', 'update-modifier',
         'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module',
         'reparent-module', 'update-document-value', 'update-document-meta', 'restore-document'
     ];
 
-    // keep template data, editor state, and playtest values separate.
+    // keep the sheet, editor choices, and playtest values separate.
     var state = {
         document: { name: '', description: '', modules: [], savedPresets: [] },
         ui: { mode: 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
@@ -56,8 +56,8 @@ if (studio) {
         );
     }
 
-    /* 3. grid placement */
-    // these functions choose open cells and snap pointer movement to the grid.
+    /* grid placement */
+    // find open spots and snap dragged modules to the grid.
     function placementsOverlap(first, second) {
         return first.col < second.col + second.colSpan && first.col + first.colSpan > second.col &&
             first.row < second.row + second.rowSpan && first.row + first.rowSpan > second.row;
@@ -102,8 +102,8 @@ if (studio) {
         });
     }
 
-    /* 4. values and rolls */
-    // links resolve with the current mode's values, without changing template data.
+    /* values and rolls */
+    // use the sheet values in both edit mode and playtest without changing the sheet.
     var mathOperations = {
         add: function (a, b) { return a + b; },
         subtract: function (a, b) { return a - b; },
@@ -160,7 +160,7 @@ if (studio) {
         return { left: left, right: right, result: result, error: zeroError ? 'Cannot divide or modulo by zero' : '' };
     }
 
-    // a dice setting comes from its linked module when one is set.
+    // use a linked module for a dice setting when one is selected.
     function diceSetting(module, name, fallback, min, max) {
         var source = module[name + 'Source'];
         var value = source ? resolveValue(source) : module[name];
@@ -183,7 +183,7 @@ if (studio) {
         return formula + (dice.bonus ? (dice.bonus > 0 ? ' +' : ' ') + dice.bonus : '');
     }
 
-    // everything the render file needs from this file.
+    // give the render file the values it needs to draw the sheet.
     var api = {
         types: moduleTypes,
         resolveValue: resolveValue,
@@ -197,8 +197,8 @@ if (studio) {
         updatePresetSelection(studio, state.ui);
     }
 
-    /* 6. actions */
-    // this is the only function that updates application state.
+    /* sheet actions */
+    // update the sheet here so edits, undo, and autosave stay in sync.
     function setUi(values, render) {
         dispatch({ type: 'ui', values: values, render: render });
     }
@@ -361,8 +361,8 @@ if (studio) {
         }
     }
 
-    /* 7. interactions */
-    // event handlers turn user input into actions.
+    /* page interactions */
+    // turn clicks, typing, and dragging into sheet actions.
     function canvasForPoint(x, y) {
         var target = document.elementFromPoint(x, y);
         var groupCanvas = target && target.closest('[data-group-canvas]');
@@ -427,7 +427,7 @@ if (studio) {
         event.preventDefault();
     }
 
-    // the active drag is short-lived and never rendered, so move events update it directly.
+    // update the dragged module as the pointer moves; save its new spot when dragging ends.
     function movePointer(event) {
         var drag = state.ui.activeDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
@@ -490,7 +490,7 @@ if (studio) {
     function dropModule(drag, event) {
         var drop = canvasForPoint(event.clientX, event.clientY);
         var entry = findModuleEntry(drag.id);
-        // dropping outside a canvas or onto itself keeps the current parent.
+        // keep the module where it is if it is dropped outside a canvas or on itself.
         var owner = drop ? drop.owner : entry.parent;
         if (owner && owner.id === drag.id) owner = entry.parent;
         if (owner && containsModule(entry.module, owner.id)) {
@@ -519,7 +519,7 @@ if (studio) {
         }
     }
 
-    // keep the roll details so linked values can use its numeric total.
+    // keep each roll so linked modules can use its result.
     function rollDice(module) {
         var dice = diceStats(module);
         var rolls = Array.from({ length: dice.count }, function () { return Math.floor(Math.random() * dice.sides) + 1; });
@@ -533,7 +533,7 @@ if (studio) {
         } });
     }
 
-    // delegated clicks mean generated controls need no inline handlers.
+    // handle clicks here, including buttons added when the sheet is redrawn.
     function handleClick(event) {
         var target = event.target;
         var developer = state.ui.mode === 'developer';
@@ -592,7 +592,7 @@ if (studio) {
         if (edit) setUi({ selectedId: edit.dataset.editModule, selectedModuleIds: [] });
     }
 
-    // playtest input updates player state, and editor input updates the template.
+    // save playtest entries as player values and edit-mode entries on the sheet so that stuff youre playtesting doesnt get saved to the .json format 
     function handleInputs(event) {
         var target = event.target;
         var playtest = state.ui.mode === 'playtest';
@@ -614,7 +614,7 @@ if (studio) {
                 { type: 'update-setting', id: checkId, setting: 'checked', value: checkbox.checked });
             return;
         }
-        // text fields update on input, and selects update on change.
+        // update text fields while typing and dropdowns when a choice is made.
         if (!((event.type === 'input' && !isSelect) || (event.type === 'change' && isSelect))) return;
         var setting = target.dataset.setting;
         if (setting && !playtest) {
@@ -640,7 +640,7 @@ if (studio) {
         }
     }
 
-    // validate before publish, and keep the placeholder notice for missing endpoints.
+    // check the sheet before publishing, show a message if saving fails.
     async function saveAction(kind) {
         var meta = document.querySelector('meta[name="csrf-token"]');
         var token = studio.dataset.csrfToken || (meta && meta.content);
@@ -655,7 +655,7 @@ if (studio) {
             await save(state.document, kind === 'draft' ? studio.dataset.saveDraftUrl : studio.dataset.publishUrl, token);
         } catch (error) {
             console.error('Template builder ' + kind + ' failed:', error);
-            window.alert('todo');
+            window.alert('todo'); //saving to the database hasnt been done yet, so it just shows this message
         }
     }
 
@@ -680,8 +680,8 @@ if (studio) {
         }
     }
 
-    /* 8. startup */
-    // restore the last draft before drawing the first canvas.
+    /* start the builder */
+    // load the last draft, then draw the sheet.
     function attachListeners() {
         studio.addEventListener('pointerdown', startPointer);
         studio.addEventListener('pointermove', movePointer);

@@ -33,6 +33,7 @@
                 <h2 id="module-palette-title">Module palette</h2>
                 <p>Click to add, or drag a module onto the sheet.</p>
                 <div class="studio-palette-grid">
+                    {{!-- modules --}}
                     <button class="module-tool" type="button" data-module-tool="number"><span class="module-tool-icon">123</span>Number</button>
                     <button class="module-tool" type="button" data-module-tool="text"><span class="module-tool-icon">Aa</span>Text</button>
                     <button class="module-tool" type="button" data-module-tool="dice"><span class="module-tool-icon">d20</span>Dice</button>
@@ -44,12 +45,14 @@
             </section>
 
             <section class="studio-panel inspector-panel" aria-labelledby="inspector-title">
+                {{!-- edit selected module --}}
                 <h2 id="inspector-title">Module settings</h2>
                 <div data-inspector><p class="studio-muted">Select Edit on a module to change its settings and inputs.</p></div>
             </section>
 
             <section class="studio-panel presets-panel" aria-labelledby="module-presets-title">
                 <h2 id="module-presets-title">Module presets</h2>
+                {{!-- useful for playing around, prolly want to make better ones in the future --}}
                 <p>Start with connected modules or save a canvas selection as a preset.</p>
                 <div class="module-preset-list" data-preset-list>
                     <button class="module-preset" type="button" data-load-preset="ability-check">Ability check</button>

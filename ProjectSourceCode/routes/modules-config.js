@@ -1,4 +1,4 @@
-// defines module types and presets; the main file uses these to create modules.
+// lists module types and starter presets, the main file uses these to add modules to the sheet.
 import { clone, flatten, linkSettings } from './modules-helper.js';
 
 export var moduleSize = { colSpan: 4, rowSpan: 3 };
