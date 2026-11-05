@@ -196,7 +196,7 @@ app.post('/login', async (req, res) => {
           username,
         });
       }
-      res.redirect('/');
+      res.redirect('/dashboard');
     });
   } catch (err) {
     console.error('Login failed:', err);
