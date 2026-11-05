@@ -592,7 +592,7 @@ if (studio) {
         if (edit) setUi({ selectedId: edit.dataset.editModule, selectedModuleIds: [] });
     }
 
-    // save playtest entries as player values and edit-mode entries on the sheet.
+    // save playtest entries as player values and edit-mode entries on the sheet so that stuff youre playtesting doesnt get saved to the .json format 
     function handleInputs(event) {
         var target = event.target;
         var playtest = state.ui.mode === 'playtest';
@@ -640,7 +640,7 @@ if (studio) {
         }
     }
 
-    // check the sheet before publishing; show a message if saving fails.
+    // check the sheet before publishing, show a message if saving fails.
     async function saveAction(kind) {
         var meta = document.querySelector('meta[name="csrf-token"]');
         var token = studio.dataset.csrfToken || (meta && meta.content);
@@ -655,7 +655,7 @@ if (studio) {
             await save(state.document, kind === 'draft' ? studio.dataset.saveDraftUrl : studio.dataset.publishUrl, token);
         } catch (error) {
             console.error('Template builder ' + kind + ' failed:', error);
-            window.alert('todo');
+            window.alert('todo'); //saving to the database hasnt been done yet, so it just shows this message
         }
     }
 
