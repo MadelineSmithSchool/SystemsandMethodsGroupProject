@@ -14,7 +14,7 @@
     },
     "scripts": {
         "prestart": "npm install",
-        "start": "nodemon index.js",
+        "start": "nodemon app.js",
         "test": "mocha --timeout 10000 --require test/setup.js \"test/**/*.spec.js\""
     },
     "version": "1.0.0",

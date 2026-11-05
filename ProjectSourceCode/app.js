@@ -9,7 +9,6 @@ const crypto = require('crypto');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
-const validateRegistration = require('./src/validateRegistration');
 
 //For handlebars
 const hbs = handlebars.create({
@@ -93,8 +92,26 @@ app.get('/logout', (req, res) => {
 app.use('/manage', require('./routes/admin')(db));
 
 app.post('/register', async (req, res) => {
-  // checks are in src/validateRegistration.js
-  const { username, email, password, errors } = validateRegistration(req.body);
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  const errors = [];
+
+  if (!username) {
+    errors.push('Enter a username.');
+  } else if (username.length > 50) {
+    errors.push('Your username must be 50 characters or fewer.');
+  }
+
+  if (!email || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.push('Enter a valid email address (255 characters or fewer).');
+  }
+
+  if (password.length < 8) {
+    errors.push('Your password must be at least 8 characters long.');
+  } else if (Buffer.byteLength(password, 'utf8') > 72) {
+    errors.push('Your password must be no more than 72 bytes long.');
+  }
 
   if (errors.length > 0) {
     return res.status(400).render('pages/register', { errors, username, email });
@@ -188,5 +205,30 @@ app.get('/welcome', (req, res) => {
   res.json({status: 'success', message: 'Welcome!'});
 });
 
-// index.js starts the server, this just exports the app so the tests can use it
+const startServer = async () => {
+  try {
+    const migration = fs.readFileSync(
+      path.join(__dirname, 'create.sql'),
+      'utf8'
+    ); 
+    await db.none(migration);
+    await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '002_admin.sql'), 'utf8'));
+    console.log('Database connection successful');
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+    process.exitCode = 1;
+    return;
+  }
+
+  app.listen(3000, () => {
+    console.log('Server is listening on port 3000');
+  });
+};
+
+// only start the server when you run app.js (npm start / nodemon app.js)
+// the tests require app.js, this way they get the app without it starting a server
+if (require.main === module) {
+  startServer();
+}
+
 module.exports = app;
