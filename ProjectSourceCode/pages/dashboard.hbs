@@ -9,8 +9,7 @@
 
     <ul class="start-options">
       <li>
-        {{!-- TODO: replace "#" with the Upload template page URL --}}
-        <a class="option" href="#">
+        <a class="option" href="/templates/upload">
           <span class="option-title">Upload a template</span>
           <span class="option-desc">Already have a template file? Bring it in and pick up where it left off.</span>
         </a>
@@ -162,12 +161,15 @@
 
     document.querySelectorAll('[data-start]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var choice = btn.dataset.start;
-        if (choice === 'scratch') openWorkspace('New template, built from scratch', '');
-        if (choice === 'template') templateDialog.showModal();
-        if (choice === 'previous') previousDialog.showModal();
+        startChoice(btn.dataset.start);
       });
     });
+
+    function startChoice(choice) {
+      if (choice === 'scratch') openWorkspace('New template, built from scratch', '');
+      if (choice === 'template') templateDialog.showModal();
+      if (choice === 'previous') previousDialog.showModal();
+    }
 
     // Pop-up lists: pick an item or cancel.
     [templateDialog, previousDialog].forEach(function (dialog) {
@@ -187,6 +189,11 @@
         }
       });
     });
+
+    var requestedStart = new URLSearchParams(window.location.search).get('start');
+    if (['scratch', 'template', 'previous'].indexOf(requestedStart) !== -1) {
+      startChoice(requestedStart);
+    }
 
     /* ---------- Cards panel (sidebar) ---------- */
     toggleBtn.addEventListener('click', function () {
