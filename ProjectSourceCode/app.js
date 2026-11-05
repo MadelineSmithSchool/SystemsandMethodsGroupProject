@@ -126,7 +126,6 @@ app.post('/register', async (req, res) => {
         email,
       });
     }
-
     res.status(500).render('pages/register', {
       errors: ['We could not create your account right now. Please try again later.'],
       username,
@@ -212,7 +211,7 @@ app.use('/templates', require('./routes/templates')(db, auth));
 const startServer = async () => {
   try {
     const migration = fs.readFileSync(
-      path.join(__dirname, 'migrations', '001_add_password_hash.sql'),
+      path.join(__dirname, 'create.sql'),
       'utf8'
     );
     await db.none(migration);
