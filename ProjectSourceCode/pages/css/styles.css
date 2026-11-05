@@ -481,6 +481,11 @@ option {
 }
 
 /* ---------- 6. Home page + tutorial ---------- */
+.index-cards {
+  width:auto;
+  max-height:100px;
+}
+
 .tutorial {
   flex: 1;
   display: flex;
@@ -557,7 +562,7 @@ option {
   position: relative;
   display: flex;
   gap: 2.5rem;
-  width: max-content;
+  width: 300%;
   margin: 0;
   padding: 0.5rem var(--pad) 0;
   list-style: none;
@@ -676,16 +681,6 @@ option {
   max-width: 40rem;
   margin: 0 0 2rem;
   color: var(--muted);
-}
-
-.start-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 1.25rem;
-  max-width: 72rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .option {

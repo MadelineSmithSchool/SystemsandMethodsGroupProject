@@ -84,7 +84,21 @@ app.get('/', (req, res) => res.render('pages/index'));
 app.get('/login', (req, res) => res.render('pages/login'));
 app.get('/register', (req, res) => res.render('pages/register'));
 app.get('/dashboard', auth, (req, res) => {
-  res.render('pages/dashboard', { login: true });
+  res.render('pages/dashboard', { title: 'Dashboard' , login: true });
+});
+app.get('/tutorial', auth, (req, res) => {
+  res.render('pages/tutorial', { title: 'Dashboard Tutorial' , login: true});
+});
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.redirect('/login');
+  });
+});
+
+// This admin route is called /manage to make it marginally harder for bots to find.
+app.get('/manage', (req, res) => {
+  res.render('pages/admin', { title: 'Admin', admin: true });
 });
 
 app.post('/register', async (req, res) => {
@@ -182,7 +196,7 @@ app.post('/login', async (req, res) => {
           username,
         });
       }
-      res.redirect('/');
+      res.redirect('/dashboard');
     });
   } catch (err) {
     console.error('Login failed:', err);
@@ -191,22 +205,6 @@ app.post('/login', async (req, res) => {
       username,
     });
   }
-});
-
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie('connect.sid');
-    res.redirect('/login');
-  });
-});
-
-app.get('/tutorial', auth, (req, res) => {
-  res.render('pages/tutorial', { title: 'Dashboard tutorial' , login: true});
-});
-
-// This admin route is called /manage to make it marginally harder for bots to find.
-app.get('/manage', (req, res) => {
-  res.render('pages/admin', { title: 'Admin', admin: true });
 });
 
 // upload / send templates (routes/templates.js)
