@@ -82,7 +82,10 @@ const db = pgp(dbConfig);
 app.get('/', (req, res) => res.render('pages/index'));
 app.get('/login', (req, res) => res.render('pages/login'));
 app.get('/register', (req, res) => res.render('pages/register'));
-app.get('/register', (req, res) => res.render('pages/dashboard'));
+app.get('/dashboard', (req, res) => {
+  if(!auth){res.redirect('/');}
+  res.render('pages/dashboard', {login: true});
+});
 
 app.post('/register', async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
