@@ -678,16 +678,6 @@ option {
   color: var(--muted);
 }
 
-.start-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 1.25rem;
-  max-width: 72rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 .option {
   display: flex;
   flex-direction: column;
