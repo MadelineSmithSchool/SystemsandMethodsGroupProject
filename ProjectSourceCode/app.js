@@ -238,4 +238,4 @@ const startServer = async () => {
 // testing
 module.exports = app;
 
-startServer();
+// startServer();
