@@ -207,7 +207,7 @@ app.get('/manage', (req, res) => {
 });
 
 // upload / send templates (routes/templates.js)
-app.use('/templates', require('./routes/templates')(db, auth));
+app.use('/templates', auth, require('./routes/templates')(db, auth));
 
 const startServer = async () => {
   try {
