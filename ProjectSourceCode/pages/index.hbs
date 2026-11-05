@@ -1,9 +1,59 @@
-<main class="tutorial">
-  <section class="intro">
-    <div class="intro-text">
-      <h1>Rocket Powered Goblins</h1>
-      <p>Build character sheets for any Tabletop Roleplaying Game, then settle in and play!</p>
-    </div>
-    <a class="btn" href="/tutorial">Learn the dashboard</a>
-  </section>
+<main class="dash">
+  {{#if user}}
+    {{!-- ============ HOME SCREEN (logged in) ============ --}}
+    <section class="start" aria-labelledby="home-title">
+      <div class="start-head">
+        <h1 id="home-title">Welcome back{{#if user.username}}, {{user.username}}{{/if}}</h1>
+        <p>Pick up where you left off, or start something new.</p>
+      </div>
+
+      <ul class="start-options">
+        <li>
+          {{!-- TODO: replace "#" with the Upload template page URL --}}
+          <a class="option" href="#">
+            <span class="option-title">Upload template</span>
+            <span class="option-desc">Bring in a template file you already have.</span>
+          </a>
+        </li>
+        <li>
+          {{!-- TODO: replace "#" with the Send template page URL --}}
+          <a class="option" href="#">
+            <span class="option-title">Send template</span>
+            <span class="option-desc">Share one of your templates with another player.</span>
+          </a>
+        </li>
+        <li>
+          <a class="option" href="/dashboard">
+            <span class="option-title">Build new template</span>
+            <span class="option-desc">Design a character sheet from cards you choose.</span>
+          </a>
+        </li>
+        <li>
+          {{!-- TODO: replace "#" with the Template library page URL --}}
+          <a class="option" href="#">
+            <span class="option-title">Template library</span>
+            <span class="option-desc">Browse and reopen your saved templates.</span>
+          </a>
+        </li>
+        <li>
+          <a class="option" href="/tutorial">
+            <span class="option-title">Tutorial</span>
+            <span class="option-desc">Learn how the modular dashboard works, step by step.</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+  {{else}}
+    {{!-- ============ LOGGED OUT: shown if someone opens "/" without an account ============ --}}
+    <section class="start" aria-labelledby="welcome-title">
+      <div class="start-head">
+        <h1 id="welcome-title">Character Builder</h1>
+        <p>Build characters for D&amp;D-style games with a dashboard made of cards you can mix and match. Log in or create an account to get started.</p>
+      </div>
+      <div class="workspace-actions">
+        <a class="btn btn--primary" href="/login">Log in</a>
+        <a class="btn" href="/register">Register</a>
+      </div>
+    </section>
+  {{/if}}
 </main>
