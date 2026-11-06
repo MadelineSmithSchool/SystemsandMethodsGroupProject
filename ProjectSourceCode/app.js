@@ -73,9 +73,9 @@ const { db } = require('./src/db');
 
 app.get('/', (req, res) => {
   if (!req.session.user) {
-    res.render('pages/index');
+    return res.render('pages/index');
   }
-  res.redirect('/dashboard')
+  res.redirect('/dashboard');
 });
 app.get('/login', (req, res) => res.render('pages/login'));
 app.get('/register', (req, res) => res.render('pages/register'));
