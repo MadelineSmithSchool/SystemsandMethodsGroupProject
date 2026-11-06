@@ -61,15 +61,17 @@ export function downloadJson(doc) {
 }
 
 // use the same save request for drafts and publishing.
-export async function save(doc, url, csrfToken) {
+export async function save(doc, url, csrfToken, privacyLevel, templateId) {
     var headers = { 'Content-Type': 'application/json' };
     if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-    var response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(serialize(doc)) });
+    var payload = Object.assign(serialize(doc), { privacyLevel: privacyLevel });
+    if (templateId) payload.templateId = templateId;
+    var response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(payload) });
     if (!response.ok) {
         var result = await response.json().catch(function () { return {}; });
         throw new Error(result.error || 'The request could not be completed.');
     }
-    return response;
+    return response.json();
 }
 
 export function autosave(doc, key) {

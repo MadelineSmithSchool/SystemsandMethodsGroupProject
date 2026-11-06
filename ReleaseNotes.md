@@ -12,6 +12,7 @@
 - general housekeeping + code readabilty
 - there was a lot of temporary js in template-builder.hbs, so it was moved to a 5 new .js files and overall slimmed everything down. this was a lot of work
 - uploading a template now works with template studio
+- created good looking error page instead of blank html 
 
 ## Week of 11/2/2026
 - set up rester and sign in pages

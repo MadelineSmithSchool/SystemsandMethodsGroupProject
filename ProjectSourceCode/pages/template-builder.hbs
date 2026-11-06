@@ -1,7 +1,7 @@
 ﻿<!-- temporary prototype: this browser-only builder may be replaced if the team chooses a better design. -->
 <main class="sheet-studio" data-sheet-studio data-mode="developer"
-    data-save-draft-url="/template-builder/save-draft" data-publish-url="/template-builder/publish"
-    data-initial-template="{{initialTemplate}}">
+    data-save-url="/templates/save" data-template-id="{{templateId}}"
+    data-privacy-level="{{privacyLevel}}" data-initial-template="{{initialTemplate}}">
     <header class="studio-header">
         <div>
             <h1>RPG Templates Studio</h1>
@@ -13,15 +13,33 @@
                 <button type="button" role="tab" aria-selected="false" data-view-button="playtest">Playtest</button>
             </div>
             <button class="btn" type="button" data-download-template>Download .json</button>
-            <button class="btn" type="button" data-save-draft>Save draft</button>
-            <button class="btn studio-publish" type="button" data-publish-template>Publish</button>
+            <button class="btn studio-publish" type="button" data-save-template>Save</button>
         </div>
     </header>
 
-    <div class="studio-sheet-meta">
-        <label for="sheet-name">Sheet name<input id="sheet-name" type="text" maxlength="50" placeholder="E.g. Fateshift Character Sheet"></label>
-        <label for="sheet-description">Description<input id="sheet-description" type="text" maxlength="255" placeholder="Optional game or sheet notes"></label>
-    </div>
+    <dialog class="studio-save-dialog" data-save-dialog aria-labelledby="save-dialog-title">
+        <form data-save-form>
+            <h2 id="save-dialog-title">Save template</h2>
+            <label for="sheet-name">Title
+                <input id="sheet-name" type="text" maxlength="50" required placeholder="E.g. Fateshift Character Sheet">
+            </label>
+            <label for="sheet-description">Description
+                <textarea id="sheet-description" maxlength="255" rows="3" placeholder="Optional game or sheet notes"></textarea>
+            </label>
+            <label for="template-level">Level
+                <select id="template-level">
+                    <option value="0">Private</option>
+                    <option value="1">Public</option>
+                    <option value="2">Unlisted</option>
+                </select>
+            </label>
+            <p class="studio-save-error" data-save-error role="alert" hidden></p>
+            <div class="studio-save-actions">
+                <button class="btn" type="button" data-cancel-save>Cancel</button>
+                <button class="btn studio-publish" type="submit" data-confirm-save>Save template</button>
+            </div>
+        </form>
+    </dialog>
 
     <div class="studio-layout">
         <aside class="studio-sidebar" data-developer-only>
