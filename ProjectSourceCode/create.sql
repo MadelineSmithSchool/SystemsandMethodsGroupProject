@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
-
+-- this is ALL TEMPLATES
 CREATE TABLE IF NOT EXISTS templates (
     template_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     
@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS templates (
     share_id VARCHAR(32) UNIQUE,
 
     user_id INT REFERENCES users(user_id),
+
+    -- 0 is private, 1 is public, 2 is unlisted
+    privacy_level INT NOT NULL DEFAULT 0, 
     
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -52,10 +55,12 @@ CREATE TABLE IF NOT EXISTS characters (
     user_id INT REFERENCES users(user_id),
 
     template_id INT REFERENCES templates(template_id),
+    -- 0 is private, 1 is public, 2 is unlisted
+    privacy_level INT NOT NULL DEFAULT 0, 
     
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
-
+-- this is the library of templates that a user has added to their account (or made)
 CREATE TABLE IF NOT EXISTS player_library (
     library_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
@@ -67,3 +72,7 @@ CREATE TABLE IF NOT EXISTS player_library (
     
     added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+
+-- this is so that you can easily query how many times a template has been added to a user's library
+CREATE INDEX IF NOT EXISTS player_library_template_user_idx
+    ON player_library (template_id, user_id);

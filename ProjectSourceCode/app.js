@@ -208,8 +208,10 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// upload / send templates (routes/templates.js)
-app.use('/templates', auth, require('./routes/templates')(db, auth));
+// upload / send / edit templates templates (routes/templates.js)
+const templateRoutes = require('./routes/templates')(db, auth);
+app.use('/templates', auth, templateRoutes);
+app.use('/edit', templateRoutes.edit);
 
 // testing
 app.get('/welcome', (req, res) => {
