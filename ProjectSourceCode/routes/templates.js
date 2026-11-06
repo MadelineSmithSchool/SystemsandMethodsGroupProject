@@ -192,21 +192,24 @@ module.exports = (db, auth) => {
     [req.params.shareId]
   );
 
+  const getTemplateList = (userId) => db.any(
+    `SELECT t.*, u.username AS creator_name, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date,
+            (t.user_id = $1) AS is_owner
+     FROM templates t
+     JOIN users u ON u.user_id = t.user_id
+     WHERE t.user_id = $1
+        OR EXISTS (
+          SELECT 1 FROM player_library library
+          WHERE library.template_id = t.template_id AND library.user_id = $1
+        )
+     ORDER BY t.created_at DESC`,
+    [userId]
+  );
+
   // list of your templates (pick one to send)
   router.get('/', auth, async (req, res, next) => {
     try {
-      const templates = await db.any(
-        `SELECT t.*, u.username AS creator_name, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date
-         FROM templates t
-         JOIN users u ON u.user_id = t.user_id
-         WHERE t.user_id = $1
-            OR EXISTS (
-              SELECT 1 FROM player_library library
-              WHERE library.template_id = t.template_id AND library.user_id = $1
-            )
-         ORDER BY t.created_at DESC`,
-        [req.session.user.id]
-      );
+      const templates = await getTemplateList(req.session.user.id);
       res.render('pages/templates', { templates });
     } catch (err) {
       next(err);
@@ -332,7 +335,7 @@ module.exports = (db, auth) => {
     try {
       const template = await getShared(req);
       if (!template) return res.status(404).send('This link is invalid.');
-      res.render('pages/shared', { template });
+      res.render('pages/templates', { sharedTemplate: template });
     } catch (err) {
       next(err);
     }
@@ -423,7 +426,12 @@ module.exports = (db, auth) => {
           [crypto.randomBytes(12).toString('hex'), template.template_id]);
       }
       const link = `${req.protocol}://${req.get('host')}/templates/shared/${template.share_id}`;
-      res.render('pages/share', { template, link });
+      const templates = await getTemplateList(req.session.user.id);
+      res.render('pages/templates', {
+        templates,
+        shareLink: link,
+        shareTemplateName: template.template_name
+      });
     } catch (err) {
       next(err);
     }
