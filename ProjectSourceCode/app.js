@@ -208,7 +208,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// upload / send templates (routes/templates.js)
+// upload / send / edit templates templates (routes/templates.js)
 const templateRoutes = require('./routes/templates')(db, auth);
 app.use('/templates', auth, templateRoutes);
 app.use('/edit', templateRoutes.edit);
