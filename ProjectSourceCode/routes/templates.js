@@ -6,13 +6,22 @@ const crypto = require('crypto');
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
 const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group']);
 
-function renderNotFound(res) {
-  return res.status(404).render('pages/error', {
-    errorCode: 404,
-    errorTitle: 'Template not found',
-    errorMessage: 'This template does not exist or you do not have permission to view it.',
-    returnUrl: '/templates'
+function renderTemplateError(res, status, title, message, returnUrl = '/templates') {
+  return res.status(status).render('pages/error', {
+    errorCode: status,
+    errorTitle: title,
+    errorMessage: message,
+    returnUrl
   });
+}
+
+function renderNotFound(res) {
+  return renderTemplateError(
+    res,
+    404,
+    'Template not found',
+    'This template does not exist or you do not have permission to view it.'
+  );
 }
 
 function toBuilderDocument(template, isStudioTemplate) {
@@ -178,7 +187,10 @@ module.exports = (db, auth) => {
     );
   };
 
-  const getShared = (req) => db.oneOrNone('SELECT * FROM templates WHERE share_id = $1', [req.params.shareId]);
+  const getShared = (req) => db.oneOrNone(
+    'SELECT * FROM templates WHERE share_id = $1 AND privacy_level IN (1, 2)',
+    [req.params.shareId]
+  );
 
   // list of your templates (pick one to send)
   router.get('/', auth, async (req, res, next) => {
@@ -278,7 +290,8 @@ module.exports = (db, auth) => {
       if (template.templateId) {
         savedTemplate = await db.oneOrNone(
           `UPDATE templates
-           SET template_name = $1, template_desc = $2, template_data = $3:json, privacy_level = $4
+           SET template_name = $1, template_desc = $2, template_data = $3:json, privacy_level = $4,
+               share_id = CASE WHEN $4 = 0 THEN NULL ELSE share_id END
            WHERE template_id = $5 AND user_id = $6
            RETURNING template_id`,
           [
@@ -395,6 +408,15 @@ module.exports = (db, auth) => {
     try {
       let template = await getMyTemplate(req);
       if (!template) return res.status(404).send('Template not found.');
+      if (template.privacy_level === 0) {
+        return renderTemplateError(
+          res,
+          403,
+          'Template is private',
+          'Change this template to Public or Unlisted before creating a share link.',
+          '/templates/' + template.template_id
+        );
+      }
       // make the link the first time it's shared
       if (!template.share_id) {
         template = await db.one('UPDATE templates SET share_id = $1 WHERE template_id = $2 RETURNING *',
