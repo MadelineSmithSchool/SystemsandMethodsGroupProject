@@ -150,6 +150,23 @@ module.exports = (db, auth) => {
     );
   };
 
+  const getLibraryTemplate = (req, includeSaveCount = false) => {
+    if (!/^\d{1,9}$/.test(req.params.id)) return null;
+    const saveCount = includeSaveCount
+      ? ', (SELECT COUNT(DISTINCT library.user_id) FROM player_library library WHERE library.template_id = templates.template_id AND library.user_id <> templates.user_id) AS times_saved'
+      : '';
+    return db.oneOrNone(
+      `SELECT templates.*, (templates.user_id = $2) AS is_owner${saveCount}
+       FROM templates
+       WHERE template_id = $1
+         AND (user_id = $2 OR EXISTS (
+           SELECT 1 FROM player_library library
+           WHERE library.template_id = templates.template_id AND library.user_id = $2
+         ))`,
+      [req.params.id, req.session.user.id]
+    );
+  };
+
   const getShared = (req) => db.oneOrNone('SELECT * FROM templates WHERE share_id = $1', [req.params.shareId]);
 
   // list of your templates (pick one to send)
@@ -160,6 +177,10 @@ module.exports = (db, auth) => {
          FROM templates t
          JOIN users u ON u.user_id = t.user_id
          WHERE t.user_id = $1
+            OR EXISTS (
+              SELECT 1 FROM player_library library
+              WHERE library.template_id = t.template_id AND library.user_id = $1
+            )
          ORDER BY t.created_at DESC`,
         [req.session.user.id]
       );
@@ -237,16 +258,22 @@ module.exports = (db, auth) => {
     }
   });
 
-  // save a copy of a sent template to your own templates
+  // Add the original shared template to the user's library.
   router.post('/shared/:shareId/save', auth, async (req, res, next) => {
     try {
       const template = await getShared(req);
       if (!template) return res.status(404).send('This link is invalid.');
-      const row = await db.one(
-        'INSERT INTO templates (template_name, template_desc, template_data, user_id) VALUES ($1, $2, $3:json, $4) RETURNING template_id',
-        [template.template_name, template.template_desc, template.template_data, req.session.user.id]
+      await db.none(
+        `INSERT INTO player_library (user_id, template_id)
+         SELECT $1, $2
+         WHERE $1 IS DISTINCT FROM $3
+           AND NOT EXISTS (
+             SELECT 1 FROM player_library
+             WHERE user_id = $1 AND template_id = $2
+           )`,
+        [req.session.user.id, template.template_id, template.user_id]
       );
-      res.redirect('/templates/' + row.template_id);
+      res.redirect('/templates/' + template.template_id);
     } catch (err) {
       next(err);
     }
@@ -256,7 +283,7 @@ module.exports = (db, auth) => {
 
   router.get('/:id', auth, async (req, res, next) => {
     try {
-      const template = await getMyTemplate(req, true);
+      const template = await getLibraryTemplate(req, true);
       if (!template) return res.status(404).send('Template not found.');
       const data = template.template_data || {};
       const sheet = data.schemaVersion === 1 && Array.isArray(data.modules)
@@ -279,7 +306,7 @@ module.exports = (db, auth) => {
 
   router.get('/:id/download', auth, async (req, res, next) => {
     try {
-      const template = await getMyTemplate(req);
+      const template = await getLibraryTemplate(req);
       if (!template) return res.status(404).send('Template not found.');
       download(res, template);
     } catch (err) {

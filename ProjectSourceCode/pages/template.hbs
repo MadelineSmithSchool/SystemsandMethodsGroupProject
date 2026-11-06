@@ -12,7 +12,9 @@
             </div>
         </div>
         <div class="player-sheet-header-side">
-            <a href="/edit/{{template.template_id}}" class="btn btn--primary">Edit</a>
+            {{#if template.is_owner}}
+                <a href="/edit/{{template.template_id}}" class="btn btn--primary">Edit</a>
+            {{/if}}
             <div class="player-sheet-saves">
                 <strong>{{template.times_saved}}</strong>
                 <span>times saved</span>
