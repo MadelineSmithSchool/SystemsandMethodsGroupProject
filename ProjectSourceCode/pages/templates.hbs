@@ -1,16 +1,36 @@
-<main class="container my-4" style="max-width: 640px;">
-    <h2>Your templates</h2>
+<main class="templates-page">
+    <header class="templates-page-header">
+        <div>
+            <h1>Your templates</h1>
+            <p>Templates you have created, and saved.</p>
+        </div>
+        <a href="/templates/upload" class="btn btn--primary">Upload a template</a>
+    </header>
 
-    <ul class="list-group mb-3">
+    <section class="templates-grid" aria-label="Your templates">
         {{#each templates}}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <a href="/templates/{{template_id}}">{{template_name}}</a>
-                <a href="/templates/{{template_id}}/share" class="btn btn-sm btn-primary">Send</a>
-            </li>
+            <article class="template-card">
+                <h2><a href="/templates/{{template_id}}">{{template_name}}</a></h2>
+                {{#if template_desc}}
+                    <p class="template-card-description">{{template_desc}}</p>
+                {{/if}}
+                <dl class="template-card-details">
+                    <div>
+                        <dt>Creator</dt>
+                        <dd>{{creator_name}}</dd>
+                    </div>
+                    <div>
+                        <dt>Created</dt>
+                        <dd>{{created_date}}</dd>
+                    </div>
+                </dl>
+                <div class="template-card-actions">
+                    <a href="/templates/{{template_id}}" class="template-card-open">View template</a>
+                    <a href="/templates/{{template_id}}/share" class="btn btn--sm">Send</a>
+                </div>
+            </article>
         {{else}}
-            <li class="list-group-item text-muted">No templates yet.</li>
+            <p class="templates-empty">No templates yet. Upload a template or build one from scratch to get started.</p>
         {{/each}}
-    </ul>
-
-    <a href="/templates/upload" class="btn btn-outline-secondary">Upload a template</a>
+    </section>
 </main>

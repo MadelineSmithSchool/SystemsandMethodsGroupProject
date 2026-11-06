@@ -14,6 +14,7 @@ import { clone, findModule, flatten, layoutColumns, linkSettings } from './modul
 /* sheet state */
 var studio = document.querySelector('[data-sheet-studio]');
 if (studio) {
+    var playerSheet = studio.hasAttribute('data-player-sheet');
     var rootCanvas = studio.querySelector('[data-root-canvas]');
     var numericSettings = [
         'value', 'count', 'sides', 'uncheckedValue', 'checkedValue',
@@ -29,7 +30,7 @@ if (studio) {
     // keep the sheet, editor choices, and playtest values separate.
     var state = {
         document: { name: '', description: '', modules: [], savedPresets: [] },
-        ui: { mode: 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
+        ui: { mode: playerSheet ? 'playtest' : 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
         player: { values: {}, checked: {}, rollResults: {} },
         history: { undo: [], redo: [] },
         nextModuleId: 1
@@ -193,8 +194,10 @@ if (studio) {
 
     function refresh() {
         renderCanvas(studio, state, api);
-        renderInspector(studio, state, api);
-        updatePresetSelection(studio, state.ui);
+        if (!playerSheet) {
+            renderInspector(studio, state, api);
+            updatePresetSelection(studio, state.ui);
+        }
     }
 
     /* sheet actions */
@@ -683,15 +686,17 @@ if (studio) {
     /* start the builder */
     // load the last draft, then draw the sheet.
     function attachListeners() {
+        studio.addEventListener('click', handleClick);
+        studio.addEventListener('input', handleInputs);
+        studio.addEventListener('change', handleInputs);
+        if (playerSheet) return;
+
         studio.addEventListener('pointerdown', startPointer);
         studio.addEventListener('pointermove', movePointer);
         ['pointerup', 'pointercancel'].forEach(function (type) {
             studio.addEventListener(type, function (event) { finishPointer(event, type === 'pointercancel'); });
         });
         studio.addEventListener('keydown', handleKeydown);
-        studio.addEventListener('click', handleClick);
-        studio.addEventListener('input', handleInputs);
-        studio.addEventListener('change', handleInputs);
         [['name', '#sheet-name'], ['description', '#sheet-description']].forEach(function (pair) {
             studio.querySelector(pair[1]).addEventListener('input', function (event) {
                 dispatch({ type: 'update-document-meta', key: pair[0], value: event.target.value, render: false });
@@ -709,8 +714,10 @@ if (studio) {
         var saved = studio.dataset.initialTemplate ? JSON.parse(studio.dataset.initialTemplate) : restore();
         if (saved && Array.isArray(saved.modules)) {
             dispatch({ type: 'restore-document', document: saved, recordHistory: false, render: false });
-            studio.querySelector('#sheet-name').value = state.document.name || '';
-            studio.querySelector('#sheet-description').value = state.document.description || '';
+            if (!playerSheet) {
+                studio.querySelector('#sheet-name').value = state.document.name || '';
+                studio.querySelector('#sheet-description').value = state.document.description || '';
+            }
         }
     } catch (error) {
         console.error('Template builder draft restore failed:', error);
@@ -719,6 +726,6 @@ if (studio) {
     studio.dataset.saveDraftUrl = studio.dataset.saveDraftUrl || '/template-builder/save-draft';
     studio.dataset.publishUrl = studio.dataset.publishUrl || '/template-builder/publish';
     attachListeners();
-    renderSavedPresets(studio, state.document.savedPresets);
+    if (!playerSheet) renderSavedPresets(studio, state.document.savedPresets);
     refresh();
 }

@@ -6,6 +6,38 @@ const crypto = require('crypto');
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
 const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group']);
 
+function toBuilderDocument(template, isStudioTemplate) {
+  if (isStudioTemplate) {
+    return {
+      schemaVersion: 1,
+      name: template.name.trim(),
+      description: template.description || '',
+      modules: template.modules
+    };
+  }
+
+  const stats = Object.entries(template.stats).concat(Object.entries(template.minorStats || {}));
+  return {
+    schemaVersion: 1,
+    name: template.name.trim(),
+    description: template.description || '',
+    modules: stats.map(([name, value], index) => ({
+      id: String(index + 1),
+      type: 'number',
+      name,
+      col: (index % 3) * 4 + 1,
+      row: Math.floor(index / 3) * 3 + 1,
+      colSpan: 4,
+      rowSpan: 3,
+      value: String(value),
+      source: '',
+      visibility: 'shown',
+      modifiers: [],
+      children: []
+    }))
+  };
+}
+
 // returns an error message if the uploaded template is wrong, otherwise null
 function checkLegacyTemplate(t) {
   if (!t || typeof t !== 'object' || Array.isArray(t)) return 'File must be a JSON object.';
@@ -55,38 +87,6 @@ function checkStudioTemplate(t) {
   return checkModules(t.modules);
 }
 
-function toBuilderDocument(template, isStudioTemplate) {
-  if (isStudioTemplate) {
-    return {
-      schemaVersion: 1,
-      name: template.name.trim(),
-      description: template.description || '',
-      modules: template.modules
-    };
-  }
-
-  const stats = Object.entries(template.stats).concat(Object.entries(template.minorStats || {}));
-  return {
-    schemaVersion: 1,
-    name: template.name.trim(),
-    description: template.description || '',
-    modules: stats.map(([name, value], index) => ({
-      id: String(index + 1),
-      type: 'number',
-      name,
-      col: (index % 3) * 4 + 1,
-      row: Math.floor(index / 3) * 3 + 1,
-      colSpan: 4,
-      rowSpan: 3,
-      value: String(value),
-      source: '',
-      visibility: 'shown',
-      modifiers: [],
-      children: []
-    }))
-  };
-}
-
 // sends a template back as a .json file (same format as uploads)
 function download(res, template) {
   const fileName = template.template_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
@@ -96,16 +96,58 @@ function download(res, template) {
 
 module.exports = (db, auth) => {
   const router = express.Router();
+  const editRouter = express.Router();
 
   router.use((req, res, next) => {
     res.locals.login = !!req.session.user; // for the nav
     next();
   });
 
+  editRouter.get('/:templateid', auth, async (req, res, next) => {
+    if (!/^\d{1,9}$/.test(req.params.templateid)) {
+      return res.status(404).send('Template not found.');
+    }
+
+    try {
+      const template = await db.oneOrNone(
+        'SELECT * FROM templates WHERE template_id = $1 AND user_id = $2',
+        [req.params.templateid, req.session.user.id]
+      );
+      if (!template) return res.status(404).send('Template not found.');
+
+      const data = template.template_data || {};
+      const sheet = data.schemaVersion === 1 && Array.isArray(data.modules)
+        ? {
+          schemaVersion: 1,
+          name: template.template_name,
+          description: template.template_desc || '',
+          modules: data.modules
+        }
+        : toBuilderDocument({
+          ...data,
+          name: template.template_name,
+          description: template.template_desc || ''
+        }, false);
+
+      res.render('pages/template-builder', {
+        initialTemplate: JSON.stringify(sheet)
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+  router.edit = editRouter;
+
   // one of the logged in user's templates (null if it isn't theirs)
-  const getMyTemplate = (req) => {
+  const getMyTemplate = (req, includeSaveCount = false) => {
     if (!/^\d{1,9}$/.test(req.params.id)) return null;
-    return db.oneOrNone('SELECT * FROM templates WHERE template_id = $1 AND user_id = $2', [req.params.id, req.session.user.id]);
+    const saveCount = includeSaveCount
+      ? ', (SELECT COUNT(DISTINCT library.user_id) FROM player_library library WHERE library.template_id = templates.template_id AND library.user_id <> templates.user_id) AS times_saved'
+      : '';
+    return db.oneOrNone(
+      `SELECT templates.*${saveCount} FROM templates WHERE template_id = $1 AND user_id = $2`,
+      [req.params.id, req.session.user.id]
+    );
   };
 
   const getShared = (req) => db.oneOrNone('SELECT * FROM templates WHERE share_id = $1', [req.params.shareId]);
@@ -113,7 +155,14 @@ module.exports = (db, auth) => {
   // list of your templates (pick one to send)
   router.get('/', auth, async (req, res, next) => {
     try {
-      const templates = await db.any('SELECT * FROM templates WHERE user_id = $1 ORDER BY created_at DESC', [req.session.user.id]);
+      const templates = await db.any(
+        `SELECT t.*, u.username AS creator_name, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date
+         FROM templates t
+         JOIN users u ON u.user_id = t.user_id
+         WHERE t.user_id = $1
+         ORDER BY t.created_at DESC`,
+        [req.session.user.id]
+      );
       res.render('pages/templates', { templates });
     } catch (err) {
       next(err);
@@ -149,10 +198,16 @@ module.exports = (db, auth) => {
       const data = isStudioTemplate
         ? { schemaVersion: 1, name: template.name.trim(), description: template.description || '', modules: template.modules }
         : { name: template.name.trim(), description: template.description || '', stats: template.stats, minorStats: template.minorStats || {} };
-      await db.one(
-        'INSERT INTO templates (template_name, template_desc, template_data, user_id) VALUES ($1, $2, $3:json, $4) RETURNING template_id',
-        [data.name, data.description, data, req.session.user.id]
-      );
+      await db.tx(async (transaction) => {
+        const row = await transaction.one(
+          'INSERT INTO templates (template_name, template_desc, template_data, user_id, privacy_level) VALUES ($1, $2, $3:json, $4, 0) RETURNING template_id',
+          [data.name, data.description, data, req.session.user.id]
+        );
+        await transaction.none(
+          'INSERT INTO player_library (user_id, template_id) VALUES ($1, $2)',
+          [req.session.user.id, row.template_id]
+        );
+      });
       req.session.uploadedTemplate = toBuilderDocument(template, isStudioTemplate);
       res.redirect('/templates/new');
     } catch (err) {
@@ -201,9 +256,22 @@ module.exports = (db, auth) => {
 
   router.get('/:id', auth, async (req, res, next) => {
     try {
-      const template = await getMyTemplate(req);
+      const template = await getMyTemplate(req, true);
       if (!template) return res.status(404).send('Template not found.');
-      res.render('pages/template', { template });
+      const data = template.template_data || {};
+      const sheet = data.schemaVersion === 1 && Array.isArray(data.modules)
+        ? {
+          schemaVersion: 1,
+          name: template.template_name,
+          description: template.template_desc || '',
+          modules: data.modules
+        }
+        : toBuilderDocument({
+          ...data,
+          name: template.template_name,
+          description: template.template_desc || ''
+        }, false);
+      res.render('pages/template', { template, initialTemplate: JSON.stringify(sheet) });
     } catch (err) {
       next(err);
     }
