@@ -4,9 +4,10 @@ const multer = require('multer');
 const crypto = require('crypto');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
+const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group']);
 
 // returns an error message if the uploaded template is wrong, otherwise null
-function checkTemplate(t) {
+function checkLegacyTemplate(t) {
   if (!t || typeof t !== 'object' || Array.isArray(t)) return 'File must be a JSON object.';
   if (typeof t.name !== 'string' || !t.name.trim() || t.name.length > 50) return 'Template needs a name (50 characters max).';
   if (t.description && (typeof t.description !== 'string' || t.description.length > 255)) return 'Description must be text (255 characters max).';
@@ -18,6 +19,72 @@ function checkTemplate(t) {
   }
   if (Object.keys(t.stats).length === 0) return 'Template needs at least one stat.';
   return null;
+}
+
+function checkStudioTemplate(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return 'File must be a JSON object.';
+  if (t.schemaVersion !== 1) return 'Template has an unsupported format.';
+  if (typeof t.name !== 'string' || !t.name.trim() || t.name.length > 50) return 'Template needs a name (50 characters max).';
+  if (t.description && (typeof t.description !== 'string' || t.description.length > 255)) return 'Description must be text (255 characters max).';
+  if (!Array.isArray(t.modules) || t.modules.length === 0) return 'Template needs at least one module.';
+
+  const ids = new Set();
+  function checkModules(modules) {
+    for (const module of modules) {
+      if (!module || typeof module !== 'object' || Array.isArray(module)) return 'Every module must be an object.';
+      if (!moduleTypes.has(module.type)) return 'Template contains an unsupported module type.';
+      if ((typeof module.id !== 'string' && typeof module.id !== 'number') || !String(module.id)) return 'Every module needs an ID.';
+      if (ids.has(String(module.id))) return 'Module IDs must be unique.';
+      ids.add(String(module.id));
+      if (typeof module.name !== 'string' || !module.name.trim()) return 'Every module needs a name.';
+      if (['col', 'row', 'colSpan', 'rowSpan'].some((key) => !Number.isInteger(module[key]) || module[key] < 1)) {
+        return 'Every module needs a valid position and size.';
+      }
+      if (module.children !== undefined && !Array.isArray(module.children)) return 'Module children must be a list.';
+      if (module.modifiers !== undefined && !Array.isArray(module.modifiers)) return 'Module modifiers must be a list.';
+      if (Array.isArray(module.modifiers) && module.modifiers.some((modifier) => !modifier || typeof modifier !== 'object' || Array.isArray(modifier))) {
+        return 'Every module modifier must be an object.';
+      }
+      if (module.children) {
+        const error = checkModules(module.children || []);
+        if (error) return error;
+      }
+    }
+    return null;
+  }
+  return checkModules(t.modules);
+}
+
+function toBuilderDocument(template, isStudioTemplate) {
+  if (isStudioTemplate) {
+    return {
+      schemaVersion: 1,
+      name: template.name.trim(),
+      description: template.description || '',
+      modules: template.modules
+    };
+  }
+
+  const stats = Object.entries(template.stats).concat(Object.entries(template.minorStats || {}));
+  return {
+    schemaVersion: 1,
+    name: template.name.trim(),
+    description: template.description || '',
+    modules: stats.map(([name, value], index) => ({
+      id: String(index + 1),
+      type: 'number',
+      name,
+      col: (index % 3) * 4 + 1,
+      row: Math.floor(index / 3) * 3 + 1,
+      colSpan: 4,
+      rowSpan: 3,
+      value: String(value),
+      source: '',
+      visibility: 'shown',
+      modifiers: [],
+      children: []
+    }))
+  };
 }
 
 // sends a template back as a .json file (same format as uploads)
@@ -54,28 +121,40 @@ module.exports = (db, auth) => {
   });
 
   router.get('/upload', auth, (req, res) => res.render('pages/upload'));
-  router.get('/new', auth, (req, res) => res.render('pages/template-builder'));
+  router.get('/new', auth, (req, res) => {
+    const initialTemplate = req.session.uploadedTemplate;
+    delete req.session.uploadedTemplate;
+    res.render('pages/template-builder', {
+      initialTemplate: initialTemplate ? JSON.stringify(initialTemplate) : ''
+    });
+  });
 
   router.post('/upload', auth, upload.single('template'), async (req, res, next) => {
     const fail = (error) => res.status(400).render('pages/upload', { error });
     if (!req.file) return fail('Pick a file to upload.');
 
-    let t;
+    let template;
     try {
-      t = JSON.parse(req.file.buffer.toString());
+      template = JSON.parse(req.file.buffer.toString());
     } catch (err) {
       return fail('That file is not valid JSON.');
     }
-    const error = checkTemplate(t);
+
+    const studioError = checkStudioTemplate(template);
+    const isStudioTemplate = !studioError;
+    const error = isStudioTemplate ? null : checkLegacyTemplate(template);
     if (error) return fail(error);
 
     try {
-      const data = { name: t.name.trim(), description: t.description || '', stats: t.stats, minorStats: t.minorStats || {} };
-      const row = await db.one(
+      const data = isStudioTemplate
+        ? { schemaVersion: 1, name: template.name.trim(), description: template.description || '', modules: template.modules }
+        : { name: template.name.trim(), description: template.description || '', stats: template.stats, minorStats: template.minorStats || {} };
+      await db.one(
         'INSERT INTO templates (template_name, template_desc, template_data, user_id) VALUES ($1, $2, $3:json, $4) RETURNING template_id',
         [data.name, data.description, data, req.session.user.id]
       );
-      res.redirect('/templates/' + row.template_id);
+      req.session.uploadedTemplate = toBuilderDocument(template, isStudioTemplate);
+      res.redirect('/templates/new');
     } catch (err) {
       next(err);
     }

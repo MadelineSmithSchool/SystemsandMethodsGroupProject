@@ -706,7 +706,7 @@ if (studio) {
     }
 
     try {
-        var saved = restore();
+        var saved = studio.dataset.initialTemplate ? JSON.parse(studio.dataset.initialTemplate) : restore();
         if (saved && Array.isArray(saved.modules)) {
             dispatch({ type: 'restore-document', document: saved, recordHistory: false, render: false });
             studio.querySelector('#sheet-name').value = state.document.name || '';
