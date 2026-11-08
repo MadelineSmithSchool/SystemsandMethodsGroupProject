@@ -1,0 +1,13 @@
+<h1>Template Library</h1>
+{{#if error}}<p class="error">{{error}}</p>{{/if}}
+<div class="template-list">
+  {{#each templates}}
+    <div class="card">
+      <h3>{{this.template_name}}</h3>
+      <p>{{this.template_desc}}</p>
+      {{#if this.creator}}<small>by {{this.creator}}</small>{{/if}}
+    </div>
+  {{else}}
+    <p>No public templates yet.</p>
+  {{/each}}
+</div>
