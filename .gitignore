@@ -12,8 +12,6 @@
 *.env
 *.env.test
 
-#database
-/src/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
