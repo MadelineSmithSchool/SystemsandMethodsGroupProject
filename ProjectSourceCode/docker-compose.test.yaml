@@ -15,14 +15,14 @@ services:
 
   tests:
     image: node:22.19.0-bookworm
-    working_dir: /repository/ProjectSourceCode
+    working_dir: /repository
     env_file: .env.test
     depends_on:
       db-test:
         condition: service_healthy
     volumes:
       - ../.:/repository
-      - lab10-test-node-modules:/repository/ProjectSourceCode/node_modules
+      - lab10-test-node-modules:/repository/node_modules
     command: ['npm', 'test']
 
 volumes:
