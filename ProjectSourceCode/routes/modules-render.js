@@ -78,8 +78,8 @@ function moduleHidden(module, typeTable) {
     return module.visibility === 'hidden' || (!module.visibility && typeTable[module.type].defaults.visibility === 'hidden');
 }
 
-function listCellSource(column, rowIndex) {
-    return column.rowSources && column.rowSources[rowIndex] || column.source || '';
+function listCellKey(moduleId, row, column) {
+    return moduleId + ':' + row + ':' + column;
 }
 
 // List rendering helpers
@@ -189,101 +189,110 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
         list.className = 'list-module';
         var editingList = mode === 'playtest' && Boolean(player.listEditing[module.id]);
         if (mode === 'playtest') {
-            var editToggle = createButton(editingList ? 'Done' : 'Edit', 'list-edit-toggle',
-                { toggleListEdit: module.id }, (editingList ? 'Finish editing ' : 'Edit ') + module.name);
+            var editToggle = document.createElement('button');
+            editToggle.type = 'button';
+            editToggle.className = 'list-edit-toggle';
+            editToggle.dataset.toggleListEdit = module.id;
             editToggle.setAttribute('aria-pressed', String(editingList));
+            editToggle.setAttribute('aria-label', (editingList ? 'Finish editing ' : 'Edit ') + module.name);
+            editToggle.textContent = editingList ? 'Done' : 'Edit';
             list.appendChild(editToggle);
         }
-        renderListStats(list, module);
+        var stats = document.createElement('div');
+        stats.className = 'list-stats';
+        (module.stats || []).forEach(function (stat, index) {
+            var statItem = document.createElement('div');
+            statItem.className = 'list-stat';
+            var statName = document.createElement('span');
+            statName.dataset.listStatName = '';
+            statName.dataset.moduleId = module.id;
+            statName.dataset.index = index;
+            var statValue = document.createElement('output');
+            statValue.dataset.listStatValue = '';
+            statValue.dataset.moduleId = module.id;
+            statValue.dataset.index = index;
+            statItem.append(statName, statValue);
+            stats.appendChild(statItem);
+        });
+        if (stats.childElementCount) list.appendChild(stats);
 
         var columns = module.columns || [];
         var tableWrap = document.createElement('div');
         tableWrap.className = 'list-table-wrap';
         var table = document.createElement('table');
         table.className = 'list-table';
-        table.appendChild(renderListHeaders(module));
-        table.appendChild(renderListRows(module, player, mode));
+        var head = document.createElement('thead');
+        var headerRow = document.createElement('tr');
+        columns.forEach(function (column, index) {
+            var heading = document.createElement('th');
+            heading.scope = 'col';
+            heading.dataset.listColumnHeader = '';
+            heading.dataset.moduleId = module.id;
+            heading.dataset.index = index;
+            headerRow.appendChild(heading);
+        });
+        head.appendChild(headerRow);
+        table.appendChild(head);
+        var tableBody = document.createElement('tbody');
+        var rows = module.rows || [];
+        if (mode === 'playtest') rows = rows.concat(player.listRows[module.id] || []);
+        rows.forEach(function (row, rowIndex) {
+            var rowElement = document.createElement('tr');
+            columns.forEach(function (column, columnIndex) {
+                var cell = document.createElement('td');
+                var key = listCellKey(module.id, rowIndex, columnIndex);
+                var cellLabel = (column.name || 'Column ' + (columnIndex + 1)) + ', row ' + (rowIndex + 1);
+                var cellValue = mode === 'playtest' && player.values[key] !== undefined ?
+                    player.values[key] : row.cells && row.cells[columnIndex] !== undefined ? row.cells[columnIndex] : '';
+                if (column.type === 'dice' && mode === 'playtest' && !editingList &&
+                    (column.source || String(cellValue).trim())) {
+                    var formula = document.createElement('button');
+                    formula.type = 'button';
+                    formula.className = 'dice-roll-trigger list-dice-trigger';
+                    formula.dataset.rollListCell = module.id;
+                    formula.dataset.row = rowIndex;
+                    formula.dataset.column = columnIndex;
+                    formula.textContent = column.source ? '' : cellValue;
+                    formula.setAttribute('aria-label', 'Roll ' + cellLabel + ': ' + (column.source ? 'linked formula' : cellValue));
+                    if (column.source) {
+                        formula.dataset.listColumnSource = column.source;
+                    }
+                    cell.appendChild(formula);
+                } else if (column.source) {
+                    var linkedValue = document.createElement('output');
+                    linkedValue.dataset.listColumnSource = column.source;
+                    cell.appendChild(linkedValue);
+                } else if (mode === 'playtest' && !editingList) {
+                    var valueText = document.createElement('span');
+                    valueText.className = 'list-cell-text';
+                    valueText.textContent = cellValue;
+                    cell.appendChild(valueText);
+                } else {
+                    var input = document.createElement('input');
+                    input.type = column.type === 'number' ? 'number' : 'text';
+                    input.value = cellValue;
+                    input.dataset.listCell = module.id;
+                    input.dataset.row = rowIndex;
+                    input.dataset.column = columnIndex;
+                    input.setAttribute('aria-label', cellLabel);
+                    cell.appendChild(input);
+                }
+                rowElement.appendChild(cell);
+            });
+            tableBody.appendChild(rowElement);
+        });
+        table.appendChild(tableBody);
         tableWrap.appendChild(table);
         list.appendChild(tableWrap);
         if (editingList) {
-            list.appendChild(createButton('Add row', 'list-player-add-row', { addPlayerListRow: module.id }));
+            var addRow = document.createElement('button');
+            addRow.type = 'button';
+            addRow.className = 'list-player-add-row';
+            addRow.dataset.addPlayerListRow = module.id;
+            addRow.textContent = 'Add row';
+            list.appendChild(addRow);
         }
         body.appendChild(list);
-        return body;
-    }
-
-    if (kind === 'pages') {
-        var children = module.children || [];
-        if (mode === 'playtest') {
-            children = children.filter(function (child) { return !moduleHidden(child, typeTable); });
-        }
-        var activeId = ui && ui.activeGroupTabs && ui.activeGroupTabs[module.id];
-        var activeChild = children.find(function (child) { return child.id === activeId; }) || children[0];
-        var groupHeader = document.createElement('header');
-        groupHeader.className = 'pages-header';
-        var groupTitle = document.createElement('strong');
-        groupTitle.dataset.moduleTitle = '';
-        groupTitle.textContent = module.name;
-        if (mode === 'playtest' && module.hideGroupName) groupTitle.hidden = true;
-        var tabs = document.createElement('div');
-        tabs.className = 'pages-tabs';
-        tabs.setAttribute('role', 'tablist');
-        tabs.setAttribute('aria-label', module.name + ' pages');
-        children.forEach(function (child) {
-            var tab = createButton(child.name, 'pages-tab', { pageTab: module.id, pageTabMember: child.id });
-            tab.id = 'page-tab-' + module.id + '-' + child.id;
-            tab.setAttribute('role', 'tab');
-            tab.setAttribute('aria-selected', String(activeChild === child));
-            tab.tabIndex = activeChild === child ? 0 : -1;
-            tab.setAttribute('aria-controls', 'page-panel-' + module.id);
-            tabs.appendChild(tab);
-        });
-        groupHeader.append(groupTitle, tabs);
-        if (mode === 'developer') {
-            var groupActions = document.createElement('div');
-            groupActions.className = 'group-editor-actions';
-            groupActions.appendChild(createButton('Move', 'module-move-handle', { moveModule: '' }, 'Move ' + module.name));
-            groupActions.appendChild(createButton('Settings', 'module-edit', { editModule: module.id }));
-            groupActions.appendChild(createButton('Remove', 'module-remove', { removeModule: module.id }));
-            groupHeader.appendChild(groupActions);
-        }
-        body.appendChild(groupHeader);
-
-        var panel = document.createElement('div');
-        panel.className = 'pages-panel';
-        panel.id = 'page-panel-' + module.id;
-        panel.dataset.pagesDropzone = module.id;
-        panel.setAttribute('role', 'tabpanel');
-        panel.tabIndex = 0;
-        if (activeChild) {
-            panel.setAttribute('aria-labelledby', 'page-tab-' + module.id + '-' + activeChild.id);
-            if (mode === 'developer') {
-                var editChild = document.createElement('button');
-                editChild.type = 'button';
-                editChild.className = 'group-tab-edit';
-                editChild.dataset.editModule = activeChild.id;
-                editChild.textContent = 'Edit';
-                editChild.setAttribute('aria-label', 'Edit ' + activeChild.name);
-                panel.appendChild(editChild);
-            }
-            var content = createControl(activeChild, doc, player, helpers, typeTable, mode, ui);
-            content.classList.add('group-tab-content');
-            if (mode === 'developer') {
-                var childSummary = document.createElement('p');
-                childSummary.className = 'module-dev-summary';
-                childSummary.textContent = typeTable[activeChild.type].control === 'dice' ?
-                    'Roll output' : activeChild.source ? 'Linked input' : 'Player input';
-                panel.appendChild(childSummary);
-            }
-            panel.appendChild(content);
-        } else {
-            var emptyMessage = document.createElement('p');
-            emptyMessage.className = 'group-empty-state';
-            emptyMessage.textContent = mode === 'developer' ?
-                'Add a page in Module settings, or drag a module here.' : 'No pages in this sheet.';
-            panel.appendChild(emptyMessage);
-        }
-        body.appendChild(panel);
         return body;
     }
 
@@ -314,9 +323,15 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
     }
 
     if (kind === 'dice') {
-        var diceText = helpers.diceFormula(module);
-        body.appendChild(createButton(diceText, 'dice-formula dice-roll-trigger',
-            { diceFormula: module.id, rollModule: module.id }, 'Roll ' + module.name + ': ' + diceText));
+        var formula = document.createElement('button');
+        formula.className = 'dice-formula';
+        formula.dataset.diceFormula = module.id;
+        formula.textContent = helpers.diceFormula(module);
+        formula.type = 'button';
+        formula.classList.add('dice-roll-trigger');
+        formula.dataset.rollModule = module.id;
+        formula.setAttribute('aria-label', 'Roll ' + module.name + ': ' + formula.textContent);
+        body.appendChild(formula);
         return body;
     }
 
@@ -401,6 +416,33 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
         if (module.type === 'list') {
             var addedPlayerRows = mode === 'playtest' ? (player.listRows[module.id] || []).length : 0;
             card.style.gridRow = module.row + ' / span ' + (module.rowSpan + addedPlayerRows);
+        }
+
+        var header = document.createElement('header');
+        header.className = 'sheet-module-header';
+        var move = document.createElement('button');
+        move.type = 'button';
+        move.className = 'module-move-handle';
+        move.dataset.moveModule = '';
+        move.textContent = 'Move';
+        move.setAttribute('aria-label', 'Move ' + module.name);
+        var title = document.createElement('strong');
+        title.dataset.moduleTitle = '';
+        title.textContent = module.name;
+        header.append(move, title);
+        if (mode === 'developer') {
+            var edit = document.createElement('button');
+            edit.type = 'button';
+            edit.className = 'module-edit';
+            edit.dataset.editModule = module.id;
+            edit.textContent = 'Edit';
+            header.appendChild(edit);
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'module-remove';
+            remove.dataset.removeModule = module.id;
+            remove.textContent = 'Remove';
+            header.appendChild(remove);
         }
 
         if (module.type !== 'pages' && !compactFields) {
@@ -525,6 +567,43 @@ export function updateLiveValues(studio, state, helpers) {
     studio.querySelectorAll('[data-list-column-source]').forEach(function (output) {
         output.textContent = String(helpers.resolveValue(output.dataset.listColumnSource));
     });
+    studio.querySelectorAll('[data-list-cell]').forEach(function (input) {
+        var module = findModule(doc.modules, input.dataset.listCell);
+        if (!module || input === document.activeElement) return;
+        var rowIndex = Number(input.dataset.row);
+        var rows = ui.mode === 'playtest' ?
+            (module.rows || []).concat(player.listRows[module.id] || []) : module.rows || [];
+        var row = rows[rowIndex];
+        var columnIndex = Number(input.dataset.column);
+        var column = module.columns[columnIndex];
+        var value = row && row.cells && row.cells[columnIndex];
+        var key = listCellKey(input.dataset.listCell, input.dataset.row, columnIndex);
+        var displayValue = ui.mode === 'playtest' && player.values[key] !== undefined ? player.values[key] : value;
+        input.value = displayValue == null ? '' : displayValue;
+        input.setAttribute('aria-label', (column && column.name || 'Column ' + (columnIndex + 1)) +
+            ', row ' + (Number(input.dataset.row) + 1));
+    });
+    studio.querySelectorAll('[data-list-column-header]').forEach(function (heading) {
+        var module = findModule(doc.modules, heading.dataset.moduleId);
+        var index = Number(heading.dataset.index);
+        heading.textContent = module && module.columns[index] && module.columns[index].name ||
+            'Column ' + (index + 1);
+    });
+    studio.querySelectorAll('[data-list-stat-name]').forEach(function (name) {
+        var module = findModule(doc.modules, name.dataset.moduleId);
+        var index = Number(name.dataset.index);
+        name.textContent = module && module.stats[index] && module.stats[index].name || 'Stat';
+    });
+    studio.querySelectorAll('[data-list-stat-value]').forEach(function (output) {
+        var module = findModule(doc.modules, output.dataset.moduleId);
+        var index = Number(output.dataset.index);
+        var stat = module && module.stats[index];
+        var value = stat && (stat.source ? helpers.resolveValue(stat.source) : stat.value);
+        output.textContent = value == null ? '' : String(value);
+    });
+    studio.querySelectorAll('[data-list-column-source]').forEach(function (output) {
+        output.textContent = String(helpers.resolveValue(output.dataset.listColumnSource));
+    });
     studio.querySelectorAll('[data-dice-formula]').forEach(function (formula) {
         var module = modulesById.get(formula.dataset.diceFormula);
         if (module) formula.textContent = helpers.diceFormula(module);
@@ -622,30 +701,13 @@ export function renderInspector(studio, state, helpers) {
 
     // let this module use another value module as its input.
     var candidates = flatten(doc.modules).filter(function (item) {
-        return ['number', 'checkbox', 'math', 'choice'].includes(item.type) && item.id !== module.id;
+        return item.type !== 'group' && item.type !== 'list' && item.id !== module.id;
     });
     candidates = candidates.concat(flatten(doc.modules).filter(function (item) {
         return item.type === 'list' && item.id !== module.id;
     }).map(function (item) {
         return { id: item.id + '.length', name: item.name + '.length', type: 'list-length' };
     }));
-    var listCellCandidates = [];
-    flatten(doc.modules).filter(function (item) {
-        return item.type === 'list' && item.id !== module.id;
-    }).forEach(function (item) {
-        (item.columns || []).forEach(function (column, columnIndex) {
-            if (!['number', 'checkbox'].includes(column.type)) return;
-            (item.rows || []).forEach(function (_, rowIndex) {
-                var id = item.id + '.' + (rowIndex + 1) + '.' + (columnIndex + 1);
-                listCellCandidates.push({
-                    id: id,
-                    name: item.name + ' · row ' + (rowIndex + 1) + ' · ' + column.name,
-                    type: 'list-cell'
-                });
-            });
-        });
-    });
-    candidates = candidates.concat(listCellCandidates);
 
     if (config.inspector.includes('source')) {
         settingSelect('Input from', candidates, module.source, 'Player enters this value', 'source');
@@ -948,6 +1010,123 @@ export function renderInspector(studio, state, helpers) {
         });
         inspector.appendChild(createButton('Add top stat', 'btn list-setting-add',
             { listAction: 'add-list-stat', moduleId: module.id }));
+    }
+    if (config.inspector.includes('list')) {
+        var listHelp = document.createElement('p');
+        listHelp.className = 'studio-muted';
+        listHelp.textContent = 'Configure column values and sources here. Add entries in Playtest or fill cells on the canvas.';
+        inspector.appendChild(listHelp);
+
+        var columnsHeading = document.createElement('strong');
+        columnsHeading.textContent = 'Columns';
+        inspector.appendChild(columnsHeading);
+        (module.columns || []).forEach(function (column, index) {
+            var section = document.createElement('div');
+            section.className = 'list-setting-row';
+            var name = inputControl('text', column.name);
+            name.maxLength = 32;
+            name.dataset.listColumnSetting = 'name';
+            name.dataset.moduleId = module.id;
+            name.dataset.index = index;
+            var type = document.createElement('select');
+            [['text', 'Text'], ['number', 'Number'], ['dice', 'Dice']].forEach(function (item) {
+                var option = document.createElement('option');
+                option.value = item[0];
+                option.textContent = item[1];
+                option.selected = item[0] === column.type;
+                type.appendChild(option);
+            });
+            type.dataset.listColumnSetting = 'type';
+            type.dataset.moduleId = module.id;
+            type.dataset.index = index;
+            var source = document.createElement('select');
+            selectOptions(source, candidates, column.source || '', 'Player enters this value');
+            source.dataset.listColumnSetting = 'source';
+            source.dataset.moduleId = module.id;
+            source.dataset.index = index;
+            section.append(field('Column header', name), field('Column value', type), field('Input from', source));
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'btn list-setting-remove';
+            remove.dataset.listAction = 'remove-list-column';
+            remove.dataset.moduleId = module.id;
+            remove.dataset.index = index;
+            remove.textContent = 'Remove column';
+            remove.disabled = module.columns.length <= 1;
+            section.appendChild(remove);
+            inspector.appendChild(section);
+        });
+        var addColumn = document.createElement('button');
+        addColumn.type = 'button';
+        addColumn.className = 'btn list-setting-add';
+        addColumn.dataset.listAction = 'add-list-column';
+        addColumn.dataset.moduleId = module.id;
+        addColumn.textContent = 'Add column';
+        inspector.appendChild(addColumn);
+
+        var rowsHeading = document.createElement('strong');
+        rowsHeading.textContent = 'Rows';
+        inspector.appendChild(rowsHeading);
+        var rowControls = document.createElement('div');
+        rowControls.className = 'list-row-controls';
+        var addRow = document.createElement('button');
+        addRow.type = 'button';
+        addRow.className = 'btn list-setting-add';
+        addRow.dataset.listAction = 'add-list-row';
+        addRow.dataset.moduleId = module.id;
+        addRow.textContent = 'Add row';
+        rowControls.appendChild(addRow);
+        var removeRow = document.createElement('button');
+        removeRow.type = 'button';
+        removeRow.className = 'btn list-setting-remove';
+        removeRow.dataset.listAction = 'remove-list-row';
+        removeRow.dataset.moduleId = module.id;
+        removeRow.dataset.index = (module.rows || []).length - 1;
+        removeRow.textContent = 'Remove last row';
+        removeRow.disabled = (module.rows || []).length <= 1;
+        rowControls.appendChild(removeRow);
+        inspector.appendChild(rowControls);
+
+        var statsHeading = document.createElement('strong');
+        statsHeading.textContent = 'Top stats (optional)';
+        inspector.appendChild(statsHeading);
+        (module.stats || []).forEach(function (stat, index) {
+            var section = document.createElement('div');
+            section.className = 'list-setting-row';
+            var statName = inputControl('text', stat.name);
+            statName.maxLength = 32;
+            statName.dataset.listStatSetting = 'name';
+            statName.dataset.moduleId = module.id;
+            statName.dataset.index = index;
+            var statValue = inputControl('text', stat.value);
+            statValue.placeholder = 'Fixed value';
+            statValue.dataset.listStatSetting = 'value';
+            statValue.dataset.moduleId = module.id;
+            statValue.dataset.index = index;
+            var source = document.createElement('select');
+            selectOptions(source, candidates.filter(function (candidate) { return candidate.type !== 'list'; }),
+                stat.source, 'Use fixed value', 'source');
+            source.dataset.listStatSetting = 'source';
+            source.dataset.moduleId = module.id;
+            source.dataset.index = index;
+            section.append(field('Stat label', statName), field('Fixed value', statValue), field('Show value from', source));
+            var removeStat = document.createElement('button');
+            removeStat.type = 'button';
+            removeStat.className = 'btn list-setting-remove';
+            removeStat.dataset.listAction = 'remove-list-stat';
+            removeStat.dataset.moduleId = module.id;
+            removeStat.dataset.index = index;
+            removeStat.textContent = 'Remove stat';
+            section.appendChild(removeStat);
+            inspector.appendChild(section);
+        });
+        var addStat = document.createElement('button');
+        addStat.type = 'button';
+        addStat.className = 'btn list-setting-add';
+        addStat.dataset.listAction = 'add-list-stat';
+        addStat.dataset.moduleId = module.id;
+        addStat.textContent = 'Add top stat';
+        inspector.appendChild(addStat);
     }
 }
 

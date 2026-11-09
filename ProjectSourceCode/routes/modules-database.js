@@ -39,25 +39,21 @@ export function validate(doc) {
 
     // check both regular links and links used for conditional changes.
     function linkTarget(source) {
-        var cell = parseListCellReference(source);
-        return cell ? String(source) : String(source || '').replace(/\.length$/, '');
+        return String(source || '').replace(/\.length$/, '');
     }
 
     function validLink(source) {
-        var cell = parseListCellReference(source);
-        if (cell) {
-            var target = entries.get(cell.moduleId);
-            return Boolean(target && target.type === 'list' && cell.row >= 0 &&
-                cell.column >= 0 && target.rows && cell.row < target.rows.length &&
-                target.columns && cell.column < target.columns.length &&
-                target.columns[cell.column] && ['number', 'checkbox'].includes(target.columns[cell.column].type));
-        }
         var target = entries.get(linkTarget(source));
         return Boolean(target && (!String(source).endsWith('.length') || target.type === 'list'));
     }
 
     function linksOf(module) {
-        return collectLinks(module).map(linkTarget).filter(Boolean);
+        return linkSettings.map(function (key) { return module[key]; })
+            .concat((module.modifiers || []).map(function (modifier) { return modifier && modifier.source; }))
+            .concat((Array.isArray(module.stats) ? module.stats : []).map(function (stat) { return stat && stat.source; }))
+            .concat((Array.isArray(module.columns) ? module.columns : []).map(function (column) { return column && column.source; }))
+            .map(linkTarget)
+            .filter(Boolean);
     }
 
     entries.forEach(function (module) {
@@ -66,12 +62,8 @@ export function validate(doc) {
             if (!Array.isArray(module.columns) || !module.columns.length ||
                 module.columns.some(function (column) {
                     return !column || typeof column.name !== 'string' ||
-                        !['text', 'number', 'dice', 'checkbox', 'choice'].includes(column.type) ||
-                        (column.source !== undefined && typeof column.source !== 'string') ||
-                        (column.rowSources !== undefined && (!Array.isArray(column.rowSources) ||
-                            column.rowSources.some(function (source) { return typeof source !== 'string'; }))) ||
-                        (column.options !== undefined && (!Array.isArray(column.options) ||
-                            column.options.some(function (option) { return typeof option !== 'string'; })));
+                        !['text', 'number', 'dice'].includes(column.type) ||
+                        (column.source !== undefined && typeof column.source !== 'string');
                 })) {
                 problems.push('Every list needs columns with a valid name, value type, and input source.');
             }
@@ -106,22 +98,6 @@ export function validate(doc) {
         (Array.isArray(module.columns) ? module.columns : []).forEach(function (column) {
             if (column && column.source && !validLink(column.source)) {
                 problems.push('"' + module.name + '" has a column linked to a missing module.');
-            }
-            (column && Array.isArray(column.rowSources) ? column.rowSources : []).forEach(function (source) {
-                if (source && !validLink(source)) {
-                    problems.push('"' + module.name + '" has a row linked to a missing module.');
-                }
-            });
-        });
-        if (module.type === 'choice' && (!Array.isArray(module.choices) ||
-            module.choices.some(function (choice) {
-                return !choice || typeof choice.label !== 'string' || typeof choice.source !== 'string';
-            }))) {
-            problems.push('"' + module.name + '" needs choice labels linked to numeric modules.');
-        }
-        (Array.isArray(module.choices) ? module.choices : []).forEach(function (choice) {
-            if (choice && choice.source && !validLink(choice.source)) {
-                problems.push('"' + module.name + '" has a choice linked to a missing module.');
             }
         });
     });

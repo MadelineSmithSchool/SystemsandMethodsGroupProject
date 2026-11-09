@@ -4,7 +4,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
-const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'choice', 'notes', 'math', 'pages', 'group', 'list']);
+const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group', 'list']);
 
 function renderTemplateError(res, status, title, message, returnUrl = '/templates') {
   return res.status(status).render('pages/error', {
@@ -111,30 +111,11 @@ function checkStudioTemplate(t) {
       if (Array.isArray(module.modifiers) && module.modifiers.some((modifier) => !modifier || typeof modifier !== 'object' || Array.isArray(modifier))) {
         return 'Every module modifier must be an object.';
       }
-      if (module.type === 'group') {
-        if (module.children && module.children.some((child) =>
-          child && ['pages', 'group'].includes(child.type))) {
-          return 'Groups can contain fields but cannot contain other groups or pages.';
-        }
-        if (module.groupColumns !== undefined &&
-          (!Number.isInteger(module.groupColumns) || module.groupColumns < 1 || module.groupColumns > 6)) {
-          return 'Group field columns must be an integer from 1 to 6.';
-        }
-      }
       if (module.type === 'list') {
         if (!Array.isArray(module.columns) || module.columns.length === 0 ||
           module.columns.some((column) => !column || typeof column.name !== 'string' ||
             !['text', 'number', 'dice'].includes(column.type) ||
             (column.source !== undefined && typeof column.source !== 'string'))) {
-      if (module.type === 'list') {
-        if (!Array.isArray(module.columns) || module.columns.length === 0 ||
-          module.columns.some((column) => !column || typeof column.name !== 'string' ||
-            !['text', 'number', 'dice', 'checkbox', 'choice'].includes(column.type) ||
-            (column.source !== undefined && typeof column.source !== 'string') ||
-            (column.rowSources !== undefined && (!Array.isArray(column.rowSources) ||
-              column.rowSources.some((source) => typeof source !== 'string'))) ||
-            (column.options !== undefined && (!Array.isArray(column.options) ||
-              column.options.some((option) => typeof option !== 'string'))))) {
           return 'Every list needs columns with a valid name, value type, and input source.';
         }
         if (!Array.isArray(module.rows) ||
@@ -145,20 +126,6 @@ function checkStudioTemplate(t) {
           module.stats.some((stat) => !stat || typeof stat.name !== 'string' ||
             (stat.source !== undefined && typeof stat.source !== 'string')))) {
           return 'Every list stat must have a valid name and input source.';
-        }
-      }
-      if (module.type === 'choice' && (!Array.isArray(module.choices) ||
-        module.choices.some((choice) =>
-          !choice || typeof choice.label !== 'string' || typeof choice.source !== 'string'))) {
-        return 'Choice modules need options with a label and numeric value source.';
-      }
-      if (module.type === 'math') {
-        const operations = ['add', 'subtract', 'multiply', 'divide', 'modulo', 'minimum', 'maximum',
-          'abilityModifier', 'proficiencyBonus', 'lookup'];
-        if (!operations.includes(module.mathOperation)) return 'Math modules need a supported operation.';
-        if (module.lookupEntries !== undefined && (!Array.isArray(module.lookupEntries) ||
-          module.lookupEntries.some((entry) => !entry || !Number.isFinite(entry.input) || !Number.isFinite(entry.output)))) {
-          return 'Lookup tables need numeric input and output values.';
         }
       }
       if (module.children) {
