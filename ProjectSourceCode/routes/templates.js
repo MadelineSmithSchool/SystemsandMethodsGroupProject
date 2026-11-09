@@ -6,13 +6,22 @@ const crypto = require('crypto');
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
 const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group']);
 
-function renderNotFound(res) {
-  return res.status(404).render('pages/error', {
-    errorCode: 404,
-    errorTitle: 'Template not found',
-    errorMessage: 'This template does not exist or you do not have permission to view it.',
-    returnUrl: '/templates'
+function renderTemplateError(res, status, title, message, returnUrl = '/templates') {
+  return res.status(status).render('pages/error', {
+    errorCode: status,
+    errorTitle: title,
+    errorMessage: message,
+    returnUrl
   });
+}
+
+function renderNotFound(res) {
+  return renderTemplateError(
+    res,
+    404,
+    'Template not found',
+    'This template does not exist or you do not have permission to view it.'
+  );
 }
 
 function toBuilderDocument(template, isStudioTemplate) {
@@ -178,23 +187,29 @@ module.exports = (db, auth) => {
     );
   };
 
-  const getShared = (req) => db.oneOrNone('SELECT * FROM templates WHERE share_id = $1', [req.params.shareId]);
+  const getShared = (req) => db.oneOrNone(
+    'SELECT * FROM templates WHERE share_id = $1 AND privacy_level IN (1, 2)',
+    [req.params.shareId]
+  );
+
+  const getTemplateList = (userId) => db.any(
+    `SELECT t.*, u.username AS creator_name, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date,
+            (t.user_id = $1) AS is_owner
+     FROM templates t
+     JOIN users u ON u.user_id = t.user_id
+     WHERE t.user_id = $1
+        OR EXISTS (
+          SELECT 1 FROM player_library library
+          WHERE library.template_id = t.template_id AND library.user_id = $1
+        )
+     ORDER BY t.created_at DESC`,
+    [userId]
+  );
 
   // list of your templates (pick one to send)
   router.get('/', auth, async (req, res, next) => {
     try {
-      const templates = await db.any(
-        `SELECT t.*, u.username AS creator_name, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date
-         FROM templates t
-         JOIN users u ON u.user_id = t.user_id
-         WHERE t.user_id = $1
-            OR EXISTS (
-              SELECT 1 FROM player_library library
-              WHERE library.template_id = t.template_id AND library.user_id = $1
-            )
-         ORDER BY t.created_at DESC`,
-        [req.session.user.id]
-      );
+      const templates = await getTemplateList(req.session.user.id);
       res.render('pages/templates', { templates });
     } catch (err) {
       next(err);
@@ -278,7 +293,8 @@ module.exports = (db, auth) => {
       if (template.templateId) {
         savedTemplate = await db.oneOrNone(
           `UPDATE templates
-           SET template_name = $1, template_desc = $2, template_data = $3:json, privacy_level = $4
+           SET template_name = $1, template_desc = $2, template_data = $3:json, privacy_level = $4,
+               share_id = CASE WHEN $4 = 0 THEN NULL ELSE share_id END
            WHERE template_id = $5 AND user_id = $6
            RETURNING template_id`,
           [
@@ -319,7 +335,7 @@ module.exports = (db, auth) => {
     try {
       const template = await getShared(req);
       if (!template) return res.status(404).send('This link is invalid.');
-      res.render('pages/shared', { template });
+      res.render('pages/templates', { sharedTemplate: template });
     } catch (err) {
       next(err);
     }
@@ -395,13 +411,27 @@ module.exports = (db, auth) => {
     try {
       let template = await getMyTemplate(req);
       if (!template) return res.status(404).send('Template not found.');
+      if (template.privacy_level === 0) {
+        return renderTemplateError(
+          res,
+          403,
+          'Template is private',
+          'Change this template to Public or Unlisted before creating a share link.',
+          '/templates/' + template.template_id
+        );
+      }
       // make the link the first time it's shared
       if (!template.share_id) {
         template = await db.one('UPDATE templates SET share_id = $1 WHERE template_id = $2 RETURNING *',
           [crypto.randomBytes(12).toString('hex'), template.template_id]);
       }
       const link = `${req.protocol}://${req.get('host')}/templates/shared/${template.share_id}`;
-      res.render('pages/share', { template, link });
+      const templates = await getTemplateList(req.session.user.id);
+      res.render('pages/templates', {
+        templates,
+        shareLink: link,
+        shareTemplateName: template.template_name
+      });
     } catch (err) {
       next(err);
     }

@@ -1697,6 +1697,54 @@ option {
   margin-top: auto;
 }
 
+.template-card-actions form {
+  margin: 0;
+}
+
+.shared-template-card {
+  max-width: 48rem;
+}
+
+.template-share-dialog {
+  width: min(100% - 2rem, 38rem);
+  max-width: none;
+  padding: 1.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.template-share-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.template-share-dialog h2 {
+  margin-top: 0;
+}
+
+.template-share-dialog label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+}
+
+.template-share-link-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.template-share-link-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.template-share-status {
+  min-height: 1.6em;
+  color: var(--muted);
+}
+
 .template-card-open {
   font-weight: 700;
 }
