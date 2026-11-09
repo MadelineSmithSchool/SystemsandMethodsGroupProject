@@ -21,7 +21,7 @@ if (studio) {
     var rootCanvas = studio.querySelector('[data-root-canvas]');
     var numericSettings = [
         'value', 'count', 'sides', 'uncheckedValue', 'checkedValue', 'colSpan', 'rowSpan',
-        'keepHighest', 'leftValue', 'rightValue', 'groupColumns'
+        'keepHighest', 'leftValue', 'rightValue'
     ];
     var documentActions = [
         'add-module', 'remove-modules', 'update-setting', 'update-modifier',
@@ -35,7 +35,14 @@ if (studio) {
     // keep the sheet, editor choices, and playtest values separate.
     var state = {
         document: { name: '', description: '', modules: [], savedPresets: [] },
-        ui: { mode: playerSheet ? 'playtest' : 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
+        ui: {
+            mode: playerSheet ? 'playtest' : 'developer',
+            selectedId: null,
+            selectedModuleIds: [],
+            activeGroupTabs: {},
+            activeDrag: null,
+            suppressToolClick: false
+        },
         player: { values: {}, checked: {}, rollResults: {}, listRows: {}, listEditing: {}, lastRoll: null },
         history: { undo: [], redo: [] },
         nextModuleId: 1
@@ -339,23 +346,17 @@ if (studio) {
         } else {
             return typed !== undefined ? typed : module.value || '';
         }
-    }
-
-    function resolveChoiceValue(module, typed) {
-        var selected = typed !== undefined ? typed : module.value;
-        var selectedOption = (module.choices || []).find(function (option) {
-            return option && option.source === selected;
-        });
-        return selectedOption ? resolveValue(selectedOption.source, {}) : 0;
-    }
-
-    function applyModifiers(module, value) {
-        (module.modifiers || []).forEach(function (modifier) {
-            var checkbox = findModule(state.document.modules, modifier.source);
-            var checked = checkbox && checkbox.type === 'checkbox' &&
-                (isPlaytest() ? state.player.checked[checkbox.id] : checkbox.checked);
-            if (checked) value += Number(modifier.amount || 0);
-        });
+        if (kind === 'number') {
+            value = Number(value) || 0;
+            (module.modifiers || []).forEach(function (modifier) {
+                var checkbox = findModule(state.document.modules, modifier.source);
+                var checked = checkbox && checkbox.type === 'checkbox' &&
+                    (playtest ? state.player.checked[checkbox.id] : checkbox.checked);
+                if (checked) value += Number(modifier.amount || 0);
+            });
+        }
+        delete seen[id];
+        return value;
     }
 
     function calculateMath(module, seen) {
@@ -454,12 +455,17 @@ if (studio) {
                 break;
             case 'add-module': {
                 var parent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
-                if (action.parentId && !parent) break;
+                if ((action.parentId && (!parent || parent.type !== 'group')) ||
+                    (parent && action.moduleType === 'group')) break;
                 var siblings = parent ? parent.children : state.document.modules;
                 var added = Object.assign(makeModule(action.moduleType, String(state.nextModuleId), siblings), action.placement);
+                if (parent) {
+                    Object.assign(added, { col: 1, row: 1 });
+                }
                 state.nextModuleId += 1;
                 siblings.push(added);
-                choose(added.id);
+                if (parent) state.ui.activeGroupTabs[parent.id] = added.id;
+                choose(action.keepSelection && parent ? parent.id : added.id);
                 break;
             }
             case 'remove-modules': {
@@ -482,13 +488,34 @@ if (studio) {
             case 'update-setting': {
                 var target = findModule(state.document.modules, action.id);
                 if (!target) break;
-                target[action.setting] = numericSettings.includes(action.setting) ? Number(action.value) : action.value;
+                if (numericSettings.includes(action.setting)) {
+                    var settingValue = Number(action.value);
+                    if (action.setting === 'colSpan') {
+                        settingValue = Math.max(1, Math.min(layoutColumns(rootCanvas), Math.round(settingValue)));
+                    } else if (action.setting === 'rowSpan') {
+                        settingValue = Math.max(1, Math.min(12, Math.round(settingValue)));
+                    }
+                    target[action.setting] = settingValue;
+                } else {
+                    target[action.setting] = action.value;
+                }
                 if (linkSettings.includes(action.setting)) state.player.rollResults[target.id] = null;
+                if (target.type === 'group' && (action.setting === 'colSpan' || action.setting === 'rowSpan')) {
+                    var groupEntry = findModuleEntry(target.id);
+                    if (groupEntry) {
+                        Object.assign(target, nearestPlacement(
+                            groupEntry.list,
+                            target,
+                            layoutColumns(rootCanvas),
+                            target
+                        ));
+                    }
+                }
                 break;
             }
             case 'update-modifier': {
                 var modifierModule = findModule(state.document.modules, action.id);
-                if (modifierModule && modifierModule.modifiers[action.index]) {
+                if (modifierModule && modifierModule.modifiers && modifierModule.modifiers[action.index]) {
                     modifierModule.modifiers[action.index][action.setting] =
                         action.setting === 'amount' ? Number(action.value) : action.value;
                 }
@@ -498,13 +525,14 @@ if (studio) {
                 var numberModule = findModule(state.document.modules, action.id);
                 if (!numberModule) break;
                 var firstCheckbox = flatten(state.document.modules).find(function (item) { return item.type === 'checkbox'; });
+                numberModule.modifiers = numberModule.modifiers || [];
                 numberModule.modifiers.push({ source: firstCheckbox ? firstCheckbox.id : '', amount: -1 });
                 state.ui.selectedId = numberModule.id;
                 break;
             }
             case 'remove-modifier': {
                 var owner = findModule(state.document.modules, action.id);
-                if (owner) owner.modifiers.splice(action.index, 1);
+                if (owner && owner.modifiers) owner.modifiers.splice(action.index, 1);
                 break;
             }
             case 'load-preset': {
@@ -538,13 +566,27 @@ if (studio) {
             case 'reparent-module': {
                 var movingEntry = findModuleEntry(action.id);
                 var newParent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
-                if (!movingEntry || (action.parentId && !newParent)) break;
+                if (!movingEntry || (action.parentId && !newParent) ||
+                    (newParent && (movingEntry.module.type === 'group' || newParent.type !== 'group'))) break;
                 var targetList = newParent ? newParent.children : state.document.modules;
                 var columns = newParent ? 6 : layoutColumns(rootCanvas);
+                var previousParent = movingEntry.parent;
                 movingEntry.list.splice(movingEntry.index, 1);
-                movingEntry.module.colSpan = Math.min(movingEntry.module.colSpan, newParent ? columns : moduleSize.colSpan);
-                Object.assign(movingEntry.module, nearestPlacement(targetList, movingEntry.module, columns, { col: 1, row: 1 }));
+                if (previousParent && previousParent.type === 'group' &&
+                    state.ui.activeGroupTabs[previousParent.id] === movingEntry.module.id) {
+                    state.ui.activeGroupTabs[previousParent.id] =
+                        previousParent.children[0] && previousParent.children[0].id;
+                }
+                movingEntry.module.colSpan = Math.min(movingEntry.module.colSpan, newParent ? columns :
+                    movingEntry.module.type === 'list' ? 8 : moduleSize.colSpan);
+                if (newParent) {
+                    Object.assign(movingEntry.module, { col: 1, row: 1 });
+                } else {
+                    Object.assign(movingEntry.module, nearestPlacement(targetList, movingEntry.module, columns, { col: 1, row: 1 }));
+                }
                 targetList.push(movingEntry.module);
+                if (newParent) state.ui.activeGroupTabs[newParent.id] = movingEntry.module.id;
+                if (action.selectionId) state.ui.selectedId = action.selectionId;
                 break;
             }
             case 'update-document-value': {
@@ -589,6 +631,7 @@ if (studio) {
                 if (!handler) return;
                 handler(action);
         }
+
         if (edits || action.type === 'undo' || action.type === 'redo') {
             try {
                 autosave(state.document);
@@ -607,9 +650,9 @@ if (studio) {
     // turn clicks, typing, and dragging into sheet actions.
     function canvasForPoint(x, y) {
         var target = document.elementFromPoint(x, y);
-        var groupCanvas = target && target.closest('[data-group-canvas]');
-        if (groupCanvas) {
-            return { element: groupCanvas, owner: findModule(state.document.modules, groupCanvas.dataset.groupCanvas) };
+        var groupDropzone = target && target.closest('[data-group-dropzone]');
+        if (groupDropzone) {
+            return { element: groupDropzone, owner: findModule(state.document.modules, groupDropzone.dataset.groupDropzone) };
         }
         var pagesDropzone = target && target.closest('[data-pages-dropzone]');
         if (pagesDropzone) {
@@ -722,10 +765,8 @@ if (studio) {
         window.setTimeout(function () { setUi({ suppressToolClick: false }, false); }, 50);
         var destination = canvasForPoint(event.clientX, event.clientY);
         if (!destination) return;
-        if (destination.owner && drag.type === 'pages') return;
-        var columns = destination.owner && destination.owner.type === 'group' ?
-            Math.max(1, Math.min(6, Number(destination.owner.groupColumns) || 2)) :
-            destination.owner ? 6 : layoutColumns(destination.element);
+        if (destination.owner && drag.type === 'group') return;
+        var columns = destination.owner ? 6 : layoutColumns(destination.element);
         var siblings = destination.owner ? destination.owner.children : state.document.modules;
         var rect = destination.element.getBoundingClientRect();
         var rowStep = parseFloat(getComputedStyle(destination.element).gridAutoRows) || 64;
@@ -743,6 +784,11 @@ if (studio) {
     }
 
     function dropModule(drag, event) {
+        var target = document.elementFromPoint(event.clientX, event.clientY);
+        var groupDropzone = target && target.closest('[data-group-dropzone]');
+        var drop = groupDropzone ? {
+            owner: findModule(state.document.modules, groupDropzone.dataset.groupDropzone)
+        } : canvasForPoint(event.clientX, event.clientY);
         var entry = findModuleEntry(drag.id);
         if (drag.resize) {
             dispatch({ type: 'move-module', id: drag.id, placement: drag.placement });
@@ -753,8 +799,7 @@ if (studio) {
         // keep the module where it is if it is dropped outside a canvas or on itself.
         var owner = drop ? drop.owner : entry.parent;
         if (owner && owner.id === drag.id) owner = entry.parent;
-        if ((entry.module.type === 'pages' || owner && owner.type === 'group' &&
-            ['pages', 'group'].includes(entry.module.type)) && owner) {
+        if (entry.module.type === 'group' && owner) {
             refresh();
             return;
         }
@@ -940,9 +985,45 @@ if (studio) {
             var isDev = isDeveloper();
             studio.querySelector('[data-workspace-title]').textContent = isDev ?
                 'Developer canvas' : (state.document.name || 'Character sheet');
-            studio.querySelector('[data-workspace-help]').textContent = isDev ?
-                'Use Pages for tabs and Groups for compact field panels. Lists provide repeatable rows.' :
+            studio.querySelector('[data-workspace-help]').textContent = developer ?
+                'Use a group as a tabbed header. Add modules from its settings or drag modules into its content area.' :
                 'Enter values, toggle conditions, and roll dice to test the sheet.';
+            return;
+        }
+        var groupTab = target.closest('[data-group-tab]');
+        if (groupTab) {
+            var activeGroupTabs = Object.assign({}, state.ui.activeGroupTabs);
+            activeGroupTabs[groupTab.dataset.groupTab] = groupTab.dataset.groupTabMember;
+            setUi({ activeGroupTabs: activeGroupTabs });
+            var selectedTab = document.getElementById(groupTab.id);
+            if (selectedTab) selectedTab.focus();
+            return;
+        }
+        var addGroupTab = target.closest('[data-add-group-tab]');
+        if (addGroupTab) {
+            var groupType = Array.prototype.find.call(
+                studio.querySelectorAll('[data-group-module-type]'),
+                function (select) { return select.dataset.groupModuleType === addGroupTab.dataset.addGroupTab; }
+            );
+            if (groupType && groupType.value) {
+                dispatch({
+                    type: 'add-module',
+                    moduleType: groupType.value,
+                    parentId: addGroupTab.dataset.addGroupTab,
+                    keepSelection: true
+                });
+            }
+            return;
+        }
+        var removeGroupTab = target.closest('[data-ungroup-module]');
+        if (removeGroupTab) {
+            var selectedGroup = findModule(state.document.modules, state.ui.selectedId);
+            dispatch({
+                type: 'reparent-module',
+                id: removeGroupTab.dataset.ungroupModule,
+                parentId: null,
+                selectionId: selectedGroup && selectedGroup.type === 'group' ? selectedGroup.id : null
+            });
             return;
         }
         var addModifier = target.closest('[data-add-modifier]');
@@ -989,6 +1070,39 @@ if (studio) {
     function handleInputs(event) {
         var target = event.target;
         var isSelect = target.tagName === 'SELECT';
+        var groupSizeSetting = target.dataset.setting;
+        var selectedGroup = !playtest && findModule(state.document.modules, state.ui.selectedId);
+        if (selectedGroup && selectedGroup.type === 'group' &&
+            (groupSizeSetting === 'colSpan' || groupSizeSetting === 'rowSpan')) {
+            if (event.type !== 'change') return;
+            var size = Number(target.value);
+            if (!Number.isFinite(size)) return;
+            size = Math.round(Math.max(Number(target.min), Math.min(Number(target.max), size)));
+            dispatch({
+                type: 'update-setting',
+                id: selectedGroup.id,
+                setting: groupSizeSetting,
+                value: size
+            });
+            return;
+        }
+        var listCell = target.closest('[data-list-cell]');
+        if (listCell && event.type === 'input') {
+            var listId = listCell.dataset.listCell;
+            var rowIndex = Number(listCell.dataset.row);
+            var columnIndex = Number(listCell.dataset.column);
+            if (playtest) {
+                var cellKey = listId + ':' + rowIndex + ':' + columnIndex;
+                dispatch({ type: 'player', key: 'values', id: cellKey, value: listCell.value, render: false });
+            } else {
+                dispatch({
+                    type: 'update-list-cell', id: listId, row: rowIndex,
+                    column: columnIndex, value: listCell.value, render: false
+                });
+            }
+            updateLiveValues(studio, state, api);
+            return;
+        }
         var valueInput = target.closest('[data-module-value]');
         if (valueInput && (event.type === 'input' || event.type === 'change')) {
             var id = valueInput.dataset.moduleValue;
@@ -1014,6 +1128,19 @@ if (studio) {
             }
             return;
         }
+        if (event.type === 'change' && target.type === 'checkbox' && target.dataset.setting && !playtest) {
+            var selectedForCheckboxSetting = findModule(state.document.modules, state.ui.selectedId);
+            if (selectedForCheckboxSetting) {
+                dispatch({
+                    type: 'update-setting',
+                    id: selectedForCheckboxSetting.id,
+                    setting: target.dataset.setting,
+                    value: target.checked
+                });
+            }
+            return;
+        }
+        // update text fields while typing and dropdowns when a choice is made.
         if (!((event.type === 'input' && !isSelect) || (event.type === 'change' && isSelect))) return;
         var setting = target.dataset.setting;
         if (setting && !isPlaytest()) {
@@ -1134,9 +1261,9 @@ if (studio) {
     }
 
     function handleKeydown(event) {
-        var groupTab = event.target.closest('[data-page-tab]');
+        var groupTab = event.target.closest('[data-group-tab]');
         if (groupTab) {
-            var tabs = Array.prototype.slice.call(groupTab.parentElement.querySelectorAll('[data-page-tab]'));
+            var tabs = Array.prototype.slice.call(groupTab.parentElement.querySelectorAll('[data-group-tab]'));
             var index = tabs.indexOf(groupTab);
             var nextIndex = event.key === 'ArrowRight' ? (index + 1) % tabs.length :
                 event.key === 'ArrowLeft' ? (index - 1 + tabs.length) % tabs.length :
