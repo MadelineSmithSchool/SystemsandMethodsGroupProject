@@ -5,7 +5,7 @@
   --bronze: #D58936;
   --rust: #A44200;
   --garnett: #69140e;
-  --mahogany: #2b0d0f;
+  --mahogany: #3c1518;
 
   /* Neutrals and text colors */
   --bronze-dark: #e79600;
@@ -54,6 +54,7 @@ html {
   color-scheme: dark;
 }
 
+body {
   margin: 0;
   min-height: 100vh;
   display: flex;
@@ -1546,6 +1547,160 @@ option {
   height: 1.25rem;
 }
 
+.list-module {
+  position: relative;
+  min-width: 0;
+  padding-top: 0.1rem;
+}
+
+.list-edit-toggle {
+  position: absolute;
+  top: -0.15rem;
+  right: 0;
+  z-index: 1;
+  min-height: 1.5rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.7rem;
+  opacity: 0.58;
+  cursor: pointer;
+}
+
+.list-edit-toggle:hover,
+.list-edit-toggle:focus-visible,
+.list-edit-toggle[aria-pressed="true"] {
+  border-color: var(--line);
+  color: var(--text);
+  opacity: 1;
+}
+
+.list-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin-bottom: 0.25rem;
+  padding-right: 2.75rem;
+}
+
+.list-stat {
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.list-stat output {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.list-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-color: var(--bronze) transparent;
+}
+
+.list-table {
+  min-width: 100%;
+  table-layout: auto;
+}
+
+.list-table th,
+.list-table td {
+  min-width: 6rem;
+  padding: 0.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.list-table th {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.list-table td input {
+  width: 100%;
+  min-width: 5rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.4rem;
+  border-color: transparent;
+  background: transparent;
+  font-size: 0.86rem;
+}
+
+.list-table td input:focus {
+  border-color: var(--bronze-bright);
+  background: var(--field);
+}
+
+.list-cell-text {
+  display: inline-block;
+  min-height: 2rem;
+  padding: 0.25rem 0.4rem;
+  overflow-wrap: anywhere;
+}
+
+.list-player-add-row {
+  margin-top: 0.4rem;
+  min-height: 1.8rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.list-player-add-row:hover {
+  border-color: var(--bronze-bright);
+  background: var(--surface-raised);
+}
+
+.list-setting-row {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+
+.list-row-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.list-setting-add,
+.list-setting-remove {
+  justify-self: start;
+  min-height: 2rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.list-setting-add:hover,
+.list-setting-remove:not(:disabled):hover {
+  background: var(--surface-raised);
+}
+
+.list-setting-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .sheet-module[data-module-type="group"] > .module-body {
   min-height: 0;
   overflow: auto;
@@ -1567,21 +1722,88 @@ option {
 }
 
 .dice-formula {
+  justify-self: center;
   margin: 0;
+  padding: 0.15rem 0.35rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   color: var(--muted);
+  font: inherit;
   font-family: var(--font-head);
   font-size: 1.1rem;
   font-weight: 700;
   text-align: center;
+  cursor: pointer;
 }
 
-.dice-roll-button {
-  justify-self: center;
-  min-height: 2rem;
-  padding: 0.2rem 0.7rem;
+.dice-formula.dice-roll-trigger,
+.list-dice-trigger {
+  border: 1px solid var(--bronze);
+  border-radius: var(--radius-sm);
+  background: var(--bronze);
+  color: var(--mahogany);
 }
 
-.dice-result,
+.dice-formula.dice-roll-trigger:hover,
+.list-dice-trigger:hover {
+  border-color: var(--bronze-bright);
+  background: var(--bronze-bright);
+  color: var(--mahogany);
+}
+
+.list-dice-trigger {
+  max-width: 100%;
+  padding: 0.1rem 0.2rem;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.dice-roll-overlay {
+  position: absolute;
+  z-index: 5;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  max-width: min(32rem, calc(100% - 1.5rem));
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--bronze-bright);
+  border-radius: var(--radius-sm);
+  background: rgba(60, 21, 24, 0.96);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.dice-roll-overlay[hidden] {
+  display: none;
+}
+
+.dice-roll-overlay:not([hidden]) {
+  animation: dice-roll-appear 180ms ease-out;
+}
+
+@keyframes dice-roll-appear {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.list-table td .dice-roll-trigger {
+  display: inline;
+}
+
+.dice-formula:focus-visible {
+  outline: 2px solid var(--bronze-bright);
+}
+
 .module-output,
 .math-result {
   color: var(--bronze-bright);
