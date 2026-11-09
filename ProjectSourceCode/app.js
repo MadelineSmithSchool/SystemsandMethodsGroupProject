@@ -103,8 +103,24 @@ app.get('/library', auth, async (req, res) => {
     });
   }
 });
-app.get('/characters', auth, (req, res) => {
-  res.render('pages/characters', { title: 'My Characters' , login: true });
+app.get('/characters', auth, async (req, res) => {
+  try {
+    const characters = await db.any(
+      `SELECT c.character_id, c.character_name, c.privacy_level, c.created_at,
+              t.template_name
+       FROM characters c
+       LEFT JOIN templates t ON t.template_id = c.template_id
+       WHERE c.user_id = $1
+       ORDER BY c.created_at DESC`,
+      [req.session.user.id]
+    );
+    res.render('pages/characters', { title: 'My Characters', login: true, characters });
+  } catch (err) {
+    console.error('Characters query failed:', err);
+    res.status(500).render('pages/characters', {
+      title: 'My Characters', login: true, characters: [], error: 'Could not load your characters.'
+    });
+  }
 });
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
