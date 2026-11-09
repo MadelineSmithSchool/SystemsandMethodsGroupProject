@@ -52,7 +52,7 @@ export var moduleTypes = {
     },
     group: {
         name: 'Group', control: 'group', valueKind: 'group',
-        inspector: ['group'], defaults: withBase()
+        inspector: ['group'], defaults: withBase({ hideGroupName: false })
     },
     list: {
         name: 'List', control: 'list', valueKind: 'list',
