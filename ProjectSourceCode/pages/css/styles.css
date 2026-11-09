@@ -54,7 +54,7 @@ html {
   color-scheme: dark;
 }
 
-body{
+body {
   margin: 0;
   min-height: 100vh;
   display: flex;
@@ -1830,17 +1830,6 @@ option {
   padding-top: 0.1rem;
 }
 
-.value-module {
-  display: grid;
-  min-width: 0;
-  gap: 0.2rem;
-}
-
-.value-module > .list-edit-toggle {
-  position: static;
-  justify-self: end;
-}
-
 .list-edit-toggle {
   position: absolute;
   top: -0.15rem;
@@ -1912,8 +1901,7 @@ option {
   text-transform: none;
 }
 
-.list-table td input,
-.list-table td select {
+.list-table td input {
   width: 100%;
   min-width: 5rem;
   min-height: 2rem;
@@ -1923,17 +1911,9 @@ option {
   font-size: 0.86rem;
 }
 
-.list-table td input:focus,
-.list-table td select:focus {
+.list-table td input:focus {
   border-color: var(--bronze-bright);
   background: var(--field);
-}
-
-.list-table td input[type="checkbox"] {
-  width: auto;
-  min-width: 1.15rem;
-  min-height: 1.15rem;
-  vertical-align: middle;
 }
 
 .list-cell-text {
@@ -1941,14 +1921,6 @@ option {
   min-height: 2rem;
   padding: 0.25rem 0.4rem;
   overflow-wrap: anywhere;
-}
-
-.module-value-text {
-  display: block;
-  min-height: 2rem;
-  padding: 0.25rem 0.4rem;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
 }
 
 .list-player-add-row {
@@ -2004,6 +1976,11 @@ option {
 .list-setting-remove:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.sheet-module[data-module-type="group"] > .module-body {
+  min-height: 0;
+  overflow: auto;
 }
 
 .module-resize-handle {

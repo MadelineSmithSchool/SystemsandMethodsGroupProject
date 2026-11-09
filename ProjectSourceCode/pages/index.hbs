@@ -41,13 +41,15 @@
   {{else}}
     {{!-- ============ LOGGED OUT: shown if someone opens "/" without an account ============ --}}
     <section class="start" aria-labelledby="welcome-title">
-      <div class="start-head">
-        <h1 id="welcome-title">Character Builder</h1>
-        <p>Build and use custom Character Sheets for any Tabletop Roleplaying Game. Log in or create an account to get started.</p>
-      </div>
-      <div class="workspace-actions">
-        <a class="btn btn--primary" href="/login">Log in</a>
-        <a class="btn" href="/register">Register</a>
+      <div class="row">
+        <div class="start-head col-md-6">
+          <h1 id="welcome-title">Character Builder</h1>
+          <p>Build and use custom Character Sheets for any Tabletop Roleplaying Game. Log in or create an account to get started.</p>
+        </div>
+        <div class="workspace-actions">
+          <a class="btn btn--primary" href="/login">Log in</a>
+          <a class="btn" href="/register">Register</a>
+        </div>
       </div>
       
     </section>
