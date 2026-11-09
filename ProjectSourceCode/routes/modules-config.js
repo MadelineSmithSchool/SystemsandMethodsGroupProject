@@ -52,7 +52,7 @@ export var moduleTypes = {
     },
     group: {
         name: 'Group', control: 'group', valueKind: 'group',
-        inspector: ['group'], defaults: withBase({ layout: 'grid', groupColumns: 2 })
+        inspector: ['group'], defaults: withBase()
     },
     list: {
         name: 'List', control: 'list', valueKind: 'list',
@@ -110,10 +110,9 @@ export function clonePresetModules(presetModules, firstId) {
     var next = firstId;
     function remapListSource(source) {
         if (!source) return '';
-        var suffix = source.match(/(?:\.\d+\.\d+|\.length)$/);
-        suffix = suffix ? suffix[0] : '';
-        var sourceId = suffix ? source.slice(0, -suffix.length) : source;
-        return idMap[sourceId] ? idMap[sourceId] + suffix : '';
+        var lengthSuffix = /\.length$/.test(source) ? '.length' : '';
+        var sourceId = lengthSuffix ? source.slice(0, -lengthSuffix.length) : source;
+        return (idMap[sourceId] || '') + (idMap[sourceId] ? lengthSuffix : '');
     }
     flatten(copies).forEach(function (module) {
         Object.assign(module, Object.assign(clone(moduleTypes[module.type].defaults), module));
@@ -127,15 +126,9 @@ export function clonePresetModules(presetModules, firstId) {
         });
         (module.columns || []).forEach(function (column) {
             column.source = remapListSource(column.source);
-            (column.rowSources || []).forEach(function (source, index) {
-                column.rowSources[index] = remapListSource(source);
-            });
         });
         (module.stats || []).forEach(function (stat) {
             stat.source = remapListSource(stat.source);
-        });
-        (module.choices || []).forEach(function (choice) {
-            choice.source = remapListSource(choice.source);
         });
         module.modifiers = module.modifiers
             .filter(function (item) { return idMap[item.source]; })

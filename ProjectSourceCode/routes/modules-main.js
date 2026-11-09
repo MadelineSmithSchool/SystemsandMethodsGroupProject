@@ -27,26 +27,15 @@ if (studio) {
         'add-module', 'remove-modules', 'update-setting', 'update-modifier',
         'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module',
         'reparent-module', 'update-document-value', 'update-list-cell', 'update-list-column',
-        'update-list-stat', 'update-list-row-source', 'add-list-column', 'remove-list-column', 'add-list-row',
+        'update-list-stat', 'add-list-column', 'remove-list-column', 'add-list-row',
         'remove-list-row', 'add-list-stat', 'remove-list-stat',
-        'update-document-meta', 'restore-document',
-        'update-choice', 'add-choice', 'remove-choice'
+        'update-document-meta', 'restore-document'
     ];
 
     var state = {
         document: { name: '', description: '', modules: [], savedPresets: [] },
-        ui: {
-            mode: playerSheet ? 'playtest' : 'developer',
-            selectedId: null,
-            selectedModuleIds: [],
-            activeGroupTabs: {},
-            activeDrag: null,
-            suppressToolClick: false
-        },
-        player: {
-            values: {}, checked: {}, rollResults: {}, listRows: {},
-            listEditing: {}, valueEditing: {}, lastRoll: null
-        },
+        ui: { mode: playerSheet ? 'playtest' : 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
+        player: { values: {}, checked: {}, rollResults: {}, listRows: {}, listEditing: {}, lastRoll: null },
         history: { undo: [], redo: [] },
         nextModuleId: 1
     };
@@ -132,14 +121,51 @@ if (studio) {
         return String(source || '').replace(/\.\d+\.\d+$|\.length$/, '');
     }
 
+    function clearListValues(id) {
+        Object.keys(state.player.values).forEach(function (key) {
+            if (key.indexOf(id + ':') === 0) delete state.player.values[key];
+        });
+        delete state.player.listRows[id];
+    }
+
+    function listRows(module) {
+        var rows = module.rows || [];
+        return state.ui.mode === 'playtest' ?
+            rows.concat(state.player.listRows[module.id] || []) : rows;
+    }
+
+    function listCellValue(module, rowIndex, columnIndex) {
+        var row = listRows(module)[rowIndex];
+        var key = module.id + ':' + rowIndex + ':' + columnIndex;
+        if (state.ui.mode === 'playtest' && state.player.values[key] !== undefined) {
+            return state.player.values[key];
+        }
+        return row && row.cells && row.cells[columnIndex] != null ? row.cells[columnIndex] : '';
+    }
+
+    // Blank rows do not count as entries.
+    function listLength(module) {
+        var rows = listRows(module);
+        var columns = module.columns || [];
+        return rows.filter(function (row, rowIndex) {
+            return columns.some(function (column, columnIndex) {
+                if (column.source) return false;
+                var key = module.id + ':' + rowIndex + ':' + columnIndex;
+                var value = state.ui.mode === 'playtest' && state.player.values[key] !== undefined ?
+                    state.player.values[key] : row && row.cells && row.cells[columnIndex];
+                return value != null && String(value).trim() !== '';
+            });
+        }).length;
+    }
+
+    function referencedModuleId(source) {
+        return String(source || '').replace(/\.length$/, '');
+    }
+
     function makeModule(type, id, siblings) {
         var columns = siblings === state.document.modules ? 12 : 6;
-        var colSpan = Math.min(
-            type === 'pages' ? columns : type === 'group' ? Math.min(6, columns) :
-                type === 'list' ? 8 : moduleSize.colSpan,
-            columns
-        );
-        var rowSpan = type === 'pages' ? 8 : type === 'group' ? 5 : type === 'list' ? 5 : moduleSize.rowSpan;
+        var colSpan = Math.min(type === 'list' ? 8 : moduleSize.colSpan, columns);
+        var rowSpan = type === 'list' ? 5 : moduleSize.rowSpan;
         var preferred = { col: 1 + (siblings.length % 3) * 4, row: 1 + Math.floor(siblings.length / 3) * 3 };
         return Object.assign(
             { id: id, type: type, name: moduleTypes[type].name },
@@ -235,13 +261,39 @@ if (studio) {
 
     function resolveValue(id, seen) {
         seen = seen || {};
-        var cell = parseListCellReference(id);
-        if (cell) return resolveListCell(id, cell, seen);
-
-        if (/\.length$/.test(String(id))) {
-            var listLengthValue = resolveListLength(id, seen);
-            if (listLengthValue !== null) return listLengthValue;
-            return '';
+        var lengthReference = /\.length$/.test(String(id));
+        if (lengthReference) {
+            var listId = String(id).slice(0, -7);
+            var list = findModule(state.document.modules, listId);
+            if (!list || list.type !== 'list' || seen[listId]) return '';
+            seen[listId] = true;
+            var length = listLength(list);
+            delete seen[listId];
+            return length;
+        }
+        var module = findModule(state.document.modules, id);
+        if (!module || module.type === 'group' || seen[id]) return '';
+        seen[id] = true;
+        var playtest = state.ui.mode === 'playtest';
+        var typed = playtest ? state.player.values[id] : undefined;
+        var kind = moduleTypes[module.type].valueKind;
+        var value;
+        if (module.type === 'list') {
+            value = listLength(module);
+        } else if (kind === 'dice') {
+            var roll = playtest ? state.player.rollResults[id] : null;
+            value = roll ? roll.total : 0;
+        } else if (kind === 'math') {
+            value = calculateMath(module, seen).result;
+        } else if (module.source) {
+            value = resolveValue(module.source, seen);
+        } else if (kind === 'number') {
+            value = typed !== undefined ? typed : module.value || 0;
+        } else if (kind === 'checkbox') {
+            var checked = playtest ? state.player.checked[id] : module.checked;
+            value = Number(checked ? module.checkedValue : module.uncheckedValue);
+        } else {
+            value = typed !== undefined ? typed : module.value || '';
         }
 
         var module = findModule(state.document.modules, id);
@@ -694,6 +746,190 @@ if (studio) {
             case 'roll-result':
                 state.player.lastRoll = action.value;
                 break;
+            case 'add-module': {
+                var parent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
+                if (action.parentId && !parent) break;
+                var siblings = parent ? parent.children : state.document.modules;
+                var added = Object.assign(makeModule(action.moduleType, String(state.nextModuleId), siblings), action.placement);
+                state.nextModuleId += 1;
+                siblings.push(added);
+                choose(added.id);
+                break;
+            }
+            case 'remove-modules': {
+                var removed = {};
+                action.ids.forEach(function (id) {
+                    var entry = findModuleEntry(id);
+                    if (!entry) return;
+                    flatten([entry.module]).forEach(function (module) { removed[module.id] = true; });
+                    entry.list.splice(entry.index, 1);
+                });
+                flatten(state.document.modules).forEach(function (module) {
+                    linkSettings.forEach(function (setting) {
+                        if (removed[referencedModuleId(module[setting])]) module[setting] = '';
+                    });
+                    module.modifiers = (module.modifiers || []).filter(function (item) { return !removed[item.source]; });
+                    (module.stats || []).forEach(function (stat) {
+                        if (removed[referencedModuleId(stat.source)]) stat.source = '';
+                    });
+                    (module.columns || []).forEach(function (column) {
+                        if (removed[referencedModuleId(column.source)]) column.source = '';
+                    });
+                });
+                choose(null);
+                break;
+            }
+            case 'update-setting': {
+                var target = findModule(state.document.modules, action.id);
+                if (!target) break;
+                target[action.setting] = numericSettings.includes(action.setting) ? Number(action.value) : action.value;
+                if (linkSettings.includes(action.setting)) state.player.rollResults[target.id] = null;
+                break;
+            }
+            case 'update-modifier': {
+                var modifierModule = findModule(state.document.modules, action.id);
+                if (modifierModule && modifierModule.modifiers[action.index]) {
+                    modifierModule.modifiers[action.index][action.setting] =
+                        action.setting === 'amount' ? Number(action.value) : action.value;
+                }
+                break;
+            }
+            case 'add-modifier': {
+                var numberModule = findModule(state.document.modules, action.id);
+                if (!numberModule) break;
+                var firstCheckbox = flatten(state.document.modules).find(function (item) { return item.type === 'checkbox'; });
+                numberModule.modifiers.push({ source: firstCheckbox ? firstCheckbox.id : '', amount: -1 });
+                state.ui.selectedId = numberModule.id;
+                break;
+            }
+            case 'remove-modifier': {
+                var owner = findModule(state.document.modules, action.id);
+                if (owner) owner.modifiers.splice(action.index, 1);
+                break;
+            }
+            case 'load-preset': {
+                var loaded = clonePresetModules(action.modules, state.nextModuleId);
+                var rootColumns = layoutColumns(rootCanvas);
+                state.nextModuleId = loaded.nextId;
+                loaded.modules.forEach(function (module) {
+                    module.colSpan = Math.min(module.colSpan, rootColumns);
+                    Object.assign(module, nearestPlacement(state.document.modules, module, rootColumns, module));
+                    state.document.modules.push(module);
+                });
+                choose(loaded.modules.length ? loaded.modules[loaded.modules.length - 1].id : null);
+                break;
+            }
+            case 'save-preset': {
+                var selected = state.document.modules.filter(function (module) {
+                    return state.ui.selectedModuleIds.includes(module.id);
+                });
+                state.document.savedPresets.push({
+                    name: action.name || 'Preset ' + (state.document.savedPresets.length + 1),
+                    modules: clone(selected)
+                });
+                state.ui.selectedModuleIds = [];
+                break;
+            }
+            case 'move-module': {
+                var moving = findModule(state.document.modules, action.id);
+                if (moving) Object.assign(moving, action.placement);
+                break;
+            }
+            case 'reparent-module': {
+                var movingEntry = findModuleEntry(action.id);
+                var newParent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
+                if (!movingEntry || (action.parentId && !newParent)) break;
+                var targetList = newParent ? newParent.children : state.document.modules;
+                var columns = newParent ? 6 : layoutColumns(rootCanvas);
+                movingEntry.list.splice(movingEntry.index, 1);
+                movingEntry.module.colSpan = Math.min(movingEntry.module.colSpan, newParent ? columns :
+                    movingEntry.module.type === 'list' ? 8 : moduleSize.colSpan);
+                Object.assign(movingEntry.module, nearestPlacement(targetList, movingEntry.module, columns, { col: 1, row: 1 }));
+                targetList.push(movingEntry.module);
+                break;
+            }
+            case 'update-document-value': {
+                var documentModule = findModule(state.document.modules, action.id);
+                if (documentModule) documentModule.value = action.value;
+                break;
+            }
+            case 'update-list-cell': {
+                var listModule = findModule(state.document.modules, action.id);
+                if (listModule && listModule.rows[action.row] && listModule.rows[action.row].cells) {
+                    listModule.rows[action.row].cells[action.column] = action.value;
+                }
+                break;
+            }
+            case 'update-list-column': {
+                var columnModule = findModule(state.document.modules, action.id);
+                if (columnModule && columnModule.columns[action.index]) {
+                    columnModule.columns[action.index][action.setting] = action.value;
+                }
+                break;
+            }
+            case 'update-list-stat': {
+                var statModule = findModule(state.document.modules, action.id);
+                if (statModule && statModule.stats[action.index]) {
+                    statModule.stats[action.index][action.setting] = action.value;
+                }
+                break;
+            }
+            case 'add-list-column': {
+                var addColumnModule = findModule(state.document.modules, action.id);
+                if (!addColumnModule) break;
+                addColumnModule.columns.push({ name: 'Column ' + (addColumnModule.columns.length + 1), type: 'text' });
+                addColumnModule.rows.forEach(function (row) { row.cells.push(''); });
+                clearListValues(addColumnModule.id);
+                break;
+            }
+            case 'remove-list-column': {
+                var removeColumnModule = findModule(state.document.modules, action.id);
+                if (!removeColumnModule || removeColumnModule.columns.length <= 1 ||
+                    !Number.isInteger(action.index) || action.index < 0 ||
+                    action.index >= removeColumnModule.columns.length) break;
+                removeColumnModule.columns.splice(action.index, 1);
+                removeColumnModule.rows.forEach(function (row) { row.cells.splice(action.index, 1); });
+                clearListValues(removeColumnModule.id);
+                break;
+            }
+            case 'add-list-row': {
+                var addRowModule = findModule(state.document.modules, action.id);
+                if (addRowModule) {
+                    addRowModule.rows.push({ cells: addRowModule.columns.map(function () { return ''; }) });
+                    addRowModule.rowSpan = Math.max(addRowModule.rowSpan, addRowModule.rows.length + 2);
+                    clearListValues(addRowModule.id);
+                }
+                break;
+            }
+            case 'remove-list-row': {
+                var removeRowModule = findModule(state.document.modules, action.id);
+                if (removeRowModule && removeRowModule.rows.length > 1 &&
+                    Number.isInteger(action.index) && action.index >= 0 &&
+                    action.index < removeRowModule.rows.length) {
+                    removeRowModule.rows.splice(action.index, 1);
+                    clearListValues(removeRowModule.id);
+                }
+                break;
+            }
+            case 'add-list-stat': {
+                var addStatModule = findModule(state.document.modules, action.id);
+                if (addStatModule) {
+                    addStatModule.stats = addStatModule.stats || [];
+                    addStatModule.stats.push({
+                        name: 'Stat ' + (addStatModule.stats.length + 1), value: '', source: ''
+                    });
+                }
+                break;
+            }
+            case 'remove-list-stat': {
+                var removeStatModule = findModule(state.document.modules, action.id);
+                if (removeStatModule && Array.isArray(removeStatModule.stats) &&
+                    Number.isInteger(action.index) && action.index >= 0 &&
+                    action.index < removeStatModule.stats.length) {
+                    removeStatModule.stats.splice(action.index, 1);
+                }
+                break;
+            }
             case 'update-document-meta':
                 state.document[action.key] = action.value;
                 break;
@@ -731,7 +967,6 @@ if (studio) {
                 if (!handler) return;
                 handler(action);
         }
-
         if (edits || action.type === 'undo' || action.type === 'redo') {
             try {
                 autosave(state.document);
@@ -870,13 +1105,8 @@ if (studio) {
             Math.max(1, Math.min(6, Number(destination.owner.groupColumns) || 2)) :
             destination.owner ? 6 : layoutColumns(destination.element);
         var siblings = destination.owner ? destination.owner.children : state.document.modules;
-        var colSpan = Math.min(
-            drag.type === 'pages' ? columns : drag.type === 'group' ? Math.min(6, columns) :
-                drag.type === 'list' ? 8 : moduleSize.colSpan,
-            columns
-        );
-        var rowSpan = drag.type === 'pages' ? 8 :
-            drag.type === 'group' ? 5 : drag.type === 'list' ? 5 : moduleSize.rowSpan;
+        var colSpan = Math.min(drag.type === 'list' ? 8 : moduleSize.colSpan, columns);
+        var rowSpan = drag.type === 'list' ? 5 : moduleSize.rowSpan;
         var rect = destination.element.getBoundingClientRect();
         var rowStep = parseFloat(getComputedStyle(destination.element).gridAutoRows) || 64;
         var placement = nearestPlacement(siblings, { colSpan: colSpan, rowSpan: rowSpan }, columns, {
@@ -1002,107 +1232,73 @@ if (studio) {
         dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, rolls: rolls, total: total } });
     }
 
-    var clickHandlers = {
-        '[data-view-button]': function(target) {
-            setUi({ mode: target.dataset.viewButton, selectedId: null, selectedModuleIds: [], activeDrag: null });
+    // handle clicks here, including buttons added when the sheet is redrawn.
+    function handleClick(event) {
+        var target = event.target;
+        var developer = state.ui.mode === 'developer';
+        var view = target.closest('[data-view-button]');
+        if (view) {
+            setUi({ mode: view.dataset.viewButton, selectedId: null, selectedModuleIds: [], activeDrag: null });
+            developer = state.ui.mode === 'developer';
             studio.dataset.mode = state.ui.mode;
             studio.querySelectorAll('[data-view-button]').forEach(function (button) {
-                button.setAttribute('aria-selected', String(button === target));
+                button.setAttribute('aria-selected', String(button === view));
             });
-            var isDev = isDeveloper();
-            studio.querySelector('[data-workspace-title]').textContent = isDev ?
+            studio.querySelector('[data-workspace-title]').textContent = developer ?
                 'Developer canvas' : (state.document.name || 'Character sheet');
-            studio.querySelector('[data-workspace-help]').textContent = isDev ?
-                'Use Pages for tabs and Groups for compact field panels. Lists provide repeatable rows.' :
+            studio.querySelector('[data-workspace-help]').textContent = developer ?
+                'Snap modules into the grid. Drag modules into a group to keep related fields together.' :
                 'Enter values, toggle conditions, and roll dice to test the sheet.';
-        },
-        '[data-page-tab]': function(target) {
-            var activeGroupTabs = Object.assign({}, state.ui.activeGroupTabs);
-            activeGroupTabs[target.dataset.pageTab] = target.dataset.pageTabMember;
-            setUi({ activeGroupTabs: activeGroupTabs });
-            var selectedTab = document.getElementById(target.id);
-            if (selectedTab) selectedTab.focus();
-        },
-        '[data-add-page]': function(target) {
-            var pageType = Array.prototype.find.call(
-                studio.querySelectorAll('[data-pages-module-type]'),
-                function (select) { return select.dataset.pagesModuleType === target.dataset.addPage; }
-            );
-            if (pageType && pageType.value) {
-                dispatch({
-                    type: 'add-module',
-                    moduleType: pageType.value,
-                    parentId: target.dataset.addPage,
-                    keepSelection: true
-                });
+            return;
+        }
+        var total = 0;
+        var rolls = [];
+        for (var index = 0; index < terms.length; index += 1) {
+            var sign = terms[index][0] === '-' ? -1 : 1;
+            var term = terms[index].replace(/^[+-]/, '');
+            var dice = /^(\d*)d(\d+)$/i.exec(term);
+            if (!dice) {
+                var bonus = Number(term);
+                if (!Number.isSafeInteger(bonus) || bonus > 1000000) {
+                    dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, error: 'Dice modifier must be within 1,000,000.' } });
+                    return;
+                }
+                total += sign * bonus;
+                continue;
             }
-        },
-        '[data-add-group-field]': function(target) {
-            var fieldType = Array.prototype.find.call(
-                studio.querySelectorAll('[data-group-field-type]'),
-                function (select) { return select.dataset.groupFieldType === target.dataset.addGroupField; }
-            );
-            if (fieldType && fieldType.value) {
-                dispatch({
-                    type: 'add-module',
-                    moduleType: fieldType.value,
-                    parentId: target.dataset.addGroupField,
-                    keepSelection: true
-                });
+            var count = Number(dice[1] || 1);
+            var sides = Number(dice[2]);
+            if (count < 1 || count > 100 || sides < 2 || sides > 1000) {
+                dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, error: 'Dice must be 1-100 dice with 2-1000 sides.' } });
+                return;
             }
-        },
-        '[data-add-choice]': function(target) {
-            dispatch({ type: 'add-choice', id: target.dataset.addChoice });
-        },
-        '[data-remove-choice]': function(target) {
-            var choiceRow = target.closest('[data-choice-index]');
-            dispatch({
-                type: 'remove-choice',
-                id: choiceRow.dataset.moduleId,
-                index: Number(choiceRow.dataset.choiceIndex)
-            });
-        },
-        '[data-ungroup-module]': function(target) {
-            var selectedGroup = findModule(state.document.modules, state.ui.selectedId);
-            dispatch({
-                type: 'reparent-module',
-                id: target.dataset.ungroupModule,
-                parentId: null,
-                selectionId: selectedGroup && ['pages', 'group'].includes(selectedGroup.type) ? selectedGroup.id : null
-            });
-        },
-        '[data-add-modifier]': function(target) {
-            dispatch({ type: 'add-modifier', id: target.dataset.addModifier });
-        },
-        '[data-remove-modifier]': function(target) {
-            var row = target.closest('[data-modifier-index]');
-            dispatch({ type: 'remove-modifier', id: row.dataset.moduleId, index: Number(row.dataset.modifierIndex) });
-        },
-        '[data-toggle-list-edit]': function(target) {
+            var termRolls = Array.from({ length: count }, function () { return Math.floor(Math.random() * sides) + 1; });
+            rolls = rolls.concat(termRolls.map(function (roll) { return sign * roll; }));
+            total += sign * termRolls.reduce(function (sum, roll) { return sum + roll; }, 0);
+        }
+        var listEditToggle = target.closest('[data-toggle-list-edit]');
+        if (listEditToggle) {
+            var listId = listEditToggle.dataset.toggleListEdit;
             dispatch({
                 type: 'player',
                 key: 'listEditing',
-                id: target.dataset.toggleListEdit,
-                value: !state.player.listEditing[target.dataset.toggleListEdit]
+                id: listId,
+                value: !state.player.listEditing[listId]
             });
-        },
-        '[data-toggle-value-edit]': function(target) {
+            return;
+        }
+        var listAction = target.closest('[data-list-action]');
+        if (listAction) {
             dispatch({
-                type: 'player',
-                key: 'valueEditing',
-                id: target.dataset.toggleValueEdit,
-                value: !state.player.valueEditing[target.dataset.toggleValueEdit]
+                type: listAction.dataset.listAction,
+                id: listAction.dataset.moduleId,
+                index: Number(listAction.dataset.index)
             });
-        },
-        '[data-list-action]': function(target) {
-            dispatch({
-                type: target.dataset.listAction,
-                id: target.dataset.moduleId,
-                index: Number(target.dataset.index)
-            });
-        },
-        '[data-add-player-list-row]': function(target) {
-            var addRowModule = findModule(state.document.modules, target.dataset.addPlayerListRow);
+            return;
+        }
+        var addPlayerRow = target.closest('[data-add-player-list-row]');
+        if (addPlayerRow) {
+            var addRowModule = findModule(state.document.modules, addPlayerRow.dataset.addPlayerListRow);
             if (!addRowModule) return;
             dispatch({
                 type: 'player',
@@ -1112,113 +1308,63 @@ if (studio) {
                     cells: (addRowModule.columns || []).map(function () { return ''; })
                 }])
             });
-        },
-        '[data-roll-list-cell]': function(target) {
-            rollListCell(target.dataset.rollListCell, Number(target.dataset.row), Number(target.dataset.column));
-        },
-        '[data-roll-module]': function(target) {
-            var dice = findModule(state.document.modules, target.dataset.rollModule);
+            return;
+        }
+        var listRoll = target.closest('[data-roll-list-cell]');
+        if (listRoll) {
+            rollListCell(listRoll.dataset.rollListCell, Number(listRoll.dataset.row), Number(listRoll.dataset.column));
+            return;
+        }
+        var roll = target.closest('[data-roll-module]');
+        if (roll) {
+            var dice = findModule(state.document.modules, roll.dataset.rollModule);
             if (dice) rollDice(dice);
-        },
-        '[data-load-preset]': function(target) {
-            if (isDeveloper()) dispatch({ type: 'load-preset', modules: builtinPresets[target.dataset.loadPreset] });
-        },
-        '[data-saved-preset]': function(target) {
-            if (isDeveloper()) {
-                var saved = state.document.savedPresets[Number(target.dataset.savedPreset)];
-                if (saved) dispatch({ type: 'load-preset', modules: saved.modules });
-            }
-        },
-        '[data-save-preset]': function(target) {
-            if (isDeveloper() && state.ui.selectedModuleIds.length) {
-                var nameInput = studio.querySelector('#preset-name');
-                dispatch({ type: 'save-preset', name: nameInput.value.trim() });
-                nameInput.value = '';
-            }
-        },
-        '[data-module-tool]': function(target) {
-            if (isDeveloper() && !state.ui.suppressToolClick) {
-                dispatch({ type: 'add-module', moduleType: target.dataset.moduleTool });
-            }
-        },
-        '[data-remove-module]': function(target) {
-            if (isDeveloper()) dispatch({ type: 'remove-modules', ids: [target.dataset.removeModule] });
-        },
-        '[data-edit-module]': function(target) {
-            if (isDeveloper()) setUi({ selectedId: target.dataset.editModule, selectedModuleIds: [] });
+            return;
         }
-    };
+        if (!developer) return;
 
-    function handleClick(event) {
-        var target = event.target;
-        for (var selector in clickHandlers) {
-            var element = target.closest(selector);
-            if (element) {
-                clickHandlers[selector](element);
-                return;
-            }
+        var preset = target.closest('[data-load-preset]');
+        if (preset) return dispatch({ type: 'load-preset', modules: builtinPresets[preset.dataset.loadPreset] });
+        var savedPreset = target.closest('[data-saved-preset]');
+        if (savedPreset) {
+            var saved = state.document.savedPresets[Number(savedPreset.dataset.savedPreset)];
+            if (saved) dispatch({ type: 'load-preset', modules: saved.modules });
+            return;
         }
-    }
-
-    function dispatchPlayerOrDocumentChange(id, value, isPlaytestAction, actionType) {
-        if (isPlaytest()) {
-            dispatch({ type: 'player', key: isPlaytestAction, id: id, value: value, render: false });
-        } else {
-            var action = { id: id, value: value, render: false };
-            if (actionType === 'value') {
-                action.type = 'update-document-value';
-            } else if (actionType === 'setting') {
-                action.type = 'update-setting';
-                action.setting = isPlaytestAction;
-            }
-            dispatch(action);
+        if (target.closest('[data-save-preset]') && state.ui.selectedModuleIds.length) {
+            var nameInput = studio.querySelector('#preset-name');
+            dispatch({ type: 'save-preset', name: nameInput.value.trim() });
+            nameInput.value = '';
+            return;
         }
-    }
-
-    function handlePlayerEdit(key, id, value) {
-        dispatch({ type: 'player', key: key, id: id, value: value });
+        var tool = target.closest('[data-module-tool]');
+        if (tool) {
+            if (!state.ui.suppressToolClick) dispatch({ type: 'add-module', moduleType: tool.dataset.moduleTool });
+            return;
+        }
+        var remove = target.closest('[data-remove-module]');
+        if (remove) return dispatch({ type: 'remove-modules', ids: [remove.dataset.removeModule] });
+        var edit = target.closest('[data-edit-module]');
+        if (edit) setUi({ selectedId: edit.dataset.editModule, selectedModuleIds: [] });
     }
 
     // Keep Playtest edits out of the saved template.
     function handleInputs(event) {
         var target = event.target;
         var isSelect = target.tagName === 'SELECT';
-        var groupSizeSetting = target.dataset.setting;
-        var selectedGroup = !isPlaytest() && findModule(state.document.modules, state.ui.selectedId);
-        if (selectedGroup && selectedGroup.type === 'pages' &&
-            (groupSizeSetting === 'colSpan' || groupSizeSetting === 'rowSpan')) {
-            if (event.type !== 'change') return;
-            var size = Number(target.value);
-            if (!Number.isFinite(size)) return;
-            size = Math.round(Math.max(Number(target.min), Math.min(Number(target.max), size)));
-            dispatch({
-                type: 'update-setting',
-                id: selectedGroup.id,
-                setting: groupSizeSetting,
-                value: size
-            });
-            return;
-        }
         var listCell = target.closest('[data-list-cell]');
-        if (listCell && (event.type === 'input' || event.type === 'change')) {
+        if (listCell && event.type === 'input') {
             var listId = listCell.dataset.listCell;
             var rowIndex = Number(listCell.dataset.row);
             var columnIndex = Number(listCell.dataset.column);
-            var listModule = findModule(state.document.modules, listId);
-            var listColumn = listModule && listModule.columns[columnIndex];
-            var cellValue = listCell.type === 'checkbox' ? listCell.checked : listCell.value;
-            if (isPlaytest()) {
+            if (playtest) {
                 var cellKey = listId + ':' + rowIndex + ':' + columnIndex;
-                handlePlayerEdit('values', cellKey, cellValue);
+                dispatch({ type: 'player', key: 'values', id: cellKey, value: listCell.value, render: false });
             } else {
                 dispatch({
                     type: 'update-list-cell', id: listId, row: rowIndex,
-                    column: columnIndex, value: cellValue, render: false
+                    column: columnIndex, value: listCell.value, render: false
                 });
-            }
-            if (listColumn && listColumn.type === 'dice' && event.type === 'change') {
-                refresh();
-                return;
             }
             updateLiveValues(studio, state, api);
             return;
@@ -1251,27 +1397,14 @@ if (studio) {
         if (!((event.type === 'input' && !isSelect) || (event.type === 'change' && isSelect))) return;
         var columnSetting = target.dataset.listColumnSetting;
         var statSetting = target.dataset.listStatSetting;
-        if (target.dataset.listRowSource !== undefined && !isPlaytest()) {
-            dispatch({
-                type: 'update-list-row-source',
-                id: target.dataset.moduleId,
-                column: Number(target.dataset.column),
-                row: Number(target.dataset.listRowSource),
-                value: target.value
-            });
-            return;
-        }
-        if ((columnSetting || statSetting) && !isPlaytest()) {
-            var columnValue = columnSetting === 'options'
-                ? target.value.split(/\r?\n/).map(function (option) { return option.trim(); }).filter(Boolean)
-                : target.value;
+        if ((columnSetting || statSetting) && !playtest) {
             dispatch(columnSetting ? {
                 type: 'update-list-column',
                 id: target.dataset.moduleId,
                 index: Number(target.dataset.index),
                 setting: columnSetting,
-                value: columnValue,
-                render: columnSetting === 'type' || columnSetting === 'source' || columnSetting === 'options'
+                value: target.value,
+                render: columnSetting === 'type' || columnSetting === 'source'
             } : {
                 type: 'update-list-stat',
                 id: target.dataset.moduleId,
@@ -1444,7 +1577,6 @@ if (studio) {
         studio.addEventListener('input', handleInputs);
         studio.addEventListener('change', handleInputs);
         studio.addEventListener('focusout', handleFocusout);
-        studio.addEventListener('keydown', handleKeydown);
         if (playerSheet) return;
 
         studio.addEventListener('pointerdown', startPointer);
