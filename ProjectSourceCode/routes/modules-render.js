@@ -1,6 +1,8 @@
 // draws the sheet and settings, the main file gives it the sheet data and shared helpers.
 import { findModule, flatten, layoutColumns } from './modules-helper.js';
 
+var mathSymbols = { add: '+', subtract: '−', multiply: '×', divide: '÷', modulo: '%' };
+
 // make the fields and buttons used on the sheet.
 function field(labelText, control) {
     var label = document.createElement('label');
@@ -48,7 +50,7 @@ function listCellKey(moduleId, row, column) {
     return moduleId + ':' + row + ':' + column;
 }
 
-function createControl(module, doc, player, helpers, typeTable, mode) {
+function createControl(module, doc, player, helpers, typeTable, mode, ui) {
     var body = document.createElement('div');
     body.className = 'module-body';
     var kind = typeTable[module.type].control;
@@ -166,13 +168,98 @@ function createControl(module, doc, player, helpers, typeTable, mode) {
     }
 
     if (kind === 'group') {
-        // show group modules inside their own smaller canvas.
-        var groupCanvas = document.createElement('div');
-        groupCanvas.className = 'group-canvas';
-        groupCanvas.dataset.layoutCanvas = '';
-        groupCanvas.dataset.groupCanvas = module.id;
-        drawModules(groupCanvas, module.children || [], false, doc, player, helpers, typeTable, mode, null, null);
-        body.appendChild(groupCanvas);
+        var children = module.children || [];
+        if (mode === 'playtest') {
+            children = children.filter(function (child) { return !moduleHidden(child, typeTable); });
+        }
+        var activeId = ui && ui.activeGroupTabs && ui.activeGroupTabs[module.id];
+        var activeChild = children.find(function (child) { return child.id === activeId; }) || children[0];
+        var groupHeader = document.createElement('header');
+        groupHeader.className = 'group-header';
+        var groupTitle = document.createElement('strong');
+        groupTitle.dataset.moduleTitle = '';
+        groupTitle.textContent = module.name;
+        if (mode === 'playtest' && module.hideGroupName) groupTitle.hidden = true;
+        var tabs = document.createElement('div');
+        tabs.className = 'group-tabs';
+        tabs.setAttribute('role', 'tablist');
+        tabs.setAttribute('aria-label', module.name + ' items');
+        children.forEach(function (child) {
+            var tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = 'group-tab';
+            tab.dataset.groupTab = module.id;
+            tab.dataset.groupTabMember = child.id;
+            tab.id = 'group-tab-' + module.id + '-' + child.id;
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', String(activeChild === child));
+            tab.tabIndex = activeChild === child ? 0 : -1;
+            tab.setAttribute('aria-controls', 'group-panel-' + module.id);
+            tab.textContent = child.name;
+            tabs.appendChild(tab);
+        });
+        groupHeader.append(groupTitle, tabs);
+        if (mode === 'developer') {
+            var groupActions = document.createElement('div');
+            groupActions.className = 'group-editor-actions';
+            var groupMove = document.createElement('button');
+            groupMove.type = 'button';
+            groupMove.className = 'module-move-handle';
+            groupMove.dataset.moveModule = '';
+            groupMove.textContent = 'Move';
+            groupMove.setAttribute('aria-label', 'Move ' + module.name);
+            groupActions.appendChild(groupMove);
+            var groupSettings = document.createElement('button');
+            groupSettings.type = 'button';
+            groupSettings.className = 'module-edit';
+            groupSettings.dataset.editModule = module.id;
+            groupSettings.textContent = 'Settings';
+            groupActions.appendChild(groupSettings);
+            var groupRemove = document.createElement('button');
+            groupRemove.type = 'button';
+            groupRemove.className = 'module-remove';
+            groupRemove.dataset.removeModule = module.id;
+            groupRemove.textContent = 'Remove';
+            groupActions.appendChild(groupRemove);
+            groupHeader.appendChild(groupActions);
+        }
+        body.appendChild(groupHeader);
+
+        var panel = document.createElement('div');
+        panel.className = 'group-tab-panel';
+        panel.id = 'group-panel-' + module.id;
+        panel.dataset.groupDropzone = module.id;
+        panel.setAttribute('role', 'tabpanel');
+        panel.tabIndex = 0;
+        if (activeChild) {
+            panel.setAttribute('aria-labelledby', 'group-tab-' + module.id + '-' + activeChild.id);
+            if (mode === 'developer') {
+                var editChild = document.createElement('button');
+                editChild.type = 'button';
+                editChild.className = 'group-tab-edit';
+                editChild.dataset.editModule = activeChild.id;
+                editChild.textContent = 'Edit';
+                editChild.setAttribute('aria-label', 'Edit ' + activeChild.name);
+                panel.appendChild(editChild);
+            }
+            var content = createControl(activeChild, doc, player, helpers, typeTable, mode, ui);
+            content.classList.add('group-tab-content');
+            if (mode === 'developer') {
+                var childSummary = document.createElement('p');
+                childSummary.className = 'module-dev-summary';
+                childSummary.textContent = typeTable[activeChild.type].control === 'dice' ?
+                    'Roll output' : activeChild.source ? 'Linked input' : 'Player input';
+                panel.appendChild(childSummary);
+            }
+            panel.appendChild(content);
+        } else {
+            var emptyMessage = document.createElement('p');
+            emptyMessage.className = 'group-empty-state';
+            emptyMessage.textContent = mode === 'developer' ?
+                'Add a tab in Module settings, or drag a module here.' : 'No items in this group.';
+            panel.appendChild(emptyMessage);
+        }
+        body.appendChild(panel);
         return body;
     }
 
@@ -252,33 +339,38 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             card.style.gridRow = module.row + ' / span ' + (module.rowSpan + addedPlayerRows);
         }
 
-        var header = document.createElement('header');
-        header.className = 'sheet-module-header';
-        var move = document.createElement('button');
-        move.type = 'button';
-        move.className = 'module-move-handle';
-        move.dataset.moveModule = '';
-        move.textContent = 'Move';
-        move.setAttribute('aria-label', 'Move ' + module.name);
-        var title = document.createElement('strong');
-        title.dataset.moduleTitle = '';
-        title.textContent = module.name;
-        header.append(move, title);
-        if (mode === 'developer') {
-            var edit = document.createElement('button');
-            edit.type = 'button';
-            edit.className = 'module-edit';
-            edit.dataset.editModule = module.id;
-            edit.textContent = 'Edit';
-            header.appendChild(edit);
-            var remove = document.createElement('button');
-            remove.type = 'button';
-            remove.className = 'module-remove';
-            remove.dataset.removeModule = module.id;
-            remove.textContent = 'Remove';
-            header.appendChild(remove);
+        if (module.type !== 'group') {
+            var header = document.createElement('header');
+            header.className = 'sheet-module-header';
+            if (mode === 'developer') {
+                var move = document.createElement('button');
+                move.type = 'button';
+                move.className = 'module-move-handle';
+                move.dataset.moveModule = '';
+                move.textContent = 'Move';
+                move.setAttribute('aria-label', 'Move ' + module.name);
+                header.appendChild(move);
+            }
+            var title = document.createElement('strong');
+            title.dataset.moduleTitle = '';
+            title.textContent = module.name;
+            header.appendChild(title);
+            if (mode === 'developer') {
+                var edit = document.createElement('button');
+                edit.type = 'button';
+                edit.className = 'module-edit';
+                edit.dataset.editModule = module.id;
+                edit.textContent = 'Edit';
+                header.appendChild(edit);
+                var remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'module-remove';
+                remove.dataset.removeModule = module.id;
+                remove.textContent = 'Remove';
+                header.appendChild(remove);
+            }
+            card.appendChild(header);
         }
-        card.appendChild(header);
 
         if (mode === 'developer' && typeTable[module.type].control !== 'group') {
             var summary = document.createElement('p');
@@ -286,7 +378,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             summary.textContent = typeTable[module.type].control === 'dice' ? 'Roll output' : module.source ? 'Linked input' : 'Player input';
             card.appendChild(summary);
         }
-        card.appendChild(createControl(module, doc, player, helpers, typeTable, mode));
+        card.appendChild(createControl(module, doc, player, helpers, typeTable, mode, ui));
 
         if (mode === 'developer') {
             var resize = document.createElement('button');
@@ -305,11 +397,15 @@ export function updateLiveValues(studio, state, helpers) {
     var doc = state.document;
     var ui = state.ui;
     var player = state.player;
+    var modulesById = new Map();
+    flatten(doc.modules).forEach(function (module) {
+        if (!modulesById.has(module.id)) modulesById.set(module.id, module);
+    });
     // update linked values and results without redrawing the whole sheet.
     studio.querySelectorAll('[data-module-value]').forEach(function (input) {
         if (input !== document.activeElement) {
             var value = ui.mode === 'playtest' ? player.values[input.dataset.moduleValue] : undefined;
-            var module = findModule(doc.modules, input.dataset.moduleValue);
+            var module = modulesById.get(input.dataset.moduleValue);
             input.value = value !== undefined ? value : module && module.value || '';
         }
     });
@@ -320,7 +416,7 @@ export function updateLiveValues(studio, state, helpers) {
         output.textContent = 'Effective: ' + helpers.resolveValue(output.dataset.effectiveNumber);
     });
     studio.querySelectorAll('[data-list-cell]').forEach(function (input) {
-        var module = findModule(doc.modules, input.dataset.listCell);
+        var module = modulesById.get(input.dataset.listCell);
         if (!module || input === document.activeElement) return;
         var rowIndex = Number(input.dataset.row);
         var rows = ui.mode === 'playtest' ?
@@ -336,18 +432,18 @@ export function updateLiveValues(studio, state, helpers) {
             ', row ' + (Number(input.dataset.row) + 1));
     });
     studio.querySelectorAll('[data-list-column-header]').forEach(function (heading) {
-        var module = findModule(doc.modules, heading.dataset.moduleId);
+        var module = modulesById.get(heading.dataset.moduleId);
         var index = Number(heading.dataset.index);
         heading.textContent = module && module.columns[index] && module.columns[index].name ||
             'Column ' + (index + 1);
     });
     studio.querySelectorAll('[data-list-stat-name]').forEach(function (name) {
-        var module = findModule(doc.modules, name.dataset.moduleId);
+        var module = modulesById.get(name.dataset.moduleId);
         var index = Number(name.dataset.index);
         name.textContent = module && module.stats[index] && module.stats[index].name || 'Stat';
     });
     studio.querySelectorAll('[data-list-stat-value]').forEach(function (output) {
-        var module = findModule(doc.modules, output.dataset.moduleId);
+        var module = modulesById.get(output.dataset.moduleId);
         var index = Number(output.dataset.index);
         var stat = module && module.stats[index];
         var value = stat && (stat.source ? helpers.resolveValue(stat.source) : stat.value);
@@ -357,19 +453,19 @@ export function updateLiveValues(studio, state, helpers) {
         output.textContent = String(helpers.resolveValue(output.dataset.listColumnSource));
     });
     studio.querySelectorAll('[data-dice-formula]').forEach(function (formula) {
-        var module = findModule(doc.modules, formula.dataset.diceFormula);
+        var module = modulesById.get(formula.dataset.diceFormula);
         if (module) formula.textContent = helpers.diceFormula(module);
     });
     studio.querySelectorAll('[data-math-result]').forEach(function (output) {
-        var module = findModule(doc.modules, output.dataset.mathResult);
+        var module = modulesById.get(output.dataset.mathResult);
         if (!module) return;
         var result = helpers.calculateMath(module);
         if (!Number.isFinite(result.result)) {
             output.textContent = result.error || 'Invalid input';
             return;
         }
-        var symbols = { add: '+', subtract: '−', multiply: '×', divide: '÷', modulo: '%' };
-        output.textContent = result.left + ' ' + symbols[module.mathOperation] + ' ' + result.right + ' = ' + result.result;
+        output.textContent = result.left + ' ' + (mathSymbols[module.mathOperation] || '+') + ' ' +
+            result.right + ' = ' + result.result;
     });
 }
 
@@ -469,7 +565,7 @@ export function renderInspector(studio, state, helpers) {
         help.className = 'studio-muted';
         help.textContent = 'Change this value when a checkbox is on.';
         inspector.appendChild(help);
-        module.modifiers.forEach(function (modifier, index) {
+        (module.modifiers || []).forEach(function (modifier, index) {
             var row = document.createElement('div');
             row.className = 'module-modifier';
             row.dataset.modifierIndex = index;
@@ -538,8 +634,63 @@ export function renderInspector(studio, state, helpers) {
     if (config.inspector.includes('group')) {
         var hint = document.createElement('p');
         hint.className = 'studio-muted';
-        hint.textContent = 'Drop other modules inside this group to organize related fields.';
+        hint.textContent = 'Each tab holds one module. Set the shared tab area size here, or drag an existing module into it.';
         inspector.appendChild(hint);
+
+        var hideNameLabel = document.createElement('label');
+        hideNameLabel.className = 'inspector-field group-hide-name-field';
+        var hideName = document.createElement('input');
+        hideName.type = 'checkbox';
+        hideName.checked = Boolean(module.hideGroupName);
+        hideName.dataset.setting = 'hideGroupName';
+        hideNameLabel.append(hideName, document.createTextNode('Hide group name in Playtest'));
+        inspector.appendChild(hideNameLabel);
+
+        var tabsHeading = document.createElement('strong');
+        tabsHeading.textContent = 'Tabs';
+        inspector.appendChild(tabsHeading);
+        (module.children || []).forEach(function (child) {
+            var tabRow = document.createElement('div');
+            tabRow.className = 'group-setting-tab';
+            var tabName = document.createElement('span');
+            tabName.textContent = child.name;
+            var removeTab = document.createElement('button');
+            removeTab.type = 'button';
+            removeTab.className = 'list-setting-remove';
+            removeTab.dataset.ungroupModule = child.id;
+            removeTab.textContent = 'Remove tab';
+            tabRow.append(tabName, removeTab);
+            inspector.appendChild(tabRow);
+        });
+
+        settingInput('Tab width (columns)', 'colSpan', module.colSpan, 1, 12);
+        settingInput('Tab height (rows)', 'rowSpan', module.rowSpan, 1, 12);
+
+        var addTabRow = document.createElement('div');
+        addTabRow.className = 'group-add-tab';
+        var moduleType = document.createElement('select');
+        moduleType.setAttribute('aria-label', 'Module type for new tab');
+        moduleType.dataset.groupModuleType = module.id;
+        Object.keys(typeTable).filter(function (type) { return type !== 'group'; })
+            .forEach(function (type) {
+                var option = document.createElement('option');
+                option.value = type;
+                option.textContent = typeTable[type].name;
+                moduleType.appendChild(option);
+            });
+        var addTab = document.createElement('button');
+        addTab.type = 'button';
+        addTab.className = 'btn';
+        addTab.dataset.addGroupTab = module.id;
+        addTab.textContent = 'Add tab';
+        addTabRow.append(moduleType, addTab);
+        inspector.appendChild(addTabRow);
+
+        var dropzone = document.createElement('div');
+        dropzone.className = 'group-settings-dropzone';
+        dropzone.dataset.groupDropzone = module.id;
+        dropzone.textContent = 'Drop an existing module here to move it into this group.';
+        inspector.appendChild(dropzone);
     }
     if (config.inspector.includes('list')) {
         var listHelp = document.createElement('p');

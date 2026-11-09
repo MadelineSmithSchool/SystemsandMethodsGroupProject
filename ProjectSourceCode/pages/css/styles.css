@@ -1378,8 +1378,7 @@ option {
   font-size: 0.87rem;
 }
 
-.studio-canvas,
-.group-canvas {
+.studio-canvas {
   --layout-columns: 12;
   display: grid;
   grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
@@ -1411,13 +1410,176 @@ option {
   pointer-events: none;
 }
 
-.group-canvas {
-  --layout-columns: 6;
-  min-height: 3.2rem;
-  padding: 0.45rem;
-  border: 1px dashed var(--line-strong);
-  background-color: rgba(255, 255, 255, 0.03);
-  background-size: calc(100% / var(--layout-columns)) 3.5rem;
+.group-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0 0;
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.group-header > strong {
+  flex: 0 0 auto;
+  font-family: var(--font-head);
+  font-size: 0.88rem;
+}
+
+.group-tabs {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  gap: 0.15rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.group-tab {
+  flex: 0 0 auto;
+  min-height: 2rem;
+  padding: 0.3rem 0.65rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.group-tab:hover,
+.group-tab[aria-selected="true"] {
+  color: var(--text);
+}
+
+.group-tab[aria-selected="true"] {
+  border-bottom-color: var(--bronze-bright);
+  font-weight: 700;
+}
+
+.group-tab:focus-visible {
+  outline: 2px solid var(--bronze-bright);
+  outline-offset: -2px;
+}
+
+.group-tab-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-color: var(--bronze) transparent;
+  scrollbar-width: thin;
+}
+
+.sheet-studio[data-mode="developer"] .group-tab-panel {
+  padding-top: 2rem;
+}
+
+.group-tab-content {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.group-tab-edit {
+  position: absolute;
+  z-index: 1;
+  top: 0.25rem;
+  right: 0.25rem;
+  min-height: 1.65rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.group-tab-edit:hover {
+  background: var(--surface-raised);
+}
+
+.group-empty-state {
+  margin: 0;
+  padding: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.group-editor-actions {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.group-hide-name-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-hide-name-field input {
+  width: 1rem;
+  min-height: 1rem;
+}
+
+.group-setting-tab,
+.group-add-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-setting-tab {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.group-add-tab {
+  margin-top: 0.65rem;
+}
+
+.group-add-tab select {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-settings-dropzone {
+  margin-top: 0.65rem;
+  padding: 0.65rem;
+  border: 1px dashed var(--bronze-bright);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.sheet-module[data-module-type="group"] {
+  min-height: 7rem;
+  overflow: hidden;
+}
+
+.sheet-module[data-module-type="group"] > .module-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+.sheet-studio[data-mode="playtest"] .group-tab-edit {
+  display: none;
 }
 
 .canvas-empty-state {
@@ -1705,13 +1867,9 @@ option {
   opacity: 0.5;
 }
 
-.sheet-module[data-module-type="group"] > .module-body {
-  min-height: 0;
-  overflow: auto;
-}
-
 .module-resize-handle {
   position: absolute;
+  z-index: 2;
   right: 3px;
   bottom: 3px;
   width: 0.85rem;
