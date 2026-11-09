@@ -2,6 +2,7 @@
 
 ## Week of 11/30/2026
 - keep updated with what you work on in the past week (idk if we will have a meeting this week)
+- Maddie: made first version of color scheme, cleaning up nav bar and broken links, did first half of lab 10, fixed errors that I'm getting when trying to run localhost
 
 ## Week of 11/16/2026
 - keep updated with what you work on in the past week
