@@ -21,7 +21,7 @@ if (studio) {
     var rootCanvas = studio.querySelector('[data-root-canvas]');
     var numericSettings = [
         'value', 'count', 'sides', 'uncheckedValue', 'checkedValue', 'colSpan', 'rowSpan',
-        'keepHighest', 'leftValue', 'rightValue', 'groupColumns'
+        'keepHighest', 'leftValue', 'rightValue'
     ];
     var documentActions = [
         'add-module', 'remove-modules', 'update-setting', 'update-modifier',
@@ -34,7 +34,14 @@ if (studio) {
 
     var state = {
         document: { name: '', description: '', modules: [], savedPresets: [] },
-        ui: { mode: playerSheet ? 'playtest' : 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
+        ui: {
+            mode: playerSheet ? 'playtest' : 'developer',
+            selectedId: null,
+            selectedModuleIds: [],
+            activeGroupTabs: {},
+            activeDrag: null,
+            suppressToolClick: false
+        },
         player: { values: {}, checked: {}, rollResults: {}, listRows: {}, listEditing: {}, lastRoll: null },
         history: { undo: [], redo: [] },
         nextModuleId: 1
@@ -306,7 +313,9 @@ if (studio) {
 
         if (kind === 'number') {
             value = Number(value) || 0;
-            applyModifiers(module, value);
+            (module.modifiers || []).forEach(function (modifier) {
+                if (resolveValue(modifier.source, seen)) value += Number(modifier.amount || 0);
+            });
         }
 
         delete seen[id];
@@ -748,12 +757,17 @@ if (studio) {
                 break;
             case 'add-module': {
                 var parent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
-                if (action.parentId && !parent) break;
+                if ((action.parentId && (!parent || parent.type !== 'group')) ||
+                    (parent && action.moduleType === 'group')) break;
                 var siblings = parent ? parent.children : state.document.modules;
                 var added = Object.assign(makeModule(action.moduleType, String(state.nextModuleId), siblings), action.placement);
+                if (parent) {
+                    Object.assign(added, { col: 1, row: 1 });
+                }
                 state.nextModuleId += 1;
                 siblings.push(added);
-                choose(added.id);
+                if (parent) state.ui.activeGroupTabs[parent.id] = added.id;
+                choose(action.keepSelection && parent ? parent.id : added.id);
                 break;
             }
             case 'remove-modules': {
@@ -782,13 +796,34 @@ if (studio) {
             case 'update-setting': {
                 var target = findModule(state.document.modules, action.id);
                 if (!target) break;
-                target[action.setting] = numericSettings.includes(action.setting) ? Number(action.value) : action.value;
+                if (numericSettings.includes(action.setting)) {
+                    var settingValue = Number(action.value);
+                    if (action.setting === 'colSpan') {
+                        settingValue = Math.max(1, Math.min(layoutColumns(rootCanvas), Math.round(settingValue)));
+                    } else if (action.setting === 'rowSpan') {
+                        settingValue = Math.max(1, Math.min(12, Math.round(settingValue)));
+                    }
+                    target[action.setting] = settingValue;
+                } else {
+                    target[action.setting] = action.value;
+                }
                 if (linkSettings.includes(action.setting)) state.player.rollResults[target.id] = null;
+                if (target.type === 'group' && (action.setting === 'colSpan' || action.setting === 'rowSpan')) {
+                    var groupEntry = findModuleEntry(target.id);
+                    if (groupEntry) {
+                        Object.assign(target, nearestPlacement(
+                            groupEntry.list,
+                            target,
+                            layoutColumns(rootCanvas),
+                            target
+                        ));
+                    }
+                }
                 break;
             }
             case 'update-modifier': {
                 var modifierModule = findModule(state.document.modules, action.id);
-                if (modifierModule && modifierModule.modifiers[action.index]) {
+                if (modifierModule && modifierModule.modifiers && modifierModule.modifiers[action.index]) {
                     modifierModule.modifiers[action.index][action.setting] =
                         action.setting === 'amount' ? Number(action.value) : action.value;
                 }
@@ -798,13 +833,14 @@ if (studio) {
                 var numberModule = findModule(state.document.modules, action.id);
                 if (!numberModule) break;
                 var firstCheckbox = flatten(state.document.modules).find(function (item) { return item.type === 'checkbox'; });
+                numberModule.modifiers = numberModule.modifiers || [];
                 numberModule.modifiers.push({ source: firstCheckbox ? firstCheckbox.id : '', amount: -1 });
                 state.ui.selectedId = numberModule.id;
                 break;
             }
             case 'remove-modifier': {
                 var owner = findModule(state.document.modules, action.id);
-                if (owner) owner.modifiers.splice(action.index, 1);
+                if (owner && owner.modifiers) owner.modifiers.splice(action.index, 1);
                 break;
             }
             case 'load-preset': {
@@ -838,14 +874,27 @@ if (studio) {
             case 'reparent-module': {
                 var movingEntry = findModuleEntry(action.id);
                 var newParent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
-                if (!movingEntry || (action.parentId && !newParent)) break;
+                if (!movingEntry || (action.parentId && !newParent) ||
+                    (newParent && (movingEntry.module.type === 'group' || newParent.type !== 'group'))) break;
                 var targetList = newParent ? newParent.children : state.document.modules;
                 var columns = newParent ? 6 : layoutColumns(rootCanvas);
+                var previousParent = movingEntry.parent;
                 movingEntry.list.splice(movingEntry.index, 1);
+                if (previousParent && previousParent.type === 'group' &&
+                    state.ui.activeGroupTabs[previousParent.id] === movingEntry.module.id) {
+                    state.ui.activeGroupTabs[previousParent.id] =
+                        previousParent.children[0] && previousParent.children[0].id;
+                }
                 movingEntry.module.colSpan = Math.min(movingEntry.module.colSpan, newParent ? columns :
                     movingEntry.module.type === 'list' ? 8 : moduleSize.colSpan);
-                Object.assign(movingEntry.module, nearestPlacement(targetList, movingEntry.module, columns, { col: 1, row: 1 }));
+                if (newParent) {
+                    Object.assign(movingEntry.module, { col: 1, row: 1 });
+                } else {
+                    Object.assign(movingEntry.module, nearestPlacement(targetList, movingEntry.module, columns, { col: 1, row: 1 }));
+                }
                 targetList.push(movingEntry.module);
+                if (newParent) state.ui.activeGroupTabs[newParent.id] = movingEntry.module.id;
+                if (action.selectionId) state.ui.selectedId = action.selectionId;
                 break;
             }
             case 'update-document-value': {
@@ -967,6 +1016,7 @@ if (studio) {
                 if (!handler) return;
                 handler(action);
         }
+
         if (edits || action.type === 'undo' || action.type === 'redo') {
             try {
                 autosave(state.document);
@@ -985,13 +1035,9 @@ if (studio) {
     // turn clicks, typing, and dragging into sheet actions.
     function canvasForPoint(x, y) {
         var target = document.elementFromPoint(x, y);
-        var groupDropzone = target && target.closest('[data-group-dropzone]');
-        if (groupDropzone) {
-            return { element: groupDropzone, owner: findModule(state.document.modules, groupDropzone.dataset.groupDropzone) };
-        }
-        var pagesDropzone = target && target.closest('[data-pages-dropzone]');
-        if (pagesDropzone) {
-            return { element: pagesDropzone, owner: findModule(state.document.modules, pagesDropzone.dataset.pagesDropzone) };
+        var groupCanvas = target && target.closest('[data-group-canvas]');
+        if (groupCanvas) {
+            return { element: groupCanvas, owner: findModule(state.document.modules, groupCanvas.dataset.groupCanvas) };
         }
         return target && rootCanvas.contains(target) ? { element: rootCanvas, owner: null } : null;
     }
@@ -1100,10 +1146,7 @@ if (studio) {
         window.setTimeout(function () { setUi({ suppressToolClick: false }, false); }, 50);
         var destination = canvasForPoint(event.clientX, event.clientY);
         if (!destination) return;
-        if (destination.owner && drag.type === 'pages') return;
-        var columns = destination.owner && destination.owner.type === 'group' ?
-            Math.max(1, Math.min(6, Number(destination.owner.groupColumns) || 2)) :
-            destination.owner ? 6 : layoutColumns(destination.element);
+        var columns = layoutColumns(destination.element);
         var siblings = destination.owner ? destination.owner.children : state.document.modules;
         var colSpan = Math.min(drag.type === 'list' ? 8 : moduleSize.colSpan, columns);
         var rowSpan = drag.type === 'list' ? 5 : moduleSize.rowSpan;
@@ -1123,6 +1166,7 @@ if (studio) {
     }
 
     function dropModule(drag, event) {
+        var drop = canvasForPoint(event.clientX, event.clientY);
         var entry = findModuleEntry(drag.id);
         if (drag.resize) {
             dispatch({ type: 'move-module', id: drag.id, placement: drag.placement });
@@ -1133,11 +1177,6 @@ if (studio) {
         // keep the module where it is if it is dropped outside a canvas or on itself.
         var owner = drop ? drop.owner : entry.parent;
         if (owner && owner.id === drag.id) owner = entry.parent;
-        if ((entry.module.type === 'pages' || owner && owner.type === 'group' &&
-            ['pages', 'group'].includes(entry.module.type)) && owner) {
-            refresh();
-            return;
-        }
         if (owner && containsModule(entry.module, owner.id)) {
             refresh();
             return;
@@ -1247,34 +1286,16 @@ if (studio) {
             studio.querySelector('[data-workspace-title]').textContent = developer ?
                 'Developer canvas' : (state.document.name || 'Character sheet');
             studio.querySelector('[data-workspace-help]').textContent = developer ?
-                'Snap modules into the grid. Drag modules into a group to keep related fields together.' :
+                'Use a group as a tabbed header. Add modules from its settings or drag modules into its content area.' :
                 'Enter values, toggle conditions, and roll dice to test the sheet.';
             return;
         }
-        var total = 0;
-        var rolls = [];
-        for (var index = 0; index < terms.length; index += 1) {
-            var sign = terms[index][0] === '-' ? -1 : 1;
-            var term = terms[index].replace(/^[+-]/, '');
-            var dice = /^(\d*)d(\d+)$/i.exec(term);
-            if (!dice) {
-                var bonus = Number(term);
-                if (!Number.isSafeInteger(bonus) || bonus > 1000000) {
-                    dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, error: 'Dice modifier must be within 1,000,000.' } });
-                    return;
-                }
-                total += sign * bonus;
-                continue;
-            }
-            var count = Number(dice[1] || 1);
-            var sides = Number(dice[2]);
-            if (count < 1 || count > 100 || sides < 2 || sides > 1000) {
-                dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, error: 'Dice must be 1-100 dice with 2-1000 sides.' } });
-                return;
-            }
-            var termRolls = Array.from({ length: count }, function () { return Math.floor(Math.random() * sides) + 1; });
-            rolls = rolls.concat(termRolls.map(function (roll) { return sign * roll; }));
-            total += sign * termRolls.reduce(function (sum, roll) { return sum + roll; }, 0);
+        var addModifier = target.closest('[data-add-modifier]');
+        if (addModifier) return dispatch({ type: 'add-modifier', id: addModifier.dataset.addModifier });
+        var removeModifier = target.closest('[data-remove-modifier]');
+        if (removeModifier) {
+            var row = removeModifier.closest('[data-modifier-index]');
+            return dispatch({ type: 'remove-modifier', id: row.dataset.moduleId, index: Number(row.dataset.modifierIndex) });
         }
         var listEditToggle = target.closest('[data-toggle-list-edit]');
         if (listEditToggle) {
@@ -1352,6 +1373,22 @@ if (studio) {
     function handleInputs(event) {
         var target = event.target;
         var isSelect = target.tagName === 'SELECT';
+        var groupSizeSetting = target.dataset.setting;
+        var selectedGroup = !playtest && findModule(state.document.modules, state.ui.selectedId);
+        if (selectedGroup && selectedGroup.type === 'group' &&
+            (groupSizeSetting === 'colSpan' || groupSizeSetting === 'rowSpan')) {
+            if (event.type !== 'change') return;
+            var size = Number(target.value);
+            if (!Number.isFinite(size)) return;
+            size = Math.round(Math.max(Number(target.min), Math.min(Number(target.max), size)));
+            dispatch({
+                type: 'update-setting',
+                id: selectedGroup.id,
+                setting: groupSizeSetting,
+                value: size
+            });
+            return;
+        }
         var listCell = target.closest('[data-list-cell]');
         if (listCell && event.type === 'input') {
             var listId = listCell.dataset.listCell;
@@ -1382,18 +1419,7 @@ if (studio) {
             dispatchPlayerOrDocumentChange(checkId, checkbox.checked, 'checked', 'setting');
             return;
         }
-        if (event.type === 'change' && target.type === 'checkbox' && target.dataset.setting && !isPlaytest()) {
-            var selectedForCheckboxSetting = findModule(state.document.modules, state.ui.selectedId);
-            if (selectedForCheckboxSetting) {
-                dispatch({
-                    type: 'update-setting',
-                    id: selectedForCheckboxSetting.id,
-                    setting: target.dataset.setting,
-                    value: target.checked
-                });
-            }
-            return;
-        }
+        // update text fields while typing and dropdowns when a choice is made.
         if (!((event.type === 'input' && !isSelect) || (event.type === 'change' && isSelect))) return;
         var columnSetting = target.dataset.listColumnSetting;
         var statSetting = target.dataset.listStatSetting;
@@ -1535,20 +1561,6 @@ if (studio) {
     }
 
     function handleKeydown(event) {
-        var groupTab = event.target.closest('[data-page-tab]');
-        if (groupTab) {
-            var tabs = Array.prototype.slice.call(groupTab.parentElement.querySelectorAll('[data-page-tab]'));
-            var index = tabs.indexOf(groupTab);
-            var nextIndex = event.key === 'ArrowRight' ? (index + 1) % tabs.length :
-                event.key === 'ArrowLeft' ? (index - 1 + tabs.length) % tabs.length :
-                    event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : index;
-            if (nextIndex !== index) {
-                event.preventDefault();
-                tabs[nextIndex].click();
-            }
-            return;
-        }
-        if (state.ui.mode !== 'developer') return;
         var editing = event.target.closest('input, textarea, select, [contenteditable="true"]');
         if (editing) return;
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
@@ -1577,6 +1589,7 @@ if (studio) {
         studio.addEventListener('input', handleInputs);
         studio.addEventListener('change', handleInputs);
         studio.addEventListener('focusout', handleFocusout);
+        studio.addEventListener('keydown', handleKeydown);
         if (playerSheet) return;
 
         studio.addEventListener('pointerdown', startPointer);
