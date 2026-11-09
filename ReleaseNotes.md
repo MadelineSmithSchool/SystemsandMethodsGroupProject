@@ -14,6 +14,7 @@
 - created good looking error page instead of blank html
 - Changed styling and fixed style.css bugs
 - Made first version of color scheme, cleaning up nav bar and broken links, did first half of lab 10, fixed errors when trying to run localhost
+- Set up skeletons and querys for charcters, library pages
 
 ## Week of 11/2/2026
 - set up register and sign in pages
