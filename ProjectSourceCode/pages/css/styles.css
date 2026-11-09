@@ -394,11 +394,13 @@ option {
 .form h2 {
   margin: 0 0 1.25rem;
   font-size: 1.9rem;
+  color:white;
 }
 
 .form label {
   display: block;
   margin-bottom: 0.35rem;
+  color:white;
 }
 
 .form input:not([type="submit"]):not([type="checkbox"]):not([type="radio"]) {
@@ -418,7 +420,7 @@ option {
 
 .form p {
   margin: 1.25rem 0 0;
-  color: var(--muted);
+  color:white;
 }
 
 .form-error,
