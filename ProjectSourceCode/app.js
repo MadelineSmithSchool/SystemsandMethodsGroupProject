@@ -96,11 +96,42 @@ app.get('/dashboard', auth, (req, res) => {
 app.get('/tutorial', auth, (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard Tutorial' , login: true});
 });
-app.get('/library', auth, (req, res) => {
-  res.render('pages/library', { title: 'Template' , login: true });
+app.get('/library', auth, async (req, res) => {
+  try {
+    const templates = await db.any(
+      `SELECT t.template_id, t.template_name, t.template_desc, t.created_at,
+              u.username AS creator
+       FROM templates t
+       LEFT JOIN users u ON u.user_id = t.user_id
+       WHERE t.privacy_level = 1
+       ORDER BY t.created_at DESC`
+    );
+    res.render('pages/library', { title: 'Template', login: true, templates });
+  } catch (err) {
+    console.error('Library query failed:', err);
+    res.status(500).render('pages/library', {
+      title: 'Template', login: true, templates: [], error: 'Could not load the library.'
+    });
+  }
 });
-app.get('/characters', auth, (req, res) => {
-  res.render('pages/characters', { title: 'My Characters' , login: true });
+app.get('/characters', auth, async (req, res) => {
+  try {
+    const characters = await db.any(
+      `SELECT c.character_id, c.character_name, c.privacy_level, c.created_at,
+              t.template_name
+       FROM characters c
+       LEFT JOIN templates t ON t.template_id = c.template_id
+       WHERE c.user_id = $1
+       ORDER BY c.created_at DESC`,
+      [req.session.user.id]
+    );
+    res.render('pages/characters', { title: 'My Characters', login: true, characters });
+  } catch (err) {
+    console.error('Characters query failed:', err);
+    res.status(500).render('pages/characters', {
+      title: 'My Characters', login: true, characters: [], error: 'Could not load your characters.'
+    });
+  }
 });
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
