@@ -66,6 +66,17 @@ app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
 // db connection lives in src/db.js so the tests use the same one
 const { db } = require('./src/db');
 
+// alert bar from the admin page, shows at the top of every page
+app.use(async (req, res, next) => {
+  try {
+    const alert = await db.oneOrNone('SELECT message FROM site_alerts ORDER BY created_at DESC LIMIT 1');
+    res.locals.siteAlert = alert && alert.message;
+  } catch (err) {
+    console.error('Could not load the site alert:', err);
+  }
+  next();
+});
+
 //ROUTES//
 
 //TODO:

@@ -82,6 +82,27 @@ module.exports = (db) => {
     }
   });
 
+  // alert bar on every page (newest one shows)
+  router.post('/alert', async (req, res, next) => {
+    const message = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+    if (!message || message.length > 255) return res.status(400).send('Alert has to be 1-255 characters.');
+    try {
+      await db.none('INSERT INTO site_alerts (message) VALUES ($1)', [message]);
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/alert/clear', async (req, res, next) => {
+    try {
+      await db.none('DELETE FROM site_alerts');
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // turns off a template's share link
   router.post('/templates/:id/unshare', async (req, res, next) => {
     try {

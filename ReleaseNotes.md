@@ -5,6 +5,7 @@
 
 ## Week of 11/16/2026
 - keep updated with what you work on in the past week
+- admin can send an alert bar from /manage that shows at the top of every page
 
 ## Week of 11/9/2026
 - keep updated with what you work on in the past week

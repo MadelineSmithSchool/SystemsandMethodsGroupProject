@@ -4,6 +4,17 @@
     {{#if userSearch}}<p class="text-muted">Users matching "{{userSearch}}" <a href="/manage">(clear)</a></p>{{/if}}
     {{#if templateSearch}}<p class="text-muted">Templates matching "{{templateSearch}}" <a href="/manage">(clear)</a></p>{{/if}}
 
+    <h4 class="mt-4">Alert bar</h4>
+    <form class="d-flex gap-2 mb-2" action="/manage/alert" method="POST">
+        <input class="form-control" type="text" name="message" maxlength="255" placeholder="Message everyone sees at the top of the page" required>
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+    {{#if siteAlert}}
+        <form action="/manage/alert/clear" method="POST">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Clear alert</button>
+        </form>
+    {{/if}}
+
     <h4 class="mt-4">Users</h4>
     <table class="table table-sm align-middle">
         <thead>

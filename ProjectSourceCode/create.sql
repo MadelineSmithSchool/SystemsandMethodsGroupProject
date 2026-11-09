@@ -78,3 +78,12 @@ CREATE TABLE IF NOT EXISTS player_library (
 -- this is so that you can easily query how many times a template has been added to a user's library
 CREATE INDEX IF NOT EXISTS player_library_template_user_idx
     ON player_library (template_id, user_id);
+
+-- alert bar admins can post from /manage, the newest one shows on every page
+CREATE TABLE IF NOT EXISTS site_alerts (
+    alert_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    message VARCHAR(255) NOT NULL,
+
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
