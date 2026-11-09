@@ -1,4 +1,4 @@
-// lists module types and starter presets, the main file uses these to add modules to the sheet.
+// Define module types and built-in presets.
 import { clone, flatten, linkSettings } from './modules-helper.js';
 
 export var moduleSize = { colSpan: 4, rowSpan: 3 };
@@ -45,6 +45,23 @@ export var moduleTypes = {
     group: {
         name: 'Group', control: 'group', valueKind: 'group',
         inspector: ['group'], defaults: withBase()
+    },
+    list: {
+        name: 'List', control: 'list', valueKind: 'list',
+        inspector: ['list'],
+        defaults: withBase({
+            columns: [
+                { name: 'Name', type: 'text', source: '' },
+                { name: 'Quantity', type: 'number', source: '' },
+                { name: 'Notes', type: 'text', source: '' }
+            ],
+            rows: [
+                { cells: ['', '', ''] },
+                { cells: ['', '', ''] },
+                { cells: ['', '', ''] }
+            ],
+            stats: []
+        })
     }
 };
 
@@ -83,6 +100,12 @@ export function clonePresetModules(presetModules, firstId) {
     var copies = clone(presetModules);
     var idMap = {};
     var next = firstId;
+    function remapListSource(source) {
+        if (!source) return '';
+        var lengthSuffix = /\.length$/.test(source) ? '.length' : '';
+        var sourceId = lengthSuffix ? source.slice(0, -lengthSuffix.length) : source;
+        return (idMap[sourceId] || '') + (idMap[sourceId] ? lengthSuffix : '');
+    }
     flatten(copies).forEach(function (module) {
         Object.assign(module, Object.assign(clone(moduleTypes[module.type].defaults), module));
         idMap[module.id] = String(next);
@@ -91,7 +114,13 @@ export function clonePresetModules(presetModules, firstId) {
     });
     flatten(copies).forEach(function (module) {
         linkSettings.forEach(function (setting) {
-            if (module[setting]) module[setting] = idMap[module[setting]] || '';
+            if (module[setting]) module[setting] = remapListSource(module[setting]);
+        });
+        (module.columns || []).forEach(function (column) {
+            column.source = remapListSource(column.source);
+        });
+        (module.stats || []).forEach(function (stat) {
+            stat.source = remapListSource(stat.source);
         });
         module.modifiers = module.modifiers
             .filter(function (item) { return idMap[item.source]; })

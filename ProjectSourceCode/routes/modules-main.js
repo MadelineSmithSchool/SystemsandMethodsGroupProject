@@ -24,14 +24,17 @@ if (studio) {
     var documentActions = [
         'add-module', 'remove-modules', 'update-setting', 'update-modifier',
         'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module',
-        'reparent-module', 'update-document-value', 'update-document-meta', 'restore-document'
+        'reparent-module', 'update-document-value', 'update-list-cell', 'update-list-column',
+        'update-list-stat', 'add-list-column', 'remove-list-column', 'add-list-row',
+        'remove-list-row', 'add-list-stat', 'remove-list-stat',
+        'update-document-meta', 'restore-document'
     ];
 
     // keep the sheet, editor choices, and playtest values separate.
     var state = {
         document: { name: '', description: '', modules: [], savedPresets: [] },
         ui: { mode: playerSheet ? 'playtest' : 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
-        player: { values: {}, checked: {}, rollResults: {} },
+        player: { values: {}, checked: {}, rollResults: {}, listRows: {}, listEditing: {}, lastRoll: null },
         history: { undo: [], redo: [] },
         nextModuleId: 1
     };
@@ -47,12 +50,55 @@ if (studio) {
         return null;
     }
 
+    function clearListValues(id) {
+        Object.keys(state.player.values).forEach(function (key) {
+            if (key.indexOf(id + ':') === 0) delete state.player.values[key];
+        });
+        delete state.player.listRows[id];
+    }
+
+    function listRows(module) {
+        var rows = module.rows || [];
+        return state.ui.mode === 'playtest' ?
+            rows.concat(state.player.listRows[module.id] || []) : rows;
+    }
+
+    function listCellValue(module, rowIndex, columnIndex) {
+        var row = listRows(module)[rowIndex];
+        var key = module.id + ':' + rowIndex + ':' + columnIndex;
+        if (state.ui.mode === 'playtest' && state.player.values[key] !== undefined) {
+            return state.player.values[key];
+        }
+        return row && row.cells && row.cells[columnIndex] != null ? row.cells[columnIndex] : '';
+    }
+
+    // Blank rows do not count as entries.
+    function listLength(module) {
+        var rows = listRows(module);
+        var columns = module.columns || [];
+        return rows.filter(function (row, rowIndex) {
+            return columns.some(function (column, columnIndex) {
+                if (column.source) return false;
+                var key = module.id + ':' + rowIndex + ':' + columnIndex;
+                var value = state.ui.mode === 'playtest' && state.player.values[key] !== undefined ?
+                    state.player.values[key] : row && row.cells && row.cells[columnIndex];
+                return value != null && String(value).trim() !== '';
+            });
+        }).length;
+    }
+
+    function referencedModuleId(source) {
+        return String(source || '').replace(/\.length$/, '');
+    }
+
     function makeModule(type, id, siblings) {
         var columns = siblings === state.document.modules ? 12 : 6;
+        var colSpan = Math.min(type === 'list' ? 8 : moduleSize.colSpan, columns);
+        var rowSpan = type === 'list' ? 5 : moduleSize.rowSpan;
         var preferred = { col: 1 + (siblings.length % 3) * 4, row: 1 + Math.floor(siblings.length / 3) * 3 };
         return Object.assign(
             { id: id, type: type, name: moduleTypes[type].name },
-            findOpenPlacement(siblings, columns, moduleSize.colSpan, moduleSize.rowSpan, preferred),
+            findOpenPlacement(siblings, columns, colSpan, rowSpan, preferred),
             clone(moduleTypes[type].defaults)
         );
     }
@@ -114,15 +160,27 @@ if (studio) {
     };
 
     function resolveValue(id, seen) {
-        var module = findModule(state.document.modules, id);
         seen = seen || {};
+        var lengthReference = /\.length$/.test(String(id));
+        if (lengthReference) {
+            var listId = String(id).slice(0, -7);
+            var list = findModule(state.document.modules, listId);
+            if (!list || list.type !== 'list' || seen[listId]) return '';
+            seen[listId] = true;
+            var length = listLength(list);
+            delete seen[listId];
+            return length;
+        }
+        var module = findModule(state.document.modules, id);
         if (!module || module.type === 'group' || seen[id]) return '';
         seen[id] = true;
         var playtest = state.ui.mode === 'playtest';
         var typed = playtest ? state.player.values[id] : undefined;
         var kind = moduleTypes[module.type].valueKind;
         var value;
-        if (kind === 'dice') {
+        if (module.type === 'list') {
+            value = listLength(module);
+        } else if (kind === 'dice') {
             var roll = playtest ? state.player.rollResults[id] : null;
             value = roll ? roll.total : 0;
         } else if (kind === 'math') {
@@ -225,6 +283,9 @@ if (studio) {
             case 'player':
                 state.player[action.key][action.id] = action.value;
                 break;
+            case 'roll-result':
+                state.player.lastRoll = action.value;
+                break;
             case 'add-module': {
                 var parent = action.parentId ? findModule(state.document.modules, action.parentId) : null;
                 if (action.parentId && !parent) break;
@@ -245,9 +306,15 @@ if (studio) {
                 });
                 flatten(state.document.modules).forEach(function (module) {
                     linkSettings.forEach(function (setting) {
-                        if (removed[module[setting]]) module[setting] = '';
+                        if (removed[referencedModuleId(module[setting])]) module[setting] = '';
                     });
                     module.modifiers = (module.modifiers || []).filter(function (item) { return !removed[item.source]; });
+                    (module.stats || []).forEach(function (stat) {
+                        if (removed[referencedModuleId(stat.source)]) stat.source = '';
+                    });
+                    (module.columns || []).forEach(function (column) {
+                        if (removed[referencedModuleId(column.source)]) column.source = '';
+                    });
                 });
                 choose(null);
                 break;
@@ -315,7 +382,8 @@ if (studio) {
                 var targetList = newParent ? newParent.children : state.document.modules;
                 var columns = newParent ? 6 : layoutColumns(rootCanvas);
                 movingEntry.list.splice(movingEntry.index, 1);
-                movingEntry.module.colSpan = Math.min(movingEntry.module.colSpan, newParent ? columns : moduleSize.colSpan);
+                movingEntry.module.colSpan = Math.min(movingEntry.module.colSpan, newParent ? columns :
+                    movingEntry.module.type === 'list' ? 8 : moduleSize.colSpan);
                 Object.assign(movingEntry.module, nearestPlacement(targetList, movingEntry.module, columns, { col: 1, row: 1 }));
                 targetList.push(movingEntry.module);
                 break;
@@ -323,6 +391,83 @@ if (studio) {
             case 'update-document-value': {
                 var documentModule = findModule(state.document.modules, action.id);
                 if (documentModule) documentModule.value = action.value;
+                break;
+            }
+            case 'update-list-cell': {
+                var listModule = findModule(state.document.modules, action.id);
+                if (listModule && listModule.rows[action.row] && listModule.rows[action.row].cells) {
+                    listModule.rows[action.row].cells[action.column] = action.value;
+                }
+                break;
+            }
+            case 'update-list-column': {
+                var columnModule = findModule(state.document.modules, action.id);
+                if (columnModule && columnModule.columns[action.index]) {
+                    columnModule.columns[action.index][action.setting] = action.value;
+                }
+                break;
+            }
+            case 'update-list-stat': {
+                var statModule = findModule(state.document.modules, action.id);
+                if (statModule && statModule.stats[action.index]) {
+                    statModule.stats[action.index][action.setting] = action.value;
+                }
+                break;
+            }
+            case 'add-list-column': {
+                var addColumnModule = findModule(state.document.modules, action.id);
+                if (!addColumnModule) break;
+                addColumnModule.columns.push({ name: 'Column ' + (addColumnModule.columns.length + 1), type: 'text' });
+                addColumnModule.rows.forEach(function (row) { row.cells.push(''); });
+                clearListValues(addColumnModule.id);
+                break;
+            }
+            case 'remove-list-column': {
+                var removeColumnModule = findModule(state.document.modules, action.id);
+                if (!removeColumnModule || removeColumnModule.columns.length <= 1 ||
+                    !Number.isInteger(action.index) || action.index < 0 ||
+                    action.index >= removeColumnModule.columns.length) break;
+                removeColumnModule.columns.splice(action.index, 1);
+                removeColumnModule.rows.forEach(function (row) { row.cells.splice(action.index, 1); });
+                clearListValues(removeColumnModule.id);
+                break;
+            }
+            case 'add-list-row': {
+                var addRowModule = findModule(state.document.modules, action.id);
+                if (addRowModule) {
+                    addRowModule.rows.push({ cells: addRowModule.columns.map(function () { return ''; }) });
+                    addRowModule.rowSpan = Math.max(addRowModule.rowSpan, addRowModule.rows.length + 2);
+                    clearListValues(addRowModule.id);
+                }
+                break;
+            }
+            case 'remove-list-row': {
+                var removeRowModule = findModule(state.document.modules, action.id);
+                if (removeRowModule && removeRowModule.rows.length > 1 &&
+                    Number.isInteger(action.index) && action.index >= 0 &&
+                    action.index < removeRowModule.rows.length) {
+                    removeRowModule.rows.splice(action.index, 1);
+                    clearListValues(removeRowModule.id);
+                }
+                break;
+            }
+            case 'add-list-stat': {
+                var addStatModule = findModule(state.document.modules, action.id);
+                if (addStatModule) {
+                    addStatModule.stats = addStatModule.stats || [];
+                    addStatModule.stats.push({
+                        name: 'Stat ' + (addStatModule.stats.length + 1), value: '', source: ''
+                    });
+                }
+                break;
+            }
+            case 'remove-list-stat': {
+                var removeStatModule = findModule(state.document.modules, action.id);
+                if (removeStatModule && Array.isArray(removeStatModule.stats) &&
+                    Number.isInteger(action.index) && action.index >= 0 &&
+                    action.index < removeStatModule.stats.length) {
+                    removeStatModule.stats.splice(action.index, 1);
+                }
                 break;
             }
             case 'update-document-meta':
@@ -349,7 +494,6 @@ if (studio) {
             default:
                 return;
         }
-
         if (edits || action.type === 'undo' || action.type === 'redo') {
             try {
                 autosave(state.document);
@@ -481,10 +625,12 @@ if (studio) {
         if (!destination) return;
         var columns = layoutColumns(destination.element);
         var siblings = destination.owner ? destination.owner.children : state.document.modules;
+        var colSpan = Math.min(drag.type === 'list' ? 8 : moduleSize.colSpan, columns);
+        var rowSpan = drag.type === 'list' ? 5 : moduleSize.rowSpan;
         var rect = destination.element.getBoundingClientRect();
         var rowStep = parseFloat(getComputedStyle(destination.element).gridAutoRows) || 64;
-        var placement = nearestPlacement(siblings, moduleSize, columns, {
-            col: Math.max(1, Math.min(columns - moduleSize.colSpan + 1, Math.floor((event.clientX - rect.left) / (rect.width / columns)) + 1)),
+        var placement = nearestPlacement(siblings, { colSpan: colSpan, rowSpan: rowSpan }, columns, {
+            col: Math.max(1, Math.min(columns - colSpan + 1, Math.floor((event.clientX - rect.left) / (rect.width / columns)) + 1)),
             row: Math.max(1, Math.floor((event.clientY - rect.top) / rowStep) + 1)
         });
         dispatch({ type: 'add-module', moduleType: drag.type, parentId: destination.owner && destination.owner.id, placement: placement });
@@ -527,13 +673,62 @@ if (studio) {
         var dice = diceStats(module);
         var rolls = Array.from({ length: dice.count }, function () { return Math.floor(Math.random() * dice.sides) + 1; });
         var kept = dice.keep ? rolls.slice().sort(function (a, b) { return b - a; }).slice(0, dice.keep) : rolls;
+        var total = kept.reduce(function (sum, roll) { return sum + roll; }, 0) + dice.bonus;
+        state.player.lastRoll = {
+            name: module.name,
+            formula: diceFormula(module),
+            rolls: rolls,
+            kept: kept,
+            keepHighest: dice.keep,
+            bonus: dice.bonus,
+            total: total
+        };
         dispatch({ type: 'player', key: 'rollResults', id: module.id, value: {
             rolls: rolls,
             kept: kept,
             keepHighest: dice.keep,
             bonus: dice.bonus,
-            total: kept.reduce(function (sum, roll) { return sum + roll; }, 0) + dice.bonus
+            total: total
         } });
+    }
+
+    function rollListCell(moduleId, rowIndex, columnIndex) {
+        var module = findModule(state.document.modules, moduleId);
+        var column = module && module.columns[columnIndex];
+        if (!module || !column || column.type !== 'dice') return;
+        var formula = String(column.source ? resolveValue(column.source) : listCellValue(module, rowIndex, columnIndex)).trim();
+        var compactFormula = formula.replace(/\s+/g, '');
+        var terms = compactFormula.match(/[+-]?(?:\d*d\d+|\d+)/gi);
+        if (!terms || !/^[+-]?(?:\d*d\d+|\d+)(?:[+-](?:\d*d\d+|\d+))*$/i.test(compactFormula)) {
+            dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, error: 'Enter a dice formula such as 2d6+1d4+3.' } });
+            return;
+        }
+        var total = 0;
+        var rolls = [];
+        for (var index = 0; index < terms.length; index += 1) {
+            var sign = terms[index][0] === '-' ? -1 : 1;
+            var term = terms[index].replace(/^[+-]/, '');
+            var dice = /^(\d*)d(\d+)$/i.exec(term);
+            if (!dice) {
+                var bonus = Number(term);
+                if (!Number.isSafeInteger(bonus) || bonus > 1000000) {
+                    dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, error: 'Dice modifier must be within 1,000,000.' } });
+                    return;
+                }
+                total += sign * bonus;
+                continue;
+            }
+            var count = Number(dice[1] || 1);
+            var sides = Number(dice[2]);
+            if (count < 1 || count > 100 || sides < 2 || sides > 1000) {
+                dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, error: 'Dice must be 1-100 dice with 2-1000 sides.' } });
+                return;
+            }
+            var termRolls = Array.from({ length: count }, function () { return Math.floor(Math.random() * sides) + 1; });
+            rolls = rolls.concat(termRolls.map(function (roll) { return sign * roll; }));
+            total += sign * termRolls.reduce(function (sum, roll) { return sum + roll; }, 0);
+        }
+        dispatch({ type: 'roll-result', value: { name: module.name, formula: formula, rolls: rolls, total: total } });
     }
 
     // handle clicks here, including buttons added when the sheet is redrawn.
@@ -561,6 +756,45 @@ if (studio) {
         if (removeModifier) {
             var row = removeModifier.closest('[data-modifier-index]');
             return dispatch({ type: 'remove-modifier', id: row.dataset.moduleId, index: Number(row.dataset.modifierIndex) });
+        }
+        var listEditToggle = target.closest('[data-toggle-list-edit]');
+        if (listEditToggle) {
+            var listId = listEditToggle.dataset.toggleListEdit;
+            dispatch({
+                type: 'player',
+                key: 'listEditing',
+                id: listId,
+                value: !state.player.listEditing[listId]
+            });
+            return;
+        }
+        var listAction = target.closest('[data-list-action]');
+        if (listAction) {
+            dispatch({
+                type: listAction.dataset.listAction,
+                id: listAction.dataset.moduleId,
+                index: Number(listAction.dataset.index)
+            });
+            return;
+        }
+        var addPlayerRow = target.closest('[data-add-player-list-row]');
+        if (addPlayerRow) {
+            var addRowModule = findModule(state.document.modules, addPlayerRow.dataset.addPlayerListRow);
+            if (!addRowModule) return;
+            dispatch({
+                type: 'player',
+                key: 'listRows',
+                id: addRowModule.id,
+                value: (state.player.listRows[addRowModule.id] || []).concat([{
+                    cells: (addRowModule.columns || []).map(function () { return ''; })
+                }])
+            });
+            return;
+        }
+        var listRoll = target.closest('[data-roll-list-cell]');
+        if (listRoll) {
+            rollListCell(listRoll.dataset.rollListCell, Number(listRoll.dataset.row), Number(listRoll.dataset.column));
+            return;
         }
         var roll = target.closest('[data-roll-module]');
         if (roll) {
@@ -595,11 +829,28 @@ if (studio) {
         if (edit) setUi({ selectedId: edit.dataset.editModule, selectedModuleIds: [] });
     }
 
-    // save playtest entries as player values and edit-mode entries on the sheet so that stuff youre playtesting doesnt get saved to the .json format 
+    // Keep Playtest edits out of the saved template.
     function handleInputs(event) {
         var target = event.target;
         var playtest = state.ui.mode === 'playtest';
         var isSelect = target.tagName === 'SELECT';
+        var listCell = target.closest('[data-list-cell]');
+        if (listCell && event.type === 'input') {
+            var listId = listCell.dataset.listCell;
+            var rowIndex = Number(listCell.dataset.row);
+            var columnIndex = Number(listCell.dataset.column);
+            if (playtest) {
+                var cellKey = listId + ':' + rowIndex + ':' + columnIndex;
+                dispatch({ type: 'player', key: 'values', id: cellKey, value: listCell.value, render: false });
+            } else {
+                dispatch({
+                    type: 'update-list-cell', id: listId, row: rowIndex,
+                    column: columnIndex, value: listCell.value, render: false
+                });
+            }
+            updateLiveValues(studio, state, api);
+            return;
+        }
         var valueInput = target.closest('[data-module-value]');
         if (valueInput && event.type === 'input') {
             var id = valueInput.dataset.moduleValue;
@@ -619,6 +870,27 @@ if (studio) {
         }
         // update text fields while typing and dropdowns when a choice is made.
         if (!((event.type === 'input' && !isSelect) || (event.type === 'change' && isSelect))) return;
+        var columnSetting = target.dataset.listColumnSetting;
+        var statSetting = target.dataset.listStatSetting;
+        if ((columnSetting || statSetting) && !playtest) {
+            dispatch(columnSetting ? {
+                type: 'update-list-column',
+                id: target.dataset.moduleId,
+                index: Number(target.dataset.index),
+                setting: columnSetting,
+                value: target.value,
+                render: columnSetting === 'type' || columnSetting === 'source'
+            } : {
+                type: 'update-list-stat',
+                id: target.dataset.moduleId,
+                index: Number(target.dataset.index),
+                setting: statSetting,
+                value: target.value,
+                render: false
+            });
+            updateLiveValues(studio, state, api);
+            return;
+        }
         var setting = target.dataset.setting;
         if (setting && !playtest) {
             var selected = findModule(state.document.modules, state.ui.selectedId);
@@ -709,12 +981,23 @@ if (studio) {
         }
     }
 
+    function handleFocusout(event) {
+        var cell = event.target.closest('[data-list-cell]');
+        if (!cell || state.ui.mode !== 'playtest') return;
+        var module = findModule(state.document.modules, cell.dataset.listCell);
+        var column = module && module.columns[Number(cell.dataset.column)];
+        if (column && column.type === 'dice' && cell.value.trim()) {
+            window.setTimeout(refresh, 0);
+        }
+    }
+
     /* start the builder */
     // load the last draft, then draw the sheet.
     function attachListeners() {
         studio.addEventListener('click', handleClick);
         studio.addEventListener('input', handleInputs);
         studio.addEventListener('change', handleInputs);
+        studio.addEventListener('focusout', handleFocusout);
         if (playerSheet) return;
 
         studio.addEventListener('pointerdown', startPointer);

@@ -4,7 +4,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
-const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group']);
+const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group', 'list']);
 
 function renderTemplateError(res, status, title, message, returnUrl = '/templates') {
   return res.status(status).render('pages/error', {
@@ -94,6 +94,23 @@ function checkStudioTemplate(t) {
       if (module.modifiers !== undefined && !Array.isArray(module.modifiers)) return 'Module modifiers must be a list.';
       if (Array.isArray(module.modifiers) && module.modifiers.some((modifier) => !modifier || typeof modifier !== 'object' || Array.isArray(modifier))) {
         return 'Every module modifier must be an object.';
+      }
+      if (module.type === 'list') {
+        if (!Array.isArray(module.columns) || module.columns.length === 0 ||
+          module.columns.some((column) => !column || typeof column.name !== 'string' ||
+            !['text', 'number', 'dice'].includes(column.type) ||
+            (column.source !== undefined && typeof column.source !== 'string'))) {
+          return 'Every list needs columns with a valid name, value type, and input source.';
+        }
+        if (!Array.isArray(module.rows) ||
+          module.rows.some((row) => !row || !Array.isArray(row.cells) || row.cells.length !== module.columns.length)) {
+          return 'Every list row must have a value for each column.';
+        }
+        if (module.stats !== undefined && (!Array.isArray(module.stats) ||
+          module.stats.some((stat) => !stat || typeof stat.name !== 'string' ||
+            (stat.source !== undefined && typeof stat.source !== 'string')))) {
+          return 'Every list stat must have a valid name and input source.';
+        }
       }
       if (module.children) {
         const error = checkModules(module.children || []);
