@@ -1,0 +1,5900 @@
+{
+  "schemaVersion": 2,
+  "name": "SRD 5.2 Character Sheet (Blank)",
+  "description": "Blank player sheet organized for the RPG Templates builder. Based on D&D SRD 5.2.1, licensed under CC BY 4.0; not an official D&D product.",
+  "modules": [
+    {
+      "id": "character-name",
+      "type": "text",
+      "name": "Character Name",
+      "col": 1,
+      "row": 1,
+      "colSpan": 4,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "class-subclass",
+      "type": "text",
+      "name": "Class / Subclass",
+      "col": 5,
+      "row": 1,
+      "colSpan": 4,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "species",
+      "type": "text",
+      "name": "Species",
+      "col": 9,
+      "row": 1,
+      "colSpan": 4,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "background",
+      "type": "text",
+      "name": "Background",
+      "col": 1,
+      "row": 3,
+      "colSpan": 4,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "character-level",
+      "type": "number",
+      "name": "Character Level",
+      "col": 5,
+      "row": 3,
+      "colSpan": 2,
+      "rowSpan": 2,
+      "value": "1",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "experience-points",
+      "type": "number",
+      "name": "Experience Points",
+      "col": 7,
+      "row": 3,
+      "colSpan": 2,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "alignment",
+      "type": "text",
+      "name": "Alignment",
+      "col": 9,
+      "row": 3,
+      "colSpan": 4,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "player-name",
+      "type": "text",
+      "name": "Player",
+      "col": 1,
+      "row": 5,
+      "colSpan": 4,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "campaign-name",
+      "type": "text",
+      "name": "Campaign",
+      "col": 5,
+      "row": 5,
+      "colSpan": 4,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "size",
+      "type": "text",
+      "name": "Size",
+      "col": 9,
+      "row": 5,
+      "colSpan": 4,
+      "rowSpan": 2,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": []
+    },
+    {
+      "id": "math-str-minus-10",
+      "type": "math",
+      "name": "Strength score minus 10",
+      "col": 1,
+      "row": 121,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "subtract",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-str-score",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "math-str-modifier",
+      "type": "math",
+      "name": "Strength modifier",
+      "col": 1,
+      "row": 122,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "divide",
+      "mathRounding": "down",
+      "leftValue": 0,
+      "leftSource": "math-str-minus-10",
+      "rightValue": 2,
+      "rightSource": ""
+    },
+    {
+      "id": "math-dex-minus-10",
+      "type": "math",
+      "name": "Dexterity score minus 10",
+      "col": 1,
+      "row": 123,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "subtract",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-dex-score",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "math-dex-modifier",
+      "type": "math",
+      "name": "Dexterity modifier",
+      "col": 1,
+      "row": 124,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "divide",
+      "mathRounding": "down",
+      "leftValue": 0,
+      "leftSource": "math-dex-minus-10",
+      "rightValue": 2,
+      "rightSource": ""
+    },
+    {
+      "id": "math-con-minus-10",
+      "type": "math",
+      "name": "Constitution score minus 10",
+      "col": 1,
+      "row": 125,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "subtract",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-con-score",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "math-con-modifier",
+      "type": "math",
+      "name": "Constitution modifier",
+      "col": 1,
+      "row": 126,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "divide",
+      "mathRounding": "down",
+      "leftValue": 0,
+      "leftSource": "math-con-minus-10",
+      "rightValue": 2,
+      "rightSource": ""
+    },
+    {
+      "id": "math-int-minus-10",
+      "type": "math",
+      "name": "Intelligence score minus 10",
+      "col": 1,
+      "row": 127,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "subtract",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-int-score",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "math-int-modifier",
+      "type": "math",
+      "name": "Intelligence modifier",
+      "col": 1,
+      "row": 128,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "divide",
+      "mathRounding": "down",
+      "leftValue": 0,
+      "leftSource": "math-int-minus-10",
+      "rightValue": 2,
+      "rightSource": ""
+    },
+    {
+      "id": "math-wis-minus-10",
+      "type": "math",
+      "name": "Wisdom score minus 10",
+      "col": 1,
+      "row": 129,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "subtract",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-wis-score",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "math-wis-modifier",
+      "type": "math",
+      "name": "Wisdom modifier",
+      "col": 1,
+      "row": 130,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "divide",
+      "mathRounding": "down",
+      "leftValue": 0,
+      "leftSource": "math-wis-minus-10",
+      "rightValue": 2,
+      "rightSource": ""
+    },
+    {
+      "id": "math-cha-minus-10",
+      "type": "math",
+      "name": "Charisma score minus 10",
+      "col": 1,
+      "row": 131,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "subtract",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-cha-score",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "math-cha-modifier",
+      "type": "math",
+      "name": "Charisma modifier",
+      "col": 1,
+      "row": 132,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "divide",
+      "mathRounding": "down",
+      "leftValue": 0,
+      "leftSource": "math-cha-minus-10",
+      "rightValue": 2,
+      "rightSource": ""
+    },
+    {
+      "id": "math-level-minus-one",
+      "type": "math",
+      "name": "Level minus 1",
+      "col": 1,
+      "row": 133,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "subtract",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "character-level",
+      "rightValue": 1,
+      "rightSource": ""
+    },
+    {
+      "id": "math-level-proficiency-steps",
+      "type": "math",
+      "name": "Proficiency level steps",
+      "col": 1,
+      "row": 134,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "divide",
+      "mathRounding": "down",
+      "leftValue": 0,
+      "leftSource": "math-level-minus-one",
+      "rightValue": 4,
+      "rightSource": ""
+    },
+    {
+      "id": "math-proficiency-bonus",
+      "type": "math",
+      "name": "Proficiency bonus",
+      "col": 1,
+      "row": 135,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-level-proficiency-steps",
+      "rightValue": 2,
+      "rightSource": ""
+    },
+    {
+      "id": "math-save-str-proficiency",
+      "type": "math",
+      "name": "Strength proficiency bonus",
+      "col": 1,
+      "row": 136,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "save-str-proficient",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-save-str-total",
+      "type": "math",
+      "name": "Strength saving throw",
+      "col": 1,
+      "row": 137,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-str-modifier",
+      "rightValue": 0,
+      "rightSource": "math-save-str-proficiency"
+    },
+    {
+      "id": "math-save-dex-proficiency",
+      "type": "math",
+      "name": "Dexterity proficiency bonus",
+      "col": 1,
+      "row": 138,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "save-dex-proficient",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-save-dex-total",
+      "type": "math",
+      "name": "Dexterity saving throw",
+      "col": 1,
+      "row": 139,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-dex-modifier",
+      "rightValue": 0,
+      "rightSource": "math-save-dex-proficiency"
+    },
+    {
+      "id": "math-save-con-proficiency",
+      "type": "math",
+      "name": "Constitution proficiency bonus",
+      "col": 1,
+      "row": 140,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "save-con-proficient",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-save-con-total",
+      "type": "math",
+      "name": "Constitution saving throw",
+      "col": 1,
+      "row": 141,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-con-modifier",
+      "rightValue": 0,
+      "rightSource": "math-save-con-proficiency"
+    },
+    {
+      "id": "math-save-int-proficiency",
+      "type": "math",
+      "name": "Intelligence proficiency bonus",
+      "col": 1,
+      "row": 142,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "save-int-proficient",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-save-int-total",
+      "type": "math",
+      "name": "Intelligence saving throw",
+      "col": 1,
+      "row": 143,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-int-modifier",
+      "rightValue": 0,
+      "rightSource": "math-save-int-proficiency"
+    },
+    {
+      "id": "math-save-wis-proficiency",
+      "type": "math",
+      "name": "Wisdom proficiency bonus",
+      "col": 1,
+      "row": 144,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "save-wis-proficient",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-save-wis-total",
+      "type": "math",
+      "name": "Wisdom saving throw",
+      "col": 1,
+      "row": 145,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-wis-modifier",
+      "rightValue": 0,
+      "rightSource": "math-save-wis-proficiency"
+    },
+    {
+      "id": "math-save-cha-proficiency",
+      "type": "math",
+      "name": "Charisma proficiency bonus",
+      "col": 1,
+      "row": 146,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "save-cha-proficient",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-save-cha-total",
+      "type": "math",
+      "name": "Charisma saving throw",
+      "col": 1,
+      "row": 147,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-cha-modifier",
+      "rightValue": 0,
+      "rightSource": "math-save-cha-proficiency"
+    },
+    {
+      "id": "math-skill-acrobatics-rank",
+      "type": "math",
+      "name": "Acrobatics proficiency rank",
+      "col": 1,
+      "row": 148,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.1.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.1.4"
+    },
+    {
+      "id": "math-skill-acrobatics-trained-bonus",
+      "type": "math",
+      "name": "Acrobatics proficiency contribution",
+      "col": 1,
+      "row": 149,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-acrobatics-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-acrobatics-total",
+      "type": "math",
+      "name": "Acrobatics total",
+      "col": 1,
+      "row": 150,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-dex-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-acrobatics-trained-bonus"
+    },
+    {
+      "id": "math-skill-animal-handling-rank",
+      "type": "math",
+      "name": "Animal Handling proficiency rank",
+      "col": 1,
+      "row": 151,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.2.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.2.4"
+    },
+    {
+      "id": "math-skill-animal-handling-trained-bonus",
+      "type": "math",
+      "name": "Animal Handling proficiency contribution",
+      "col": 1,
+      "row": 152,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-animal-handling-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-animal-handling-total",
+      "type": "math",
+      "name": "Animal Handling total",
+      "col": 1,
+      "row": 153,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-wis-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-animal-handling-trained-bonus"
+    },
+    {
+      "id": "math-skill-arcana-rank",
+      "type": "math",
+      "name": "Arcana proficiency rank",
+      "col": 1,
+      "row": 154,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.3.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.3.4"
+    },
+    {
+      "id": "math-skill-arcana-trained-bonus",
+      "type": "math",
+      "name": "Arcana proficiency contribution",
+      "col": 1,
+      "row": 155,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-arcana-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-arcana-total",
+      "type": "math",
+      "name": "Arcana total",
+      "col": 1,
+      "row": 156,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-int-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-arcana-trained-bonus"
+    },
+    {
+      "id": "math-skill-athletics-rank",
+      "type": "math",
+      "name": "Athletics proficiency rank",
+      "col": 1,
+      "row": 157,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.4.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.4.4"
+    },
+    {
+      "id": "math-skill-athletics-trained-bonus",
+      "type": "math",
+      "name": "Athletics proficiency contribution",
+      "col": 1,
+      "row": 158,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-athletics-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-athletics-total",
+      "type": "math",
+      "name": "Athletics total",
+      "col": 1,
+      "row": 159,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-str-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-athletics-trained-bonus"
+    },
+    {
+      "id": "math-skill-deception-rank",
+      "type": "math",
+      "name": "Deception proficiency rank",
+      "col": 1,
+      "row": 160,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.5.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.5.4"
+    },
+    {
+      "id": "math-skill-deception-trained-bonus",
+      "type": "math",
+      "name": "Deception proficiency contribution",
+      "col": 1,
+      "row": 161,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-deception-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-deception-total",
+      "type": "math",
+      "name": "Deception total",
+      "col": 1,
+      "row": 162,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-cha-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-deception-trained-bonus"
+    },
+    {
+      "id": "math-skill-history-rank",
+      "type": "math",
+      "name": "History proficiency rank",
+      "col": 1,
+      "row": 163,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.6.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.6.4"
+    },
+    {
+      "id": "math-skill-history-trained-bonus",
+      "type": "math",
+      "name": "History proficiency contribution",
+      "col": 1,
+      "row": 164,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-history-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-history-total",
+      "type": "math",
+      "name": "History total",
+      "col": 1,
+      "row": 165,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-int-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-history-trained-bonus"
+    },
+    {
+      "id": "math-skill-insight-rank",
+      "type": "math",
+      "name": "Insight proficiency rank",
+      "col": 1,
+      "row": 166,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.7.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.7.4"
+    },
+    {
+      "id": "math-skill-insight-trained-bonus",
+      "type": "math",
+      "name": "Insight proficiency contribution",
+      "col": 1,
+      "row": 167,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-insight-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-insight-total",
+      "type": "math",
+      "name": "Insight total",
+      "col": 1,
+      "row": 168,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-wis-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-insight-trained-bonus"
+    },
+    {
+      "id": "math-skill-intimidation-rank",
+      "type": "math",
+      "name": "Intimidation proficiency rank",
+      "col": 1,
+      "row": 169,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.8.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.8.4"
+    },
+    {
+      "id": "math-skill-intimidation-trained-bonus",
+      "type": "math",
+      "name": "Intimidation proficiency contribution",
+      "col": 1,
+      "row": 170,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-intimidation-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-intimidation-total",
+      "type": "math",
+      "name": "Intimidation total",
+      "col": 1,
+      "row": 171,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-cha-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-intimidation-trained-bonus"
+    },
+    {
+      "id": "math-skill-investigation-rank",
+      "type": "math",
+      "name": "Investigation proficiency rank",
+      "col": 1,
+      "row": 172,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.9.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.9.4"
+    },
+    {
+      "id": "math-skill-investigation-trained-bonus",
+      "type": "math",
+      "name": "Investigation proficiency contribution",
+      "col": 1,
+      "row": 173,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-investigation-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-investigation-total",
+      "type": "math",
+      "name": "Investigation total",
+      "col": 1,
+      "row": 174,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-int-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-investigation-trained-bonus"
+    },
+    {
+      "id": "math-skill-medicine-rank",
+      "type": "math",
+      "name": "Medicine proficiency rank",
+      "col": 1,
+      "row": 175,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.10.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.10.4"
+    },
+    {
+      "id": "math-skill-medicine-trained-bonus",
+      "type": "math",
+      "name": "Medicine proficiency contribution",
+      "col": 1,
+      "row": 176,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-medicine-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-medicine-total",
+      "type": "math",
+      "name": "Medicine total",
+      "col": 1,
+      "row": 177,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-wis-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-medicine-trained-bonus"
+    },
+    {
+      "id": "math-skill-nature-rank",
+      "type": "math",
+      "name": "Nature proficiency rank",
+      "col": 1,
+      "row": 178,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.11.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.11.4"
+    },
+    {
+      "id": "math-skill-nature-trained-bonus",
+      "type": "math",
+      "name": "Nature proficiency contribution",
+      "col": 1,
+      "row": 179,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-nature-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-nature-total",
+      "type": "math",
+      "name": "Nature total",
+      "col": 1,
+      "row": 180,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-int-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-nature-trained-bonus"
+    },
+    {
+      "id": "math-skill-perception-rank",
+      "type": "math",
+      "name": "Perception proficiency rank",
+      "col": 1,
+      "row": 181,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.12.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.12.4"
+    },
+    {
+      "id": "math-skill-perception-trained-bonus",
+      "type": "math",
+      "name": "Perception proficiency contribution",
+      "col": 1,
+      "row": 182,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-perception-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-perception-total",
+      "type": "math",
+      "name": "Perception total",
+      "col": 1,
+      "row": 183,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-wis-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-perception-trained-bonus"
+    },
+    {
+      "id": "math-skill-performance-rank",
+      "type": "math",
+      "name": "Performance proficiency rank",
+      "col": 1,
+      "row": 184,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.13.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.13.4"
+    },
+    {
+      "id": "math-skill-performance-trained-bonus",
+      "type": "math",
+      "name": "Performance proficiency contribution",
+      "col": 1,
+      "row": 185,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-performance-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-performance-total",
+      "type": "math",
+      "name": "Performance total",
+      "col": 1,
+      "row": 186,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-cha-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-performance-trained-bonus"
+    },
+    {
+      "id": "math-skill-persuasion-rank",
+      "type": "math",
+      "name": "Persuasion proficiency rank",
+      "col": 1,
+      "row": 187,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.14.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.14.4"
+    },
+    {
+      "id": "math-skill-persuasion-trained-bonus",
+      "type": "math",
+      "name": "Persuasion proficiency contribution",
+      "col": 1,
+      "row": 188,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-persuasion-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-persuasion-total",
+      "type": "math",
+      "name": "Persuasion total",
+      "col": 1,
+      "row": 189,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-cha-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-persuasion-trained-bonus"
+    },
+    {
+      "id": "math-skill-religion-rank",
+      "type": "math",
+      "name": "Religion proficiency rank",
+      "col": 1,
+      "row": 190,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.15.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.15.4"
+    },
+    {
+      "id": "math-skill-religion-trained-bonus",
+      "type": "math",
+      "name": "Religion proficiency contribution",
+      "col": 1,
+      "row": 191,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-religion-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-religion-total",
+      "type": "math",
+      "name": "Religion total",
+      "col": 1,
+      "row": 192,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-int-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-religion-trained-bonus"
+    },
+    {
+      "id": "math-skill-sleight-of-hand-rank",
+      "type": "math",
+      "name": "Sleight of Hand proficiency rank",
+      "col": 1,
+      "row": 193,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.16.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.16.4"
+    },
+    {
+      "id": "math-skill-sleight-of-hand-trained-bonus",
+      "type": "math",
+      "name": "Sleight of Hand proficiency contribution",
+      "col": 1,
+      "row": 194,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-sleight-of-hand-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-sleight-of-hand-total",
+      "type": "math",
+      "name": "Sleight of Hand total",
+      "col": 1,
+      "row": 195,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-dex-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-sleight-of-hand-trained-bonus"
+    },
+    {
+      "id": "math-skill-stealth-rank",
+      "type": "math",
+      "name": "Stealth proficiency rank",
+      "col": 1,
+      "row": 196,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.17.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.17.4"
+    },
+    {
+      "id": "math-skill-stealth-trained-bonus",
+      "type": "math",
+      "name": "Stealth proficiency contribution",
+      "col": 1,
+      "row": 197,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-stealth-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-stealth-total",
+      "type": "math",
+      "name": "Stealth total",
+      "col": 1,
+      "row": 198,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-dex-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-stealth-trained-bonus"
+    },
+    {
+      "id": "math-skill-survival-rank",
+      "type": "math",
+      "name": "Survival proficiency rank",
+      "col": 1,
+      "row": 199,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "skill-proficiencies.18.3",
+      "rightValue": 0,
+      "rightSource": "skill-proficiencies.18.4"
+    },
+    {
+      "id": "math-skill-survival-trained-bonus",
+      "type": "math",
+      "name": "Survival proficiency contribution",
+      "col": 1,
+      "row": 200,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "multiply",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-survival-rank",
+      "rightValue": 0,
+      "rightSource": "proficiency-bonus"
+    },
+    {
+      "id": "math-skill-survival-total",
+      "type": "math",
+      "name": "Survival total",
+      "col": 1,
+      "row": 201,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "ability-wis-modifier",
+      "rightValue": 0,
+      "rightSource": "math-skill-survival-trained-bonus"
+    },
+    {
+      "id": "math-passive-perception",
+      "type": "math",
+      "name": "Passive Perception",
+      "col": 1,
+      "row": 202,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-perception-total",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "math-passive-investigation",
+      "type": "math",
+      "name": "Passive Investigation",
+      "col": 1,
+      "row": 203,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-investigation-total",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "math-passive-insight",
+      "type": "math",
+      "name": "Passive Insight",
+      "col": 1,
+      "row": 204,
+      "colSpan": 1,
+      "rowSpan": 1,
+      "value": "",
+      "source": "",
+      "visibility": "hidden",
+      "modifiers": [],
+      "children": [],
+      "mathOperation": "add",
+      "mathRounding": "none",
+      "leftValue": 0,
+      "leftSource": "math-skill-insight-total",
+      "rightValue": 10,
+      "rightSource": ""
+    },
+    {
+      "id": "ability-scores",
+      "type": "group",
+      "name": "Ability Scores",
+      "col": 1,
+      "row": 8,
+      "colSpan": 6,
+      "rowSpan": 6,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": [
+        {
+          "id": "ability-str-score",
+          "type": "number",
+          "name": "STR Score",
+          "col": 1,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "10",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-str-modifier",
+          "type": "number",
+          "name": "STR Modifier",
+          "col": 2,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-str-modifier",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-dex-score",
+          "type": "number",
+          "name": "DEX Score",
+          "col": 1,
+          "row": 2,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "10",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-dex-modifier",
+          "type": "number",
+          "name": "DEX Modifier",
+          "col": 2,
+          "row": 2,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-dex-modifier",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-con-score",
+          "type": "number",
+          "name": "CON Score",
+          "col": 1,
+          "row": 3,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "10",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-con-modifier",
+          "type": "number",
+          "name": "CON Modifier",
+          "col": 2,
+          "row": 3,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-con-modifier",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-int-score",
+          "type": "number",
+          "name": "INT Score",
+          "col": 1,
+          "row": 4,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "10",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-int-modifier",
+          "type": "number",
+          "name": "INT Modifier",
+          "col": 2,
+          "row": 4,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-int-modifier",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-wis-score",
+          "type": "number",
+          "name": "WIS Score",
+          "col": 1,
+          "row": 5,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "10",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-wis-modifier",
+          "type": "number",
+          "name": "WIS Modifier",
+          "col": 2,
+          "row": 5,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-wis-modifier",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-cha-score",
+          "type": "number",
+          "name": "CHA Score",
+          "col": 1,
+          "row": 6,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "10",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "ability-cha-modifier",
+          "type": "number",
+          "name": "CHA Modifier",
+          "col": 2,
+          "row": 6,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-cha-modifier",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        }
+      ],
+      "layout": "grid",
+      "groupColumns": 3
+    },
+    {
+      "id": "combat-stats",
+      "type": "group",
+      "name": "Combat & Resources",
+      "col": 7,
+      "row": 8,
+      "colSpan": 6,
+      "rowSpan": 4,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": [
+        {
+          "id": "proficiency-bonus",
+          "type": "number",
+          "name": "Proficiency Bonus",
+          "col": 1,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-proficiency-bonus",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "armor-class",
+          "type": "number",
+          "name": "Armor Class",
+          "col": 2,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "initiative",
+          "type": "number",
+          "name": "Initiative",
+          "col": 3,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "ability-dex-modifier",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "walking-speed",
+          "type": "number",
+          "name": "Speed (ft.)",
+          "col": 1,
+          "row": 2,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "heroic-inspiration",
+          "type": "checkbox",
+          "name": "Heroic Inspiration",
+          "col": 2,
+          "row": 2,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [],
+          "checked": false,
+          "uncheckedValue": 0,
+          "checkedValue": 1
+        },
+        {
+          "id": "hit-points-current",
+          "type": "number",
+          "name": "Hit Points - Current",
+          "col": 3,
+          "row": 2,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "hit-points-maximum",
+          "type": "number",
+          "name": "Hit Points - Maximum",
+          "col": 1,
+          "row": 3,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "hit-points-temporary",
+          "type": "number",
+          "name": "Hit Points - Temporary",
+          "col": 2,
+          "row": 3,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "hit-dice",
+          "type": "number",
+          "name": "Hit Dice Available",
+          "col": 3,
+          "row": 3,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "death-saves-successes",
+          "type": "number",
+          "name": "Death Saves - Successes (0-3)",
+          "col": 1,
+          "row": 4,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "death-saves-failures",
+          "type": "number",
+          "name": "Death Saves - Failures (0-3)",
+          "col": 2,
+          "row": 4,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        }
+      ],
+      "layout": "grid",
+      "groupColumns": 3
+    },
+    {
+      "id": "saving-throws",
+      "type": "group",
+      "name": "Saving Throws",
+      "col": 1,
+      "row": 15,
+      "colSpan": 6,
+      "rowSpan": 5,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": [
+        {
+          "id": "save-str-proficient",
+          "type": "checkbox",
+          "name": "STR Proficient",
+          "col": 1,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [],
+          "checked": false,
+          "uncheckedValue": 0,
+          "checkedValue": 1
+        },
+        {
+          "id": "save-str-total",
+          "type": "number",
+          "name": "Strength Save",
+          "col": 2,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-save-str-total",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "save-dex-proficient",
+          "type": "checkbox",
+          "name": "DEX Proficient",
+          "col": 1,
+          "row": 2,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [],
+          "checked": false,
+          "uncheckedValue": 0,
+          "checkedValue": 1
+        },
+        {
+          "id": "save-dex-total",
+          "type": "number",
+          "name": "Dexterity Save",
+          "col": 2,
+          "row": 2,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-save-dex-total",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "save-con-proficient",
+          "type": "checkbox",
+          "name": "CON Proficient",
+          "col": 1,
+          "row": 3,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [],
+          "checked": false,
+          "uncheckedValue": 0,
+          "checkedValue": 1
+        },
+        {
+          "id": "save-con-total",
+          "type": "number",
+          "name": "Constitution Save",
+          "col": 2,
+          "row": 3,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-save-con-total",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "save-int-proficient",
+          "type": "checkbox",
+          "name": "INT Proficient",
+          "col": 1,
+          "row": 4,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [],
+          "checked": false,
+          "uncheckedValue": 0,
+          "checkedValue": 1
+        },
+        {
+          "id": "save-int-total",
+          "type": "number",
+          "name": "Intelligence Save",
+          "col": 2,
+          "row": 4,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-save-int-total",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "save-wis-proficient",
+          "type": "checkbox",
+          "name": "WIS Proficient",
+          "col": 1,
+          "row": 5,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [],
+          "checked": false,
+          "uncheckedValue": 0,
+          "checkedValue": 1
+        },
+        {
+          "id": "save-wis-total",
+          "type": "number",
+          "name": "Wisdom Save",
+          "col": 2,
+          "row": 5,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-save-wis-total",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "save-cha-proficient",
+          "type": "checkbox",
+          "name": "CHA Proficient",
+          "col": 1,
+          "row": 6,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [],
+          "checked": false,
+          "uncheckedValue": 0,
+          "checkedValue": 1
+        },
+        {
+          "id": "save-cha-total",
+          "type": "number",
+          "name": "Charisma Save",
+          "col": 2,
+          "row": 6,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-save-cha-total",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        }
+      ],
+      "layout": "grid",
+      "groupColumns": 2
+    },
+    {
+      "id": "skills",
+      "type": "group",
+      "name": "Skills",
+      "col": 1,
+      "row": 25,
+      "colSpan": 12,
+      "rowSpan": 13,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": [
+        {
+          "id": "skill-proficiencies",
+          "type": "list",
+          "name": "Skill Proficiencies",
+          "col": 1,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 13,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [],
+          "columns": [
+            {
+              "name": "Skill",
+              "type": "text",
+              "source": "",
+              "rowSources": []
+            },
+            {
+              "name": "Ability",
+              "type": "text",
+              "source": "",
+              "rowSources": []
+            },
+            {
+              "name": "Proficient",
+              "type": "checkbox",
+              "source": "",
+              "rowSources": []
+            },
+            {
+              "name": "Expertise",
+              "type": "checkbox",
+              "source": "",
+              "rowSources": []
+            },
+            {
+              "name": "Bonus",
+              "type": "number",
+              "source": "",
+              "rowSources": [
+                "math-skill-acrobatics-total",
+                "math-skill-animal-handling-total",
+                "math-skill-arcana-total",
+                "math-skill-athletics-total",
+                "math-skill-deception-total",
+                "math-skill-history-total",
+                "math-skill-insight-total",
+                "math-skill-intimidation-total",
+                "math-skill-investigation-total",
+                "math-skill-medicine-total",
+                "math-skill-nature-total",
+                "math-skill-perception-total",
+                "math-skill-performance-total",
+                "math-skill-persuasion-total",
+                "math-skill-religion-total",
+                "math-skill-sleight-of-hand-total",
+                "math-skill-stealth-total",
+                "math-skill-survival-total"
+              ]
+            }
+          ],
+          "rows": [
+            {
+              "cells": [
+                "Acrobatics",
+                "DEX",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Animal Handling",
+                "WIS",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Arcana",
+                "INT",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Athletics",
+                "STR",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Deception",
+                "CHA",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "History",
+                "INT",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Insight",
+                "WIS",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Intimidation",
+                "CHA",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Investigation",
+                "INT",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Medicine",
+                "WIS",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Nature",
+                "INT",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Perception",
+                "WIS",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Performance",
+                "CHA",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Persuasion",
+                "CHA",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Religion",
+                "INT",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Sleight of Hand",
+                "DEX",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Stealth",
+                "DEX",
+                false,
+                false,
+                ""
+              ]
+            },
+            {
+              "cells": [
+                "Survival",
+                "WIS",
+                false,
+                false,
+                ""
+              ]
+            }
+          ]
+        }
+      ],
+      "layout": "grid",
+      "groupColumns": 1
+    },
+    {
+      "id": "passive-scores",
+      "type": "group",
+      "name": "Passive Scores",
+      "col": 1,
+      "row": 21,
+      "colSpan": 6,
+      "rowSpan": 3,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": [
+        {
+          "id": "passive-perception",
+          "type": "number",
+          "name": "Passive Perception",
+          "col": 1,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-passive-perception",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "passive-investigation",
+          "type": "number",
+          "name": "Passive Investigation",
+          "col": 2,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-passive-investigation",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        },
+        {
+          "id": "passive-insight",
+          "type": "number",
+          "name": "Passive Insight",
+          "col": 3,
+          "row": 1,
+          "colSpan": 1,
+          "rowSpan": 1,
+          "value": "",
+          "source": "math-passive-insight",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": []
+        }
+      ],
+      "layout": "grid",
+      "groupColumns": 3
+    },
+    {
+      "id": "character-details",
+      "type": "pages",
+      "name": "Character Details",
+      "col": 1,
+      "row": 40,
+      "colSpan": 12,
+      "rowSpan": 9,
+      "value": "",
+      "source": "",
+      "visibility": "shown",
+      "modifiers": [],
+      "children": [
+        {
+          "id": "roll-checks",
+          "type": "group",
+          "name": "Roll Checks",
+          "groupColumns": 4,
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 8,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [
+            {
+              "id": "roll-ability-str",
+              "type": "dice",
+              "name": "Strength Check",
+              "col": 1,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "ability-str-modifier"
+            },
+            {
+              "id": "roll-ability-dex",
+              "type": "dice",
+              "name": "Dexterity Check",
+              "col": 2,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "ability-dex-modifier"
+            },
+            {
+              "id": "roll-ability-con",
+              "type": "dice",
+              "name": "Constitution Check",
+              "col": 3,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "ability-con-modifier"
+            },
+            {
+              "id": "roll-ability-int",
+              "type": "dice",
+              "name": "Intelligence Check",
+              "col": 4,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "ability-int-modifier"
+            },
+            {
+              "id": "roll-ability-wis",
+              "type": "dice",
+              "name": "Wisdom Check",
+              "col": 1,
+              "row": 2,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "ability-wis-modifier"
+            },
+            {
+              "id": "roll-ability-cha",
+              "type": "dice",
+              "name": "Charisma Check",
+              "col": 2,
+              "row": 2,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "ability-cha-modifier"
+            },
+            {
+              "id": "roll-save-str",
+              "type": "dice",
+              "name": "Strength Save",
+              "col": 3,
+              "row": 2,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "save-str-total"
+            },
+            {
+              "id": "roll-save-dex",
+              "type": "dice",
+              "name": "Dexterity Save",
+              "col": 4,
+              "row": 2,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "save-dex-total"
+            },
+            {
+              "id": "roll-save-con",
+              "type": "dice",
+              "name": "Constitution Save",
+              "col": 1,
+              "row": 3,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "save-con-total"
+            },
+            {
+              "id": "roll-save-int",
+              "type": "dice",
+              "name": "Intelligence Save",
+              "col": 2,
+              "row": 3,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "save-int-total"
+            },
+            {
+              "id": "roll-save-wis",
+              "type": "dice",
+              "name": "Wisdom Save",
+              "col": 3,
+              "row": 3,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "save-wis-total"
+            },
+            {
+              "id": "roll-save-cha",
+              "type": "dice",
+              "name": "Charisma Save",
+              "col": 4,
+              "row": 3,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "save-cha-total"
+            },
+            {
+              "id": "roll-skill-acrobatics",
+              "type": "dice",
+              "name": "Acrobatics",
+              "col": 1,
+              "row": 4,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-acrobatics-total"
+            },
+            {
+              "id": "roll-skill-animal-handling",
+              "type": "dice",
+              "name": "Animal Handling",
+              "col": 2,
+              "row": 4,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-animal-handling-total"
+            },
+            {
+              "id": "roll-skill-arcana",
+              "type": "dice",
+              "name": "Arcana",
+              "col": 3,
+              "row": 4,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-arcana-total"
+            },
+            {
+              "id": "roll-skill-athletics",
+              "type": "dice",
+              "name": "Athletics",
+              "col": 4,
+              "row": 4,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-athletics-total"
+            },
+            {
+              "id": "roll-skill-deception",
+              "type": "dice",
+              "name": "Deception",
+              "col": 1,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-deception-total"
+            },
+            {
+              "id": "roll-skill-history",
+              "type": "dice",
+              "name": "History",
+              "col": 2,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-history-total"
+            },
+            {
+              "id": "roll-skill-insight",
+              "type": "dice",
+              "name": "Insight",
+              "col": 3,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-insight-total"
+            },
+            {
+              "id": "roll-skill-intimidation",
+              "type": "dice",
+              "name": "Intimidation",
+              "col": 4,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-intimidation-total"
+            },
+            {
+              "id": "roll-skill-investigation",
+              "type": "dice",
+              "name": "Investigation",
+              "col": 1,
+              "row": 6,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-investigation-total"
+            },
+            {
+              "id": "roll-skill-medicine",
+              "type": "dice",
+              "name": "Medicine",
+              "col": 2,
+              "row": 6,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-medicine-total"
+            },
+            {
+              "id": "roll-skill-nature",
+              "type": "dice",
+              "name": "Nature",
+              "col": 3,
+              "row": 6,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-nature-total"
+            },
+            {
+              "id": "roll-skill-perception",
+              "type": "dice",
+              "name": "Perception",
+              "col": 4,
+              "row": 6,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-perception-total"
+            },
+            {
+              "id": "roll-skill-performance",
+              "type": "dice",
+              "name": "Performance",
+              "col": 1,
+              "row": 7,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-performance-total"
+            },
+            {
+              "id": "roll-skill-persuasion",
+              "type": "dice",
+              "name": "Persuasion",
+              "col": 2,
+              "row": 7,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-persuasion-total"
+            },
+            {
+              "id": "roll-skill-religion",
+              "type": "dice",
+              "name": "Religion",
+              "col": 3,
+              "row": 7,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-religion-total"
+            },
+            {
+              "id": "roll-skill-sleight-of-hand",
+              "type": "dice",
+              "name": "Sleight of Hand",
+              "col": 4,
+              "row": 7,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-sleight-of-hand-total"
+            },
+            {
+              "id": "roll-skill-stealth",
+              "type": "dice",
+              "name": "Stealth",
+              "col": 1,
+              "row": 8,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-stealth-total"
+            },
+            {
+              "id": "roll-skill-survival",
+              "type": "dice",
+              "name": "Survival",
+              "col": 2,
+              "row": 8,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "math-skill-survival-total"
+            },
+            {
+              "id": "roll-initiative",
+              "type": "dice",
+              "name": "Initiative",
+              "col": 3,
+              "row": 8,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": "ability-dex-modifier"
+            },
+            {
+              "id": "roll-death-save",
+              "type": "dice",
+              "name": "Death Save",
+              "col": 4,
+              "row": 8,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "count": 1,
+              "countSource": "",
+              "sides": 20,
+              "sidesSource": "",
+              "keepHighest": 0,
+              "keepHighestSource": "",
+              "bonusSource": ""
+            }
+          ],
+          "hideGroupName": false
+        },
+        {
+          "id": "actions",
+          "type": "group",
+          "name": "Actions",
+          "groupColumns": 1,
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 8,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [
+            {
+              "id": "attacks",
+              "type": "list",
+              "name": "Attacks",
+              "col": 1,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Name",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Attack Bonus",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Range",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Damage",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Properties / Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "actions-list",
+              "type": "list",
+              "name": "Actions",
+              "col": 1,
+              "row": 4,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Action",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Uses",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Range / Target",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "bonus-actions",
+              "type": "list",
+              "name": "Bonus Actions",
+              "col": 1,
+              "row": 7,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Action",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Uses",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Range / Target",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "reactions",
+              "type": "list",
+              "name": "Reactions",
+              "col": 1,
+              "row": 10,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Reaction",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Trigger",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Uses",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "limited-resources",
+              "type": "list",
+              "name": "Limited Uses & Resources",
+              "col": 1,
+              "row": 13,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Resource",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Current",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Maximum",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Recharge / Notes",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Recharge",
+                  "type": "choice",
+                  "options": [
+                    "Short Rest",
+                    "Long Rest",
+                    "Dawn",
+                    "Other"
+                  ],
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "combat-options",
+              "type": "notes",
+              "name": "Combat Options & Custom Actions",
+              "col": 1,
+              "row": 16,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            }
+          ],
+          "hideGroupName": false
+        },
+        {
+          "id": "inventory",
+          "type": "group",
+          "name": "Inventory",
+          "groupColumns": 1,
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 8,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [
+            {
+              "id": "weapons-inventory",
+              "type": "list",
+              "name": "Weapons",
+              "col": 1,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Weapon",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Attack / Damage",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Quantity",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Properties",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Equipped",
+                  "type": "checkbox",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "armor-inventory",
+              "type": "list",
+              "name": "Armor & Shields",
+              "col": 1,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Item",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "AC / Bonus",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Strength / Stealth",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Equipped",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "equipment-inventory",
+              "type": "list",
+              "name": "Equipment & Treasure",
+              "col": 1,
+              "row": 8,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Item",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Quantity",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Weight",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Equipped",
+                  "type": "checkbox",
+                  "rowSources": []
+                },
+                {
+                  "name": "Location",
+                  "type": "choice",
+                  "options": [
+                    "Worn",
+                    "Carried",
+                    "Stored"
+                  ],
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false,
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false,
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false,
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false,
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false,
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    false,
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "currency",
+              "type": "list",
+              "name": "Currency",
+              "col": 1,
+              "row": 12,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Coin",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Amount",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "carried-items",
+              "type": "list",
+              "name": "Other Carried Items",
+              "col": 1,
+              "row": 16,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Item",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Quantity",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Weight",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Location / Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            }
+          ],
+          "hideGroupName": false
+        },
+        {
+          "id": "spells",
+          "type": "group",
+          "name": "Spells",
+          "groupColumns": 1,
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 8,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [
+            {
+              "id": "spellbook",
+              "type": "list",
+              "name": "Spells",
+              "col": 1,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Level",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Spell",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Prepared",
+                  "type": "checkbox",
+                  "rowSources": []
+                },
+                {
+                  "name": "Casting Time",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Range",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Components",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Duration / Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    false,
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    false,
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    false,
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    false,
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    false,
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    false,
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "cantrips",
+              "type": "list",
+              "name": "Cantrips",
+              "col": 1,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Cantrip",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Casting Time",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Range",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Components",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "spell-slots",
+              "type": "list",
+              "name": "Spell Slots & Pact Magic",
+              "col": 1,
+              "row": 9,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Level",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Current",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Maximum",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Recharge / Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "spellcasting",
+              "type": "notes",
+              "name": "Spellcasting Details",
+              "col": 1,
+              "row": 13,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "Spellcasting ability, spell save DC, spell attack bonus, focus, and special rules.",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "col": 1,
+              "row": 15,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "id": "spellcasting-ability",
+              "type": "choice",
+              "name": "Spellcasting Ability",
+              "value": "",
+              "choices": [
+                {
+                  "label": "Strength",
+                  "source": "ability-str-modifier"
+                },
+                {
+                  "label": "Dexterity",
+                  "source": "ability-dex-modifier"
+                },
+                {
+                  "label": "Constitution",
+                  "source": "ability-con-modifier"
+                },
+                {
+                  "label": "Intelligence",
+                  "source": "ability-int-modifier"
+                },
+                {
+                  "label": "Wisdom",
+                  "source": "ability-wis-modifier"
+                },
+                {
+                  "label": "Charisma",
+                  "source": "ability-cha-modifier"
+                }
+              ]
+            },
+            {
+              "col": 1,
+              "row": 16,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "source": "spellcasting-ability",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "id": "spellcasting-modifier",
+              "type": "number",
+              "name": "Spellcasting Modifier",
+              "value": ""
+            },
+            {
+              "col": 1,
+              "row": 17,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "source": "",
+              "visibility": "hidden",
+              "modifiers": [],
+              "children": [],
+              "id": "math-spell-attack-bonus",
+              "type": "math",
+              "name": "Spell Attack Bonus",
+              "mathOperation": "add",
+              "mathRounding": "none",
+              "leftValue": 0,
+              "leftSource": "spellcasting-ability",
+              "rightValue": 0,
+              "rightSource": "proficiency-bonus",
+              "lookupEntries": []
+            },
+            {
+              "col": 1,
+              "row": 18,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "source": "math-spell-attack-bonus",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "id": "spell-attack-bonus",
+              "type": "number",
+              "name": "Spell Attack Bonus",
+              "value": ""
+            },
+            {
+              "col": 1,
+              "row": 19,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "source": "",
+              "visibility": "hidden",
+              "modifiers": [],
+              "children": [],
+              "id": "math-spell-save-dc",
+              "type": "math",
+              "name": "Spell Save DC",
+              "mathOperation": "add",
+              "mathRounding": "none",
+              "leftValue": 0,
+              "leftSource": "math-spell-attack-bonus",
+              "rightValue": 8,
+              "rightSource": "",
+              "lookupEntries": []
+            },
+            {
+              "col": 1,
+              "row": 20,
+              "colSpan": 1,
+              "rowSpan": 1,
+              "source": "math-spell-save-dc",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "id": "spell-save-dc",
+              "type": "number",
+              "name": "Spell Save DC",
+              "value": ""
+            },
+            {
+              "id": "spell-components",
+              "type": "list",
+              "name": "Components, Scrolls & Focus",
+              "col": 1,
+              "row": 21,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Item",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Quantity",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Use / Components",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            }
+          ],
+          "hideGroupName": false
+        },
+        {
+          "id": "features",
+          "type": "group",
+          "name": "Features & Traits",
+          "groupColumns": 1,
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 8,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [
+            {
+              "id": "features-traits",
+              "type": "list",
+              "name": "Features & Traits",
+              "col": 1,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Feature",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Source / Level",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Uses",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Description / Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "feats",
+              "type": "list",
+              "name": "Feats",
+              "col": 1,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Feat",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Source",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Uses",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "proficiencies",
+              "type": "list",
+              "name": "Proficiencies",
+              "col": 1,
+              "row": 9,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Category",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Proficiency",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Source",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "languages",
+              "type": "list",
+              "name": "Languages",
+              "col": 1,
+              "row": 13,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Language",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Source",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "defenses",
+              "type": "list",
+              "name": "Resistances, Immunities & Vulnerabilities",
+              "col": 1,
+              "row": 17,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Damage / Condition",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Defense Type",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Source",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "conditions",
+              "type": "list",
+              "name": "Conditions & Effects",
+              "col": 1,
+              "row": 21,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Condition / Effect",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Source",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Duration",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "senses",
+              "type": "list",
+              "name": "Senses",
+              "col": 1,
+              "row": 25,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Sense",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Range",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Source",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            }
+          ],
+          "hideGroupName": false
+        },
+        {
+          "id": "background-details",
+          "type": "group",
+          "name": "Background",
+          "groupColumns": 2,
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 8,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [
+            {
+              "id": "personality",
+              "type": "notes",
+              "name": "Personality Traits",
+              "col": 1,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "ideals",
+              "type": "notes",
+              "name": "Ideals",
+              "col": 2,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "bonds",
+              "type": "notes",
+              "name": "Bonds",
+              "col": 1,
+              "row": 3,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "flaws",
+              "type": "notes",
+              "name": "Flaws",
+              "col": 2,
+              "row": 3,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "appearance",
+              "type": "notes",
+              "name": "Appearance & Age",
+              "col": 1,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "backstory",
+              "type": "notes",
+              "name": "Backstory",
+              "col": 2,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "allies",
+              "type": "notes",
+              "name": "Allies, Organizations & Contacts",
+              "col": 1,
+              "row": 7,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "origin-details",
+              "type": "notes",
+              "name": "Origin Details",
+              "col": 2,
+              "row": 7,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            }
+          ],
+          "hideGroupName": false
+        },
+        {
+          "id": "notes",
+          "type": "group",
+          "name": "Notes",
+          "groupColumns": 2,
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 8,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [
+            {
+              "id": "session-notes",
+              "type": "notes",
+              "name": "Session Notes",
+              "col": 1,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "goals",
+              "type": "notes",
+              "name": "Goals & Quests",
+              "col": 2,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "places",
+              "type": "notes",
+              "name": "Places & Discoveries",
+              "col": 1,
+              "row": 3,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "rewards",
+              "type": "notes",
+              "name": "Rewards & Downtime",
+              "col": 2,
+              "row": 3,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            },
+            {
+              "id": "custom-rules",
+              "type": "notes",
+              "name": "Table Notes & Custom Rules",
+              "col": 1,
+              "row": 5,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            }
+          ],
+          "hideGroupName": false
+        },
+        {
+          "id": "extras",
+          "type": "group",
+          "name": "Extras",
+          "groupColumns": 1,
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 8,
+          "value": "",
+          "source": "",
+          "visibility": "shown",
+          "modifiers": [],
+          "children": [
+            {
+              "id": "class-levels",
+              "type": "list",
+              "name": "Classes & Levels",
+              "col": 1,
+              "row": 1,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Class",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Level",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Hit Die",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "rest-resources",
+              "type": "list",
+              "name": "Rest & Recovery",
+              "col": 1,
+              "row": 4,
+              "colSpan": 1,
+              "rowSpan": 4,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Resource",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Current",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Maximum",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Recharge / Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "mounts",
+              "type": "list",
+              "name": "Mounts & Vehicles",
+              "col": 1,
+              "row": 8,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Name",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Speed",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Capacity",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "companions",
+              "type": "list",
+              "name": "Companions & Summons",
+              "col": 1,
+              "row": 11,
+              "colSpan": 1,
+              "rowSpan": 3,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": [],
+              "columns": [
+                {
+                  "name": "Name",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "AC",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "HP",
+                  "type": "number",
+                  "rowSources": []
+                },
+                {
+                  "name": "Speed",
+                  "type": "text",
+                  "rowSources": []
+                },
+                {
+                  "name": "Notes",
+                  "type": "text",
+                  "rowSources": []
+                }
+              ],
+              "rows": [
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                },
+                {
+                  "cells": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ]
+                }
+              ],
+              "stats": []
+            },
+            {
+              "id": "custom-fields",
+              "type": "notes",
+              "name": "Custom Fields & Other Details",
+              "col": 1,
+              "row": 14,
+              "colSpan": 1,
+              "rowSpan": 2,
+              "value": "",
+              "source": "",
+              "visibility": "shown",
+              "modifiers": [],
+              "children": []
+            }
+          ],
+          "hideGroupName": false
+        }
+      ],
+      "hideGroupName": true
+    }
+  ]
+}
