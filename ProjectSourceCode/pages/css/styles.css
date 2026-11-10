@@ -1137,7 +1137,8 @@ option {
 }
 
 .studio-save-dialog form,
-.studio-save-dialog label {
+.studio-save-dialog label,
+.draft-choice-content {
   display: grid;
   gap: 0.75rem;
 }
@@ -1148,6 +1149,11 @@ option {
 
 .studio-save-dialog h2 {
   margin: 0;
+}
+
+.draft-choice-content > p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .studio-save-dialog label {
@@ -1204,6 +1210,20 @@ option {
 .module-body > select {
   min-height: 2.25rem;
   padding: 0.35rem 0.5rem;
+}
+
+.module-body .value-module > input,
+.module-body .value-module > textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.5rem;
+  font-weight: 400;
+}
+
+.module-body .value-module > textarea {
+  min-height: 4rem;
+  resize: vertical;
 }
 
 .studio-layout {
@@ -1410,7 +1430,7 @@ option {
   pointer-events: none;
 }
 
-.group-header {
+.pages-header {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -1421,13 +1441,13 @@ option {
   color: var(--text);
 }
 
-.group-header > strong {
+.pages-header > strong {
   flex: 0 0 auto;
   font-family: var(--font-head);
   font-size: 0.88rem;
 }
 
-.group-tabs {
+.pages-tabs {
   display: flex;
   min-width: 0;
   flex: 1;
@@ -1436,7 +1456,7 @@ option {
   scrollbar-width: thin;
 }
 
-.group-tab {
+.pages-tab {
   flex: 0 0 auto;
   min-height: 2rem;
   padding: 0.3rem 0.65rem;
@@ -1448,22 +1468,22 @@ option {
   cursor: pointer;
 }
 
-.group-tab:hover,
-.group-tab[aria-selected="true"] {
+.pages-tab:hover,
+.pages-tab[aria-selected="true"] {
   color: var(--text);
 }
 
-.group-tab[aria-selected="true"] {
+.pages-tab[aria-selected="true"] {
   border-bottom-color: var(--bronze-bright);
   font-weight: 700;
 }
 
-.group-tab:focus-visible {
+.pages-tab:focus-visible {
   outline: 2px solid var(--bronze-bright);
   outline-offset: -2px;
 }
 
-.group-tab-panel {
+.pages-panel {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1475,7 +1495,7 @@ option {
   scrollbar-width: thin;
 }
 
-.sheet-studio[data-mode="developer"] .group-tab-panel {
+.sheet-studio[data-mode="developer"] .pages-panel {
   padding-top: 2rem;
 }
 
@@ -1564,12 +1584,88 @@ option {
   text-align: center;
 }
 
-.sheet-module[data-module-type="group"] {
+.group-field-grid {
+  --layout-columns: 2;
+  display: grid;
+  grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
+  grid-auto-rows: minmax(3.5rem, auto);
+  align-content: start;
+  gap: 0.65rem 0.85rem;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.group-field-grid > .sheet-module {
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.group-field-grid > .sheet-module[data-module-type="list"] {
+  grid-column: 1 / -1 !important;
+  min-height: 0;
+}
+
+.group-field-grid > .group-empty-state {
+  grid-column: 1 / -1;
+}
+
+.group-field-grid .group-field-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.group-field-grid .group-field-label > span {
+  min-width: 0;
+}
+
+.group-field-actions {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sheet-studio[data-mode="developer"] .group-field-actions {
+  display: flex;
+}
+
+.group-field-actions button {
+  min-height: 1.5rem;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.68rem;
+}
+
+.group-field-grid .module-dev-summary {
+  display: none;
+}
+
+.group-field-grid .module-body {
+  min-height: 0;
+  padding: 0;
+}
+
+.group-field-grid .module-body textarea {
+  min-height: 3rem;
+}
+
+.sheet-module[data-module-type="pages"] {
   min-height: 7rem;
   overflow: hidden;
 }
 
-.sheet-module[data-module-type="group"] > .module-body {
+.sheet-module[data-module-type="pages"] > .module-body {
   display: flex;
   min-height: 0;
   flex: 1;
@@ -1580,6 +1676,10 @@ option {
 
 .sheet-studio[data-mode="playtest"] .group-tab-edit {
   display: none;
+}
+
+.sheet-studio[data-mode="developer"] .pages-panel {
+  padding-top: 2rem;
 }
 
 .canvas-empty-state {
@@ -1719,6 +1819,17 @@ option {
   padding-top: 0.1rem;
 }
 
+.value-module {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.value-module > .list-edit-toggle {
+  position: static;
+  justify-self: end;
+}
+
 .list-edit-toggle {
   position: absolute;
   top: -0.15rem;
@@ -1790,7 +1901,8 @@ option {
   text-transform: none;
 }
 
-.list-table td input {
+.list-table td input,
+.list-table td select {
   width: 100%;
   min-width: 5rem;
   min-height: 2rem;
@@ -1800,9 +1912,17 @@ option {
   font-size: 0.86rem;
 }
 
-.list-table td input:focus {
+.list-table td input:focus,
+.list-table td select:focus {
   border-color: var(--bronze-bright);
   background: var(--field);
+}
+
+.list-table td input[type="checkbox"] {
+  width: auto;
+  min-width: 1.15rem;
+  min-height: 1.15rem;
+  vertical-align: middle;
 }
 
 .list-cell-text {
@@ -1810,6 +1930,14 @@ option {
   min-height: 2rem;
   padding: 0.25rem 0.4rem;
   overflow-wrap: anywhere;
+}
+
+.module-value-text {
+  display: block;
+  min-height: 2rem;
+  padding: 0.25rem 0.4rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .list-player-add-row {

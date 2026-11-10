@@ -6,6 +6,7 @@
 ## Week of 11/16/2026
 - keep updated with what you work on in the past week
 - added list module
+- updated group module to be less cluttered
 
 ## Week of 11/9/2026
 - added visibility toggle to module setting

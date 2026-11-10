@@ -41,6 +41,18 @@
         </form>
     </dialog>
 
+    <dialog class="studio-save-dialog draft-choice-dialog" data-draft-dialog aria-labelledby="draft-dialog-title">
+        <div class="draft-choice-content">
+            <h2 id="draft-dialog-title">Continue your saved draft?</h2>
+            <p>A draft saved in this browser is available. You can continue where you left off or start with a blank sheet.</p>
+            <p class="studio-save-error" data-draft-error role="alert" hidden></p>
+            <div class="studio-save-actions">
+                <button class="btn" type="button" data-start-fresh>Start from scratch</button>
+                <button class="btn studio-publish" type="button" data-continue-draft>Continue draft</button>
+            </div>
+        </div>
+    </dialog>
+
     <div class="studio-layout">
         <aside class="studio-sidebar" data-developer-only>
             <section class="studio-panel module-palette" aria-labelledby="module-palette-title">
@@ -54,6 +66,7 @@
                     <button class="module-tool" type="button" data-module-tool="checkbox"><span class="module-tool-icon">[x]</span>Checkbox</button>
                     <button class="module-tool" type="button" data-module-tool="notes"><span class="module-tool-icon">TXT</span>Notes</button>
                     <button class="module-tool" type="button" data-module-tool="math"><span class="module-tool-icon">+−</span>Math</button>
+                    <button class="module-tool" type="button" data-module-tool="pages"><span class="module-tool-icon">▤</span>Pages</button>
                     <button class="module-tool" type="button" data-module-tool="group"><span class="module-tool-icon">[]</span>Group</button>
                     <button class="module-tool" type="button" data-module-tool="list"><span class="module-tool-icon">≡</span>List</button>
                 </div>
@@ -86,7 +99,7 @@
         <section class="studio-workspace" aria-label="Character sheet workspace">
             <div class="workspace-heading">
                 <h2 data-workspace-title>Developer canvas</h2>
-                <p data-workspace-help>Use a group as a tabbed header. Add modules from its settings or drag modules into its content area.</p>
+                <p data-workspace-help>Use Pages for tabs and Groups for compact field panels. Lists provide repeatable rows.</p>
             </div>
             <div class="studio-canvas" data-layout-canvas data-root-canvas role="region" aria-label="Character sheet canvas" tabindex="0">
                 <p class="canvas-empty-state" data-empty-state>Start with a module from the palette.</p>
