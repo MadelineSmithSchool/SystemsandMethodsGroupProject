@@ -4,7 +4,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
-const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group', 'list']);
+const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'choice', 'notes', 'math', 'pages', 'group', 'list']);
 
 function renderTemplateError(res, status, title, message, returnUrl = '/templates') {
   return res.status(status).render('pages/error', {
@@ -111,7 +111,6 @@ function checkStudioTemplate(t) {
       if (Array.isArray(module.modifiers) && module.modifiers.some((modifier) => !modifier || typeof modifier !== 'object' || Array.isArray(modifier))) {
         return 'Every module modifier must be an object.';
       }
-<<<<<<< HEAD
       if (module.type === 'group') {
         if (module.children && module.children.some((child) =>
           child && ['pages', 'group'].includes(child.type))) {
@@ -125,19 +124,17 @@ function checkStudioTemplate(t) {
       if (module.type === 'list') {
         if (!Array.isArray(module.columns) || module.columns.length === 0 ||
           module.columns.some((column) => !column || typeof column.name !== 'string' ||
+            !['text', 'number', 'dice'].includes(column.type) ||
+            (column.source !== undefined && typeof column.source !== 'string'))) {
+      if (module.type === 'list') {
+        if (!Array.isArray(module.columns) || module.columns.length === 0 ||
+          module.columns.some((column) => !column || typeof column.name !== 'string' ||
             !['text', 'number', 'dice', 'checkbox', 'choice'].includes(column.type) ||
             (column.source !== undefined && typeof column.source !== 'string') ||
             (column.rowSources !== undefined && (!Array.isArray(column.rowSources) ||
               column.rowSources.some((source) => typeof source !== 'string'))) ||
             (column.options !== undefined && (!Array.isArray(column.options) ||
               column.options.some((option) => typeof option !== 'string'))))) {
-=======
-      if (module.type === 'list') {
-        if (!Array.isArray(module.columns) || module.columns.length === 0 ||
-          module.columns.some((column) => !column || typeof column.name !== 'string' ||
-            !['text', 'number', 'dice'].includes(column.type) ||
-            (column.source !== undefined && typeof column.source !== 'string'))) {
->>>>>>> 1648d7d (added list module)
           return 'Every list needs columns with a valid name, value type, and input source.';
         }
         if (!Array.isArray(module.rows) ||
@@ -150,7 +147,6 @@ function checkStudioTemplate(t) {
           return 'Every list stat must have a valid name and input source.';
         }
       }
-<<<<<<< HEAD
       if (module.type === 'choice' && (!Array.isArray(module.choices) ||
         module.choices.some((choice) =>
           !choice || typeof choice.label !== 'string' || typeof choice.source !== 'string'))) {
@@ -165,8 +161,6 @@ function checkStudioTemplate(t) {
           return 'Lookup tables need numeric input and output values.';
         }
       }
-=======
->>>>>>> 1648d7d (added list module)
       if (module.children) {
         const error = checkModules(module.children || []);
         if (error) return error;
