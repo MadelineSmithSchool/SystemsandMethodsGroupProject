@@ -11,6 +11,8 @@
 *.sln.docstates
 *.env
 *.env.test
+*.env.test.example
+*.docker-compose.yaml
 
 
 # User-specific files (MonoDevelop/Xamarin Studio)

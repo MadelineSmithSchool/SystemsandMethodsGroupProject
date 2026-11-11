@@ -11,18 +11,18 @@ services:
       start_period: 10s
     volumes:
       - lab10-test-db:/var/lib/postgresql/data
-      - ./src/init_data:/docker-entrypoint-initdb.d:ro
+      - ./create.sql:/docker-entrypoint-initdb.d/create.sql:ro # same schema as the dev db
 
   tests:
     image: node:22.19.0-bookworm
-    working_dir: /repository
+    working_dir: /repository/ProjectSourceCode
     env_file: .env.test
     depends_on:
       db-test:
         condition: service_healthy
     volumes:
       - ../.:/repository
-      - lab10-test-node-modules:/repository/node_modules
+      - lab10-test-node-modules:/repository/ProjectSourceCode/node_modules
     command: ['npm', 'test']
 
 volumes:

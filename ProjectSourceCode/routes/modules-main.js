@@ -14,6 +14,7 @@ import { clone, findModule, flatten, layoutColumns, linkSettings } from './modul
 /* sheet state */
 var studio = document.querySelector('[data-sheet-studio]');
 if (studio) {
+    var playerSheet = studio.hasAttribute('data-player-sheet');
     var rootCanvas = studio.querySelector('[data-root-canvas]');
     var numericSettings = [
         'value', 'count', 'sides', 'uncheckedValue', 'checkedValue',
@@ -29,7 +30,7 @@ if (studio) {
     // keep the sheet, editor choices, and playtest values separate.
     var state = {
         document: { name: '', description: '', modules: [], savedPresets: [] },
-        ui: { mode: 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
+        ui: { mode: playerSheet ? 'playtest' : 'developer', selectedId: null, selectedModuleIds: [], activeDrag: null, suppressToolClick: false },
         player: { values: {}, checked: {}, rollResults: {} },
         history: { undo: [], redo: [] },
         nextModuleId: 1
@@ -193,8 +194,10 @@ if (studio) {
 
     function refresh() {
         renderCanvas(studio, state, api);
-        renderInspector(studio, state, api);
-        updatePresetSelection(studio, state.ui);
+        if (!playerSheet) {
+            renderInspector(studio, state, api);
+            updatePresetSelection(studio, state.ui);
+        }
     }
 
     /* sheet actions */
@@ -640,22 +643,48 @@ if (studio) {
         }
     }
 
-    // check the sheet before publishing, show a message if saving fails.
-    async function saveAction(kind) {
+    function openSaveDialog() {
+        var dialog = studio.querySelector('[data-save-dialog]');
+        studio.querySelector('[data-save-error]').hidden = true;
+        dialog.showModal();
+        studio.querySelector('#sheet-name').focus();
+    }
+
+    async function saveAction(event) {
+        event.preventDefault();
+        var name = studio.querySelector('#sheet-name').value.trim();
+        var description = studio.querySelector('#sheet-description').value.trim();
+        var privacyLevel = Number(studio.querySelector('#template-level').value);
+        var errorMessage = studio.querySelector('[data-save-error]');
+        errorMessage.hidden = true;
+        dispatch({ type: 'update-document-meta', key: 'name', value: name, render: false });
+        dispatch({ type: 'update-document-meta', key: 'description', value: description, render: false });
+        var problems = validate(state.document);
+        if (problems.length) {
+            errorMessage.textContent = problems.join(' ');
+            errorMessage.hidden = false;
+            return;
+        }
+
+        var saveButton = studio.querySelector('[data-confirm-save]');
+        saveButton.disabled = true;
         var meta = document.querySelector('meta[name="csrf-token"]');
         var token = studio.dataset.csrfToken || (meta && meta.content);
         try {
-            if (kind === 'publish') {
-                var problems = validate(state.document);
-                if (problems.length) {
-                    window.alert(problems.join('\n'));
-                    return;
-                }
-            }
-            await save(state.document, kind === 'draft' ? studio.dataset.saveDraftUrl : studio.dataset.publishUrl, token);
+            var result = await save(
+                state.document,
+                studio.dataset.saveUrl,
+                token,
+                privacyLevel,
+                studio.dataset.templateId
+            );
+            window.location.assign('/templates/' + result.templateId);
         } catch (error) {
-            console.error('Template builder ' + kind + ' failed:', error);
-            window.alert('todo'); //saving to the database hasnt been done yet, so it just shows this message
+            console.error('Template builder save failed:', error);
+            errorMessage.textContent = error.message || 'The template could not be saved.';
+            errorMessage.hidden = false;
+        } finally {
+            saveButton.disabled = false;
         }
     }
 
@@ -683,42 +712,42 @@ if (studio) {
     /* start the builder */
     // load the last draft, then draw the sheet.
     function attachListeners() {
+        studio.addEventListener('click', handleClick);
+        studio.addEventListener('input', handleInputs);
+        studio.addEventListener('change', handleInputs);
+        if (playerSheet) return;
+
         studio.addEventListener('pointerdown', startPointer);
         studio.addEventListener('pointermove', movePointer);
         ['pointerup', 'pointercancel'].forEach(function (type) {
             studio.addEventListener(type, function (event) { finishPointer(event, type === 'pointercancel'); });
         });
         studio.addEventListener('keydown', handleKeydown);
-        studio.addEventListener('click', handleClick);
-        studio.addEventListener('input', handleInputs);
-        studio.addEventListener('change', handleInputs);
-        [['name', '#sheet-name'], ['description', '#sheet-description']].forEach(function (pair) {
-            studio.querySelector(pair[1]).addEventListener('input', function (event) {
-                dispatch({ type: 'update-document-meta', key: pair[0], value: event.target.value, render: false });
-                if (pair[0] === 'name' && state.ui.mode === 'playtest') {
-                    studio.querySelector('[data-workspace-title]').textContent = event.target.value || 'Character sheet';
-                }
-            });
-        });
         studio.querySelector('[data-download-template]').addEventListener('click', downloadTemplate);
-        studio.querySelector('[data-save-draft]').addEventListener('click', function () { saveAction('draft'); });
-        studio.querySelector('[data-publish-template]').addEventListener('click', function () { saveAction('publish'); });
+        studio.querySelector('[data-save-template]').addEventListener('click', openSaveDialog);
+        studio.querySelector('[data-save-form]').addEventListener('submit', saveAction);
+        studio.querySelector('[data-cancel-save]').addEventListener('click', function () {
+            studio.querySelector('[data-save-dialog]').close();
+        });
     }
 
     try {
-        var saved = restore();
+        var saved = studio.dataset.initialTemplate ? JSON.parse(studio.dataset.initialTemplate) : restore();
         if (saved && Array.isArray(saved.modules)) {
             dispatch({ type: 'restore-document', document: saved, recordHistory: false, render: false });
-            studio.querySelector('#sheet-name').value = state.document.name || '';
-            studio.querySelector('#sheet-description').value = state.document.description || '';
+            if (!playerSheet) {
+                studio.querySelector('#sheet-name').value = state.document.name || '';
+                studio.querySelector('#sheet-description').value = state.document.description || '';
+            }
         }
     } catch (error) {
         console.error('Template builder draft restore failed:', error);
         window.alert('The saved draft could not be restored.');
     }
-    studio.dataset.saveDraftUrl = studio.dataset.saveDraftUrl || '/template-builder/save-draft';
-    studio.dataset.publishUrl = studio.dataset.publishUrl || '/template-builder/publish';
+    if (!playerSheet) {
+        studio.querySelector('#template-level').value = studio.dataset.privacyLevel || '0';
+    }
     attachListeners();
-    renderSavedPresets(studio, state.document.savedPresets);
+    if (!playerSheet) renderSavedPresets(studio, state.document.savedPresets);
     refresh();
 }

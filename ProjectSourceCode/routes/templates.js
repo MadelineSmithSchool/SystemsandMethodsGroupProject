@@ -4,9 +4,60 @@ const multer = require('multer');
 const crypto = require('crypto');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
+const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group']);
+
+function renderTemplateError(res, status, title, message, returnUrl = '/templates') {
+  return res.status(status).render('pages/error', {
+    errorCode: status,
+    errorTitle: title,
+    errorMessage: message,
+    returnUrl
+  });
+}
+
+function renderNotFound(res) {
+  return renderTemplateError(
+    res,
+    404,
+    'Template not found',
+    'This template does not exist or you do not have permission to view it.'
+  );
+}
+
+function toBuilderDocument(template, isStudioTemplate) {
+  if (isStudioTemplate) {
+    return {
+      schemaVersion: 1,
+      name: template.name.trim(),
+      description: template.description || '',
+      modules: template.modules
+    };
+  }
+
+  const stats = Object.entries(template.stats).concat(Object.entries(template.minorStats || {}));
+  return {
+    schemaVersion: 1,
+    name: template.name.trim(),
+    description: template.description || '',
+    modules: stats.map(([name, value], index) => ({
+      id: String(index + 1),
+      type: 'number',
+      name,
+      col: (index % 3) * 4 + 1,
+      row: Math.floor(index / 3) * 3 + 1,
+      colSpan: 4,
+      rowSpan: 3,
+      value: String(value),
+      source: '',
+      visibility: 'shown',
+      modifiers: [],
+      children: []
+    }))
+  };
+}
 
 // returns an error message if the uploaded template is wrong, otherwise null
-function checkTemplate(t) {
+function checkLegacyTemplate(t) {
   if (!t || typeof t !== 'object' || Array.isArray(t)) return 'File must be a JSON object.';
   if (typeof t.name !== 'string' || !t.name.trim() || t.name.length > 50) return 'Template needs a name (50 characters max).';
   if (t.description && (typeof t.description !== 'string' || t.description.length > 255)) return 'Description must be text (255 characters max).';
@@ -20,6 +71,40 @@ function checkTemplate(t) {
   return null;
 }
 
+function checkStudioTemplate(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return 'File must be a JSON object.';
+  if (t.schemaVersion !== 1) return 'Template has an unsupported format.';
+  if (typeof t.name !== 'string' || !t.name.trim() || t.name.length > 50) return 'Template needs a name (50 characters max).';
+  if (t.description !== undefined && (typeof t.description !== 'string' || t.description.length > 255)) return 'Description must be text (255 characters max).';
+  if (!Array.isArray(t.modules) || t.modules.length === 0) return 'Template needs at least one module.';
+
+  const ids = new Set();
+  function checkModules(modules) {
+    for (const module of modules) {
+      if (!module || typeof module !== 'object' || Array.isArray(module)) return 'Every module must be an object.';
+      if (!moduleTypes.has(module.type)) return 'Template contains an unsupported module type.';
+      if ((typeof module.id !== 'string' && typeof module.id !== 'number') || !String(module.id)) return 'Every module needs an ID.';
+      if (ids.has(String(module.id))) return 'Module IDs must be unique.';
+      ids.add(String(module.id));
+      if (typeof module.name !== 'string' || !module.name.trim()) return 'Every module needs a name.';
+      if (['col', 'row', 'colSpan', 'rowSpan'].some((key) => !Number.isInteger(module[key]) || module[key] < 1)) {
+        return 'Every module needs a valid position and size.';
+      }
+      if (module.children !== undefined && !Array.isArray(module.children)) return 'Module children must be a list.';
+      if (module.modifiers !== undefined && !Array.isArray(module.modifiers)) return 'Module modifiers must be a list.';
+      if (Array.isArray(module.modifiers) && module.modifiers.some((modifier) => !modifier || typeof modifier !== 'object' || Array.isArray(modifier))) {
+        return 'Every module modifier must be an object.';
+      }
+      if (module.children) {
+        const error = checkModules(module.children || []);
+        if (error) return error;
+      }
+    }
+    return null;
+  }
+  return checkModules(t.modules);
+}
+
 // sends a template back as a .json file (same format as uploads)
 function download(res, template) {
   const fileName = template.template_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
@@ -29,24 +114,102 @@ function download(res, template) {
 
 module.exports = (db, auth) => {
   const router = express.Router();
+  const editRouter = express.Router();
 
   router.use((req, res, next) => {
     res.locals.login = !!req.session.user; // for the nav
     next();
   });
 
+  editRouter.get('/:templateid', auth, async (req, res, next) => {
+    if (!/^\d{1,9}$/.test(req.params.templateid)) {
+      return renderNotFound(res);
+    }
+
+    try {
+      const template = await db.oneOrNone(
+        'SELECT * FROM templates WHERE template_id = $1 AND user_id = $2',
+        [req.params.templateid, req.session.user.id]
+      );
+      if (!template) return renderNotFound(res);
+
+      const data = template.template_data || {};
+      const sheet = data.schemaVersion === 1 && Array.isArray(data.modules)
+        ? {
+          schemaVersion: 1,
+          name: template.template_name,
+          description: template.template_desc || '',
+          modules: data.modules
+        }
+        : toBuilderDocument({
+          ...data,
+          name: template.template_name,
+          description: template.template_desc || ''
+        }, false);
+
+      res.render('pages/template-builder', {
+        initialTemplate: JSON.stringify(sheet),
+        templateId: template.template_id,
+        privacyLevel: template.privacy_level
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+  router.edit = editRouter;
+
   // one of the logged in user's templates (null if it isn't theirs)
-  const getMyTemplate = (req) => {
+  const getMyTemplate = (req, includeSaveCount = false) => {
     if (!/^\d{1,9}$/.test(req.params.id)) return null;
-    return db.oneOrNone('SELECT * FROM templates WHERE template_id = $1 AND user_id = $2', [req.params.id, req.session.user.id]);
+    const saveCount = includeSaveCount
+      ? ', (SELECT COUNT(DISTINCT library.user_id) FROM player_library library WHERE library.template_id = templates.template_id AND library.user_id <> templates.user_id) AS times_saved'
+      : '';
+    return db.oneOrNone(
+      `SELECT templates.*${saveCount} FROM templates WHERE template_id = $1 AND user_id = $2`,
+      [req.params.id, req.session.user.id]
+    );
   };
 
-  const getShared = (req) => db.oneOrNone('SELECT * FROM templates WHERE share_id = $1', [req.params.shareId]);
+  const getLibraryTemplate = (req, includeSaveCount = false) => {
+    if (!/^\d{1,9}$/.test(req.params.id)) return null;
+    const saveCount = includeSaveCount
+      ? ', (SELECT COUNT(DISTINCT library.user_id) FROM player_library library WHERE library.template_id = templates.template_id AND library.user_id <> templates.user_id) AS times_saved'
+      : '';
+    return db.oneOrNone(
+      `SELECT templates.*, (templates.user_id = $2) AS is_owner${saveCount}
+       FROM templates
+       WHERE template_id = $1
+         AND (user_id = $2 OR EXISTS (
+           SELECT 1 FROM player_library library
+           WHERE library.template_id = templates.template_id AND library.user_id = $2
+         ))`,
+      [req.params.id, req.session.user.id]
+    );
+  };
+
+  const getShared = (req) => db.oneOrNone(
+    'SELECT * FROM templates WHERE share_id = $1 AND privacy_level IN (1, 2)',
+    [req.params.shareId]
+  );
+
+  const getTemplateList = (userId) => db.any(
+    `SELECT t.*, u.username AS creator_name, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date,
+            (t.user_id = $1) AS is_owner
+     FROM templates t
+     JOIN users u ON u.user_id = t.user_id
+     WHERE t.user_id = $1
+        OR EXISTS (
+          SELECT 1 FROM player_library library
+          WHERE library.template_id = t.template_id AND library.user_id = $1
+        )
+     ORDER BY t.created_at DESC`,
+    [userId]
+  );
 
   // list of your templates (pick one to send)
   router.get('/', auth, async (req, res, next) => {
     try {
-      const templates = await db.any('SELECT * FROM templates WHERE user_id = $1 ORDER BY created_at DESC', [req.session.user.id]);
+      const templates = await getTemplateList(req.session.user.id);
       res.render('pages/templates', { templates });
     } catch (err) {
       next(err);
@@ -54,28 +217,113 @@ module.exports = (db, auth) => {
   });
 
   router.get('/upload', auth, (req, res) => res.render('pages/upload'));
-  router.get('/new', auth, (req, res) => res.render('pages/template-builder'));
+  router.get('/new', auth, (req, res) => {
+    const initialTemplate = req.session.uploadedTemplate;
+    const templateId = req.session.uploadedTemplateId;
+    delete req.session.uploadedTemplate;
+    delete req.session.uploadedTemplateId;
+    res.render('pages/template-builder', {
+      initialTemplate: initialTemplate ? JSON.stringify(initialTemplate) : '',
+      templateId: templateId || '',
+      privacyLevel: 0
+    });
+  });
 
   router.post('/upload', auth, upload.single('template'), async (req, res, next) => {
     const fail = (error) => res.status(400).render('pages/upload', { error });
     if (!req.file) return fail('Pick a file to upload.');
 
-    let t;
+    let template;
     try {
-      t = JSON.parse(req.file.buffer.toString());
+      template = JSON.parse(req.file.buffer.toString());
     } catch (err) {
       return fail('That file is not valid JSON.');
     }
-    const error = checkTemplate(t);
+
+    const studioError = checkStudioTemplate(template);
+    const isStudioTemplate = !studioError;
+    const error = isStudioTemplate ? null : checkLegacyTemplate(template);
     if (error) return fail(error);
 
     try {
-      const data = { name: t.name.trim(), description: t.description || '', stats: t.stats, minorStats: t.minorStats || {} };
-      const row = await db.one(
-        'INSERT INTO templates (template_name, template_desc, template_data, user_id) VALUES ($1, $2, $3:json, $4) RETURNING template_id',
-        [data.name, data.description, data, req.session.user.id]
-      );
-      res.redirect('/templates/' + row.template_id);
+      const data = isStudioTemplate
+        ? { schemaVersion: 1, name: template.name.trim(), description: template.description || '', modules: template.modules }
+        : { name: template.name.trim(), description: template.description || '', stats: template.stats, minorStats: template.minorStats || {} };
+      const row = await db.tx(async (transaction) => {
+        const row = await transaction.one(
+          'INSERT INTO templates (template_name, template_desc, template_data, user_id, privacy_level) VALUES ($1, $2, $3:json, $4, 0) RETURNING template_id',
+          [data.name, data.description, data, req.session.user.id]
+        );
+        await transaction.none(
+          'INSERT INTO player_library (user_id, template_id) VALUES ($1, $2)',
+          [req.session.user.id, row.template_id]
+        );
+        return row;
+      });
+      req.session.uploadedTemplate = toBuilderDocument(template, isStudioTemplate);
+      req.session.uploadedTemplateId = row.template_id;
+      res.redirect('/templates/new');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/save', auth, async (req, res, next) => {
+    const template = req.body;
+    if (!template || typeof template !== 'object' || Array.isArray(template)) {
+      return res.status(400).json({ error: 'Template data is required.' });
+    }
+    const templateError = checkStudioTemplate(template);
+    if (templateError) return res.status(400).json({ error: templateError });
+    if (!Number.isInteger(template.privacyLevel) || ![0, 1, 2].includes(template.privacyLevel)) {
+      return res.status(400).json({ error: 'Choose a valid template level.' });
+    }
+    if (template.templateId !== undefined && !/^\d{1,9}$/.test(String(template.templateId))) {
+      return res.status(400).json({ error: 'Template ID is invalid.' });
+    }
+
+    try {
+      const data = {
+        schemaVersion: 1,
+        name: template.name.trim(),
+        description: template.description || '',
+        modules: template.modules
+      };
+      let savedTemplate;
+      if (template.templateId) {
+        savedTemplate = await db.oneOrNone(
+          `UPDATE templates
+           SET template_name = $1, template_desc = $2, template_data = $3:json, privacy_level = $4,
+               share_id = CASE WHEN $4 = 0 THEN NULL ELSE share_id END
+           WHERE template_id = $5 AND user_id = $6
+           RETURNING template_id`,
+          [
+            data.name,
+            data.description,
+            data,
+            template.privacyLevel,
+            template.templateId,
+            req.session.user.id
+          ]
+        );
+        if (!savedTemplate) return res.status(404).json({ error: 'Template not found.' });
+      } else {
+        savedTemplate = await db.tx(async (transaction) => {
+          const created = await transaction.one(
+            `INSERT INTO templates (template_name, template_desc, template_data, user_id, privacy_level)
+             VALUES ($1, $2, $3:json, $4, $5)
+             RETURNING template_id`,
+            [data.name, data.description, data, req.session.user.id, template.privacyLevel]
+          );
+          await transaction.none(
+            `INSERT INTO player_library (user_id, template_id)
+             VALUES ($1, $2)`,
+            [req.session.user.id, created.template_id]
+          );
+          return created;
+        });
+      }
+      res.json({ templateId: savedTemplate.template_id });
     } catch (err) {
       next(err);
     }
@@ -87,7 +335,7 @@ module.exports = (db, auth) => {
     try {
       const template = await getShared(req);
       if (!template) return res.status(404).send('This link is invalid.');
-      res.render('pages/shared', { template });
+      res.render('pages/templates', { sharedTemplate: template });
     } catch (err) {
       next(err);
     }
@@ -103,16 +351,22 @@ module.exports = (db, auth) => {
     }
   });
 
-  // save a copy of a sent template to your own templates
+  // Add the original shared template to the user's library.
   router.post('/shared/:shareId/save', auth, async (req, res, next) => {
     try {
       const template = await getShared(req);
       if (!template) return res.status(404).send('This link is invalid.');
-      const row = await db.one(
-        'INSERT INTO templates (template_name, template_desc, template_data, user_id) VALUES ($1, $2, $3:json, $4) RETURNING template_id',
-        [template.template_name, template.template_desc, template.template_data, req.session.user.id]
+      await db.none(
+        `INSERT INTO player_library (user_id, template_id)
+         SELECT $1, $2
+         WHERE $1 IS DISTINCT FROM $3
+           AND NOT EXISTS (
+             SELECT 1 FROM player_library
+             WHERE user_id = $1 AND template_id = $2
+           )`,
+        [req.session.user.id, template.template_id, template.user_id]
       );
-      res.redirect('/templates/' + row.template_id);
+      res.redirect('/templates/' + template.template_id);
     } catch (err) {
       next(err);
     }
@@ -122,9 +376,22 @@ module.exports = (db, auth) => {
 
   router.get('/:id', auth, async (req, res, next) => {
     try {
-      const template = await getMyTemplate(req);
-      if (!template) return res.status(404).send('Template not found.');
-      res.render('pages/template', { template });
+      const template = await getLibraryTemplate(req, true);
+      if (!template) return renderNotFound(res);
+      const data = template.template_data || {};
+      const sheet = data.schemaVersion === 1 && Array.isArray(data.modules)
+        ? {
+          schemaVersion: 1,
+          name: template.template_name,
+          description: template.template_desc || '',
+          modules: data.modules
+        }
+        : toBuilderDocument({
+          ...data,
+          name: template.template_name,
+          description: template.template_desc || ''
+        }, false);
+      res.render('pages/template', { template, initialTemplate: JSON.stringify(sheet) });
     } catch (err) {
       next(err);
     }
@@ -132,7 +399,7 @@ module.exports = (db, auth) => {
 
   router.get('/:id/download', auth, async (req, res, next) => {
     try {
-      const template = await getMyTemplate(req);
+      const template = await getLibraryTemplate(req);
       if (!template) return res.status(404).send('Template not found.');
       download(res, template);
     } catch (err) {
@@ -144,13 +411,27 @@ module.exports = (db, auth) => {
     try {
       let template = await getMyTemplate(req);
       if (!template) return res.status(404).send('Template not found.');
+      if (template.privacy_level === 0) {
+        return renderTemplateError(
+          res,
+          403,
+          'Template is private',
+          'Change this template to Public or Unlisted before creating a share link.',
+          '/templates/' + template.template_id
+        );
+      }
       // make the link the first time it's shared
       if (!template.share_id) {
         template = await db.one('UPDATE templates SET share_id = $1 WHERE template_id = $2 RETURNING *',
           [crypto.randomBytes(12).toString('hex'), template.template_id]);
       }
       const link = `${req.protocol}://${req.get('host')}/templates/shared/${template.share_id}`;
-      res.render('pages/share', { template, link });
+      const templates = await getTemplateList(req.session.user.id);
+      res.render('pages/templates', {
+        templates,
+        shareLink: link,
+        shareTemplateName: template.template_name
+      });
     } catch (err) {
       next(err);
     }
