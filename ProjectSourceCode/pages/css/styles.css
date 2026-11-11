@@ -501,6 +501,14 @@ option {
   flex-direction: column;
 }
 
+.tutorial h2{
+  color: var(--text);
+}
+
+.tutorial button{
+  color:#69140e;
+}
+
 .intro {
   display: flex;
   flex-wrap: wrap;
