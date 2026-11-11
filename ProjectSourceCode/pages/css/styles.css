@@ -53,6 +53,7 @@
 html {
   color-scheme: dark;
 }
+/*
   margin: 0;
   min-height: 100vh;
   display: flex;
@@ -67,7 +68,7 @@ html {
     radial-gradient(60rem 28rem at 50% -8rem, rgba(118, 101, 132, 0.16), transparent);
   background-attachment: fixed;
   background-repeat: no-repeat;
-}
+}*/
 
 main {
   flex: 1;
@@ -393,13 +394,11 @@ option {
 .form h2 {
   margin: 0 0 1.25rem;
   font-size: 1.9rem;
-  color:white;
 }
 
 .form label {
   display: block;
   margin-bottom: 0.35rem;
-  color:white;
 }
 
 .form input:not([type="submit"]):not([type="checkbox"]):not([type="radio"]) {
@@ -419,7 +418,7 @@ option {
 
 .form p {
   margin: 1.25rem 0 0;
-  color:white;
+  color: var(--muted);
 }
 
 .form-error,
@@ -490,14 +489,6 @@ option {
   flex: 1;
   display: flex;
   flex-direction: column;
-}
-
-.tutorial h2{
-  color: var(--text);
-}
-
-.tutorial button{
-  color:#69140e;
 }
 
 .intro {
