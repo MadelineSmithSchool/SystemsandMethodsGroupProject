@@ -1828,6 +1828,10 @@ option {
   padding: 0.45rem 0.55rem 0.65rem;
 }
 
+.sheet-studio[data-mode="playtest"] .module-body {
+  container-type: inline-size;
+}
+
 .module-body > textarea {
   min-height: 4rem;
   resize: vertical;
@@ -1848,6 +1852,16 @@ option {
   display: grid;
   min-width: 0;
   gap: 0.2rem;
+}
+
+.sheet-studio[data-mode="playtest"] .value-module {
+  min-height: 100%;
+  align-content: stretch;
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module[data-module-type="notes"] .value-module {
+  min-height: 0;
+  align-content: start;
 }
 
 .value-module > .list-edit-toggle {
@@ -1963,6 +1977,7 @@ option {
   padding: 0.25rem 0.4rem;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+  text-align: center;
 }
 
 .sheet-module[data-module-type="number"] .module-value-text,
@@ -1970,6 +1985,33 @@ option {
 .list-table td input[type="number"] {
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module:is([data-module-type="number"], [data-module-type="text"], [data-module-type="notes"]) .module-value-text,
+.sheet-studio[data-mode="playtest"] .sheet-module:is([data-module-type="number"], [data-module-type="text"], [data-module-type="notes"]) .module-output {
+  display: grid;
+  min-height: 3rem;
+  place-items: center;
+  padding: 0.2rem;
+  color: var(--bronze-bright);
+  font-family: var(--font-head);
+  font-size: clamp(1.4rem, 22cqi, 3.25rem);
+  font-weight: 700;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module[data-module-type="notes"] .module-value-text,
+.sheet-studio[data-mode="playtest"] .sheet-module[data-module-type="notes"] .module-output {
+  display: block;
+  min-height: 3rem;
+  font-size: clamp(0.9rem, 5cqi, 1.2rem);
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  white-space: pre-wrap;
 }
 
 .list-player-add-row {
