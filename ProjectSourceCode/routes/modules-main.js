@@ -25,7 +25,7 @@ if (studio) {
     ];
     var documentActions = [
         'add-module', 'remove-modules', 'update-setting', 'update-modifier',
-        'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module',
+        'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module', 'move-modules',
         'reparent-module', 'update-document-value', 'update-list-cell', 'update-list-column',
         'update-list-stat', 'update-list-row-source', 'add-list-column', 'remove-list-column', 'add-list-row',
         'remove-list-row', 'add-list-stat', 'remove-list-stat',
@@ -59,6 +59,20 @@ if (studio) {
         if (playerSheet) return;
         studio.querySelector('#sheet-name').value = state.document.name || '';
         studio.querySelector('#sheet-description').value = state.document.description || '';
+    }
+
+    function updateResponsiveColumns() {
+        var style = getComputedStyle(rootCanvas);
+        var cellSize = parseFloat(style.getPropertyValue('--canvas-row-size'));
+        var gap = parseFloat(style.columnGap) || 0;
+        var horizontalPadding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+        if (!Number.isFinite(cellSize) || cellSize <= 0) return false;
+        var availableWidth = Math.max(0, rootCanvas.clientWidth - horizontalPadding);
+        var columns = Math.max(1, Math.floor((availableWidth + gap) / (cellSize + gap)));
+        var previousColumns = Number(style.getPropertyValue('--layout-columns').trim());
+        if (columns === previousColumns) return false;
+        rootCanvas.style.setProperty('--layout-columns', String(columns));
+        return true;
     }
 
     function handleDialogClose() {
@@ -179,10 +193,61 @@ if (studio) {
         return findOpenPlacement(list, columns, module.colSpan, module.rowSpan, preferred, module.id);
     }
 
+    function displaceOverlappingModules(modules, draggedId, draggedPlacement) {
+        var placements = [{ id: draggedId, placement: draggedPlacement }];
+        var remaining = modules.filter(function (module) { return module.id !== draggedId; })
+            .slice()
+            .sort(function (first, second) {
+                return first.row - second.row || first.col - second.col;
+            });
+
+        remaining.forEach(function (module) {
+            var placement = {
+                col: module.col,
+                row: module.row,
+                colSpan: module.colSpan,
+                rowSpan: module.rowSpan
+            };
+            while (placements.some(function (placed) {
+                return placementsOverlap(placement, placed.placement);
+            })) {
+                placement.row += 1;
+            }
+            placements.push({ id: module.id, placement: placement });
+        });
+        return placements;
+    }
+
+    function layoutRowStep(layout) {
+        var style = getComputedStyle(layout);
+        var rowSize = style.gridAutoRows.match(/[\d.]+px/);
+        var rowHeight = parseFloat(rowSize ? rowSize[0] : style.gridAutoRows);
+        var rowGap = parseFloat(style.rowGap) || 0;
+        return (Number.isFinite(rowHeight) ? rowHeight : 64) + rowGap;
+    }
+
+    function layoutColumnStep(layout) {
+        var style = getComputedStyle(layout);
+        var columnSize = style.gridTemplateColumns.match(/^[\d.]+px/);
+        var columnWidth = parseFloat(columnSize ? columnSize[0] : '');
+        var columnGap = parseFloat(style.columnGap) || 0;
+        return (Number.isFinite(columnWidth) ? columnWidth : layout.getBoundingClientRect().width / layoutColumns(layout)) +
+            columnGap;
+    }
+
+    function layoutContentOrigin(layout) {
+        var style = getComputedStyle(layout);
+        var rect = layout.getBoundingClientRect();
+        return {
+            left: rect.left + (parseFloat(style.borderLeftWidth) || 0) + (parseFloat(style.paddingLeft) || 0),
+            top: rect.top + (parseFloat(style.borderTopWidth) || 0) + (parseFloat(style.paddingTop) || 0)
+        };
+    }
+
     function snappedPlacement(module, layout, start, x, y, resize) {
         var columns = layoutColumns(layout);
-        var columnsMoved = Math.round((x - start.x) / (layout.getBoundingClientRect().width / columns));
-        var rowsMoved = Math.round((y - start.y) / (parseFloat(getComputedStyle(layout).gridAutoRows) || 64));
+        var columnsMoved = Math.round((x - start.x) / layoutColumnStep(layout));
+        var rowsMoved = Math.round((y - start.y) / layoutRowStep(layout));
         if (resize) {
             return Object.assign({}, module, {
                 colSpan: Math.max(1, Math.min(columns - module.col + 1, start.colSpan + columnsMoved)),
@@ -362,6 +427,7 @@ if (studio) {
     };
 
     function refresh() {
+        updateResponsiveColumns();
         renderCanvas(studio, state, api);
         if (!playerSheet) {
             renderInspector(studio, state, api);
@@ -502,6 +568,13 @@ if (studio) {
     function handleMoveModule(action) {
         var module = findModule(state.document.modules, action.id);
         if (module) Object.assign(module, action.placement);
+    }
+
+    function handleMoveModules(action) {
+        action.placements.forEach(function (item) {
+            var module = findModule(state.document.modules, item.id);
+            if (module) Object.assign(module, item.placement);
+        });
     }
 
     function handleReparentModule(action) {
@@ -660,6 +733,7 @@ if (studio) {
         ['load-preset', handleLoadPreset],
         ['save-preset', handleSavePreset],
         ['move-module', handleMoveModule],
+        ['move-modules', handleMoveModules],
         ['reparent-module', handleReparentModule],
         ['update-document-value', handleUpdateDocumentValue],
         ['update-list-cell', handleUpdateListCell],
@@ -801,10 +875,14 @@ if (studio) {
             return;
         }
         var resize = target.closest('[data-resize-module]');
-        var handle = resize || target.closest('[data-move-module]');
+        var dragHeader = target.closest('[data-module-drag-handle]');
+        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"]');
+        var handle = resize || (!interactiveTarget && dragHeader);
         if (!handle) return;
         var card = target.closest('[data-sheet-module]');
+        if (!card) return;
         var module = findModule(state.document.modules, card.dataset.sheetModule);
+        if (!module) return;
         var placement = { col: module.col, row: module.row, colSpan: module.colSpan, rowSpan: module.rowSpan };
         handle.setPointerCapture(event.pointerId);
         setUi({ activeDrag: {
@@ -855,9 +933,19 @@ if (studio) {
         var module = findModule(state.document.modules, drag.id);
         var preview = snappedPlacement(module, drag.layout, drag.start, event.clientX, event.clientY, drag.resize);
         var entry = findModuleEntry(drag.id);
-        if (entry.list.some(function (item) { return item.id !== module.id && placementsOverlap(preview, item); })) return;
         drag.placement = { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan };
-        setPlacement(drag.element, preview, drag.layout);
+        if (drag.resize) {
+            if (entry.list.some(function (item) { return item.id !== module.id && placementsOverlap(preview, item); })) return;
+            setPlacement(drag.element, preview, drag.layout);
+            return;
+        }
+        drag.previewPlacements = displaceOverlappingModules(entry.list, module.id, drag.placement);
+        drag.previewPlacements.forEach(function (item) {
+            var sibling = Array.prototype.find.call(drag.layout.children, function (element) {
+                return element.dataset.sheetModule === item.id;
+            });
+            if (sibling) setPlacement(sibling, item.placement, drag.layout);
+        });
     }
 
     function dropTool(drag, event) {
@@ -877,11 +965,12 @@ if (studio) {
         );
         var rowSpan = drag.type === 'pages' ? 8 :
             drag.type === 'group' ? 5 : drag.type === 'list' ? 5 : moduleSize.rowSpan;
-        var rect = destination.element.getBoundingClientRect();
-        var rowStep = parseFloat(getComputedStyle(destination.element).gridAutoRows) || 64;
+        var origin = layoutContentOrigin(destination.element);
+        var rowStep = layoutRowStep(destination.element);
+        var columnStep = layoutColumnStep(destination.element);
         var placement = nearestPlacement(siblings, { colSpan: colSpan, rowSpan: rowSpan }, columns, {
-            col: Math.max(1, Math.min(columns - colSpan + 1, Math.floor((event.clientX - rect.left) / (rect.width / columns)) + 1)),
-            row: Math.max(1, Math.floor((event.clientY - rect.top) / rowStep) + 1)
+            col: Math.max(1, Math.min(columns - colSpan + 1, Math.floor((event.clientX - origin.left) / columnStep) + 1)),
+            row: Math.max(1, Math.floor((event.clientY - origin.top) / rowStep) + 1)
         });
         dispatch({
             type: 'add-module',
@@ -912,7 +1001,10 @@ if (studio) {
             refresh();
             return;
         }
-        if (owner === entry.parent) dispatch({ type: 'move-module', id: drag.id, placement: drag.placement });
+        if (owner === entry.parent) dispatch({
+            type: 'move-modules',
+            placements: drag.previewPlacements || [{ id: drag.id, placement: drag.placement }]
+        });
         else dispatch({
             type: 'reparent-module',
             id: drag.id,
@@ -1445,6 +1537,16 @@ if (studio) {
         studio.addEventListener('change', handleInputs);
         studio.addEventListener('focusout', handleFocusout);
         studio.addEventListener('keydown', handleKeydown);
+        if (window.ResizeObserver) {
+            var canvasObserver = new window.ResizeObserver(function () {
+                if (updateResponsiveColumns()) refresh();
+            });
+            canvasObserver.observe(rootCanvas);
+        } else {
+            window.addEventListener('resize', function () {
+                if (updateResponsiveColumns()) refresh();
+            });
+        }
         if (playerSheet) return;
 
         studio.addEventListener('pointerdown', startPointer);

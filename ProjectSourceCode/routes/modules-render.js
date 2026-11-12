@@ -221,6 +221,7 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
         var activeChild = children.find(function (child) { return child.id === activeId; }) || children[0];
         var groupHeader = document.createElement('header');
         groupHeader.className = 'pages-header';
+        if (mode === 'developer') groupHeader.dataset.moduleDragHandle = '';
         var groupTitle = document.createElement('strong');
         groupTitle.dataset.moduleTitle = '';
         groupTitle.textContent = module.name;
@@ -242,7 +243,6 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
         if (mode === 'developer') {
             var groupActions = document.createElement('div');
             groupActions.className = 'group-editor-actions';
-            groupActions.appendChild(createButton('Move', 'module-move-handle', { moveModule: '' }, 'Move ' + module.name));
             groupActions.appendChild(createButton('Settings', 'module-edit', { editModule: module.id }));
             groupActions.appendChild(createButton('Remove', 'module-remove', { removeModule: module.id }));
             groupHeader.appendChild(groupActions);
@@ -406,9 +406,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
         if (module.type !== 'pages' && !compactFields) {
             var header = document.createElement('header');
             header.className = 'sheet-module-header';
-            if (mode === 'developer') {
-                header.appendChild(createButton('Move', 'module-move-handle', { moveModule: '' }, 'Move ' + module.name));
-            }
+            if (mode === 'developer') header.dataset.moduleDragHandle = '';
             var title = document.createElement('strong');
             title.dataset.moduleTitle = '';
             title.textContent = module.name;
@@ -421,13 +419,13 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
         } else if (compactFields && module.type !== 'pages') {
             var fieldLabel = document.createElement('div');
             fieldLabel.className = 'group-field-label';
+            if (mode === 'developer') fieldLabel.dataset.moduleDragHandle = '';
             var fieldName = document.createElement('span');
             fieldName.textContent = module.name;
             fieldLabel.appendChild(fieldName);
             if (mode === 'developer') {
                 var fieldActions = document.createElement('div');
                 fieldActions.className = 'group-field-actions';
-                fieldActions.appendChild(createButton('Move', 'module-move-handle', { moveModule: '' }, 'Move ' + module.name));
                 fieldActions.appendChild(createButton('Edit', 'module-edit', { editModule: module.id }));
                 fieldLabel.appendChild(fieldActions);
             }
