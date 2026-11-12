@@ -4,6 +4,7 @@ import {
     renderCanvas,
     renderInspector,
     renderSavedPresets,
+    fitNotesModule,
     setPlacement,
     updateLiveValues,
     updatePresetSelection
@@ -25,7 +26,7 @@ if (studio) {
     ];
     var documentActions = [
         'add-module', 'remove-modules', 'update-setting', 'update-modifier',
-        'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module',
+        'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module', 'move-modules',
         'reparent-module', 'update-document-value', 'update-list-cell', 'update-list-column',
         'update-list-stat', 'update-list-row-source', 'add-list-column', 'remove-list-column', 'add-list-row',
         'remove-list-row', 'add-list-stat', 'remove-list-stat',
@@ -59,6 +60,34 @@ if (studio) {
         if (playerSheet) return;
         studio.querySelector('#sheet-name').value = state.document.name || '';
         studio.querySelector('#sheet-description').value = state.document.description || '';
+    }
+
+    function checkboxModuleChecked(module) {
+        var items = Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
+            module.checkboxItems : null;
+        if (!isPlaytest()) {
+            return items ? items.some(function (item) { return Boolean(item.checked); }) : Boolean(module.checked);
+        }
+        if (!items) return Boolean(state.player.checked[module.id]);
+        return items.some(function (item, index) {
+            var itemId = String(item.id || 'legacy-' + index);
+            var checked = state.player.checked[module.id + ':' + itemId];
+            return Boolean(checked !== undefined ? checked : index === 0 && state.player.checked[module.id]);
+        });
+    }
+
+    function updateResponsiveColumns() {
+        var style = getComputedStyle(rootCanvas);
+        var cellSize = parseFloat(style.getPropertyValue('--canvas-row-size'));
+        var gap = parseFloat(style.columnGap) || 0;
+        var horizontalPadding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+        if (!Number.isFinite(cellSize) || cellSize <= 0) return false;
+        var availableWidth = Math.max(0, rootCanvas.clientWidth - horizontalPadding);
+        var columns = Math.max(1, Math.floor((availableWidth + gap) / (cellSize + gap)));
+        var previousColumns = Number(style.getPropertyValue('--layout-columns').trim());
+        if (columns === previousColumns) return false;
+        rootCanvas.style.setProperty('--layout-columns', String(columns));
+        return true;
     }
 
     function handleDialogClose() {
@@ -139,7 +168,8 @@ if (studio) {
                 type === 'list' ? 8 : moduleSize.colSpan,
             columns
         );
-        var rowSpan = type === 'pages' ? 8 : type === 'group' ? 5 : type === 'list' ? 5 : moduleSize.rowSpan;
+        var rowSpan = type === 'pages' ? 8 : type === 'group' ? 5 : type === 'list' ? 5 :
+            type === 'checkbox' ? 4 : moduleSize.rowSpan;
         var preferred = { col: 1 + (siblings.length % 3) * 4, row: 1 + Math.floor(siblings.length / 3) * 3 };
         return Object.assign(
             { id: id, type: type, name: moduleTypes[type].name },
@@ -153,6 +183,15 @@ if (studio) {
     function placementsOverlap(first, second) {
         return first.col < second.col + second.colSpan && first.col + first.colSpan > second.col &&
             first.row < second.row + second.rowSpan && first.row + first.rowSpan > second.row;
+    }
+
+    function containerAtPlacement(modules, draggedModule, placement) {
+        if (draggedModule.type === 'pages') return null;
+        return modules.find(function (module) {
+            if (module.id === draggedModule.id || !['pages', 'group'].includes(module.type) ||
+                module.type === 'group' && ['pages', 'group'].includes(draggedModule.type)) return false;
+            return placementsOverlap(placement, module);
+        }) || null;
     }
 
     function findOpenPlacement(list, columns, colSpan, rowSpan, preferred, ignoreId) {
@@ -179,10 +218,64 @@ if (studio) {
         return findOpenPlacement(list, columns, module.colSpan, module.rowSpan, preferred, module.id);
     }
 
+    function displaceOverlappingModules(modules, draggedId, draggedPlacement, containerTargetId) {
+        var placements = [{ id: draggedId, placement: draggedPlacement }];
+        var remaining = modules.filter(function (module) { return module.id !== draggedId; })
+            .slice()
+            .sort(function (first, second) {
+                if (first.id === containerTargetId) return -1;
+                if (second.id === containerTargetId) return 1;
+                return first.row - second.row || first.col - second.col;
+            });
+
+        remaining.forEach(function (module) {
+            var placement = {
+                col: module.col,
+                row: module.row,
+                colSpan: module.colSpan,
+                rowSpan: module.rowSpan
+            };
+            while (placements.some(function (placed) {
+                return !(module.id === containerTargetId && placed.id === draggedId) &&
+                    placementsOverlap(placement, placed.placement);
+            })) {
+                placement.row += 1;
+            }
+            placements.push({ id: module.id, placement: placement });
+        });
+        return placements;
+    }
+
+    function layoutRowStep(layout) {
+        var style = getComputedStyle(layout);
+        var rowSize = style.gridAutoRows.match(/[\d.]+px/);
+        var rowHeight = parseFloat(rowSize ? rowSize[0] : style.gridAutoRows);
+        var rowGap = parseFloat(style.rowGap) || 0;
+        return (Number.isFinite(rowHeight) ? rowHeight : 64) + rowGap;
+    }
+
+    function layoutColumnStep(layout) {
+        var style = getComputedStyle(layout);
+        var columnSize = style.gridTemplateColumns.match(/^[\d.]+px/);
+        var columnWidth = parseFloat(columnSize ? columnSize[0] : '');
+        var columnGap = parseFloat(style.columnGap) || 0;
+        return (Number.isFinite(columnWidth) ? columnWidth : layout.getBoundingClientRect().width / layoutColumns(layout)) +
+            columnGap;
+    }
+
+    function layoutContentOrigin(layout) {
+        var style = getComputedStyle(layout);
+        var rect = layout.getBoundingClientRect();
+        return {
+            left: rect.left + (parseFloat(style.borderLeftWidth) || 0) + (parseFloat(style.paddingLeft) || 0),
+            top: rect.top + (parseFloat(style.borderTopWidth) || 0) + (parseFloat(style.paddingTop) || 0)
+        };
+    }
+
     function snappedPlacement(module, layout, start, x, y, resize) {
         var columns = layoutColumns(layout);
-        var columnsMoved = Math.round((x - start.x) / (layout.getBoundingClientRect().width / columns));
-        var rowsMoved = Math.round((y - start.y) / (parseFloat(getComputedStyle(layout).gridAutoRows) || 64));
+        var columnsMoved = Math.round((x - start.x) / layoutColumnStep(layout));
+        var rowsMoved = Math.round((y - start.y) / layoutRowStep(layout));
         if (resize) {
             return Object.assign({}, module, {
                 colSpan: Math.max(1, Math.min(columns - module.col + 1, start.colSpan + columnsMoved)),
@@ -193,6 +286,44 @@ if (studio) {
             col: Math.max(1, Math.min(columns - module.colSpan + 1, start.col + columnsMoved)),
             row: Math.max(1, start.row + rowsMoved)
         });
+    }
+
+    function fitPlacementToContents(card, layout, module, placement) {
+        var columns = layoutColumns(layout);
+        var minimumColumns = Math.min(columns, 3);
+        var minimumRows = Math.max(3,
+            module.type === 'checkbox' ?
+                (Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
+                    module.checkboxItems.length : 1) + 3 :
+                module.type === 'list' ? (module.rows || []).length + 2 :
+                    module.type === 'pages' ? 4 : 1);
+        var fitted = Object.assign({}, placement, {
+            colSpan: Math.max(minimumColumns, placement.colSpan),
+            rowSpan: Math.max(minimumRows, placement.rowSpan)
+        });
+        fitted.col = Math.max(1, Math.min(columns - fitted.colSpan + 1, fitted.col));
+        var body = card.querySelector('.module-body');
+        var header = card.querySelector('.sheet-module-header, .group-field-label, .pages-header');
+
+        for (var attempt = 0; attempt < 48; attempt += 1) {
+            setPlacement(card, fitted, layout);
+            var widthOverflow = card.scrollWidth > card.clientWidth + 1 ||
+                body && body.scrollWidth > body.clientWidth + 1 ||
+                header && header.scrollWidth > header.clientWidth + 1;
+            var heightOverflow = card.scrollHeight > card.clientHeight + 1 ||
+                body && body.scrollHeight > body.clientHeight + 1 ||
+                header && header.scrollHeight > header.clientHeight + 1;
+            if (!widthOverflow && !heightOverflow) break;
+            if (widthOverflow && fitted.colSpan < columns) {
+                fitted.colSpan += 1;
+                fitted.col = Math.max(1, Math.min(columns - fitted.colSpan + 1, fitted.col));
+            } else if (heightOverflow) {
+                fitted.rowSpan += 1;
+            } else {
+                break;
+            }
+        }
+        return fitted;
     }
 
     /* values and rolls */
@@ -276,7 +407,7 @@ if (studio) {
         } else if (kind === 'number') {
             return typed !== undefined ? typed : module.value || 0;
         } else if (kind === 'checkbox') {
-            var checked = isPlaytest() ? state.player.checked[module.id] : module.checked;
+            var checked = checkboxModuleChecked(module);
             return Number(checked ? module.checkedValue : module.uncheckedValue);
         } else {
             return typed !== undefined ? typed : module.value || '';
@@ -294,8 +425,7 @@ if (studio) {
     function applyModifiers(module, value) {
         (module.modifiers || []).forEach(function (modifier) {
             var checkbox = findModule(state.document.modules, modifier.source);
-            var checked = checkbox && checkbox.type === 'checkbox' &&
-                (isPlaytest() ? state.player.checked[checkbox.id] : checkbox.checked);
+            var checked = checkbox && checkbox.type === 'checkbox' && checkboxModuleChecked(checkbox);
             if (checked) value += Number(modifier.amount || 0);
         });
     }
@@ -362,6 +492,7 @@ if (studio) {
     };
 
     function refresh() {
+        updateResponsiveColumns();
         renderCanvas(studio, state, api);
         if (!playerSheet) {
             renderInspector(studio, state, api);
@@ -439,15 +570,51 @@ if (studio) {
     function handleUpdateSetting(action) {
         var target = findModule(state.document.modules, action.id);
         if (!target) return;
+        var previousRowSpan = target.rowSpan;
         if (numericSettings.includes(action.setting)) {
             target[action.setting] = clampSetting(action.setting, Number(action.value));
         } else {
             target[action.setting] = action.value;
         }
         if (linkSettings.includes(action.setting)) state.player.rollResults[target.id] = null;
+        if (target.type === 'checkbox' && action.setting === 'checkboxItems') {
+            target.checkboxItems = action.value;
+            target.checkboxLabel = target.checkboxItems[0] && target.checkboxItems[0].label || '';
+            target.checked = target.checkboxItems.some(function (item) { return Boolean(item.checked); });
+            target.rowSpan = Math.max(4, target.rowSpan, target.checkboxItems.length + 3);
+        }
+        if (target.type === 'checkbox' && action.setting === 'rowSpan') {
+            var checkboxItemCount = Array.isArray(target.checkboxItems) ? target.checkboxItems.length : 1;
+            target.rowSpan = Math.max(4, checkboxItemCount + 3, target.rowSpan);
+        }
+        if (target.type === 'checkbox' && target.rowSpan !== previousRowSpan) {
+            var checkboxEntry = findModuleEntry(target.id);
+            if (checkboxEntry) {
+                var checkboxPlacement = {
+                    col: target.col,
+                    row: target.row,
+                    colSpan: target.colSpan,
+                    rowSpan: target.rowSpan
+                };
+                displaceOverlappingModules(checkboxEntry.list, target.id, checkboxPlacement)
+                    .forEach(function (item) {
+                        var sibling = findModule(checkboxEntry.list, item.id);
+                        if (sibling) Object.assign(sibling, item.placement);
+                    });
+            }
+        }
         if (target.type === 'pages' && (action.setting === 'colSpan' || action.setting === 'rowSpan')) {
             var entry = findModuleEntry(target.id);
-            if (entry) Object.assign(target, nearestPlacement(entry.list, target, layoutColumns(rootCanvas), target));
+            if (entry) {
+                var card = Array.prototype.find.call(studio.querySelectorAll('[data-sheet-module]'), function (element) {
+                    return element.dataset.sheetModule === target.id;
+                });
+                var layout = card && card.parentElement.closest('[data-layout-canvas]');
+                if (card && layout) {
+                    Object.assign(target, fitPlacementToContents(card, layout, target, target));
+                }
+                Object.assign(target, nearestPlacement(entry.list, target, layoutColumns(rootCanvas), target));
+            }
         }
         if (target.type === 'group' && action.setting === 'groupColumns') {
             (target.children || []).forEach(function (child) {
@@ -502,6 +669,13 @@ if (studio) {
     function handleMoveModule(action) {
         var module = findModule(state.document.modules, action.id);
         if (module) Object.assign(module, action.placement);
+    }
+
+    function handleMoveModules(action) {
+        action.placements.forEach(function (item) {
+            var module = findModule(state.document.modules, item.id);
+            if (module) Object.assign(module, item.placement);
+        });
     }
 
     function handleReparentModule(action) {
@@ -660,6 +834,7 @@ if (studio) {
         ['load-preset', handleLoadPreset],
         ['save-preset', handleSavePreset],
         ['move-module', handleMoveModule],
+        ['move-modules', handleMoveModules],
         ['reparent-module', handleReparentModule],
         ['update-document-value', handleUpdateDocumentValue],
         ['update-list-cell', handleUpdateListCell],
@@ -801,10 +976,14 @@ if (studio) {
             return;
         }
         var resize = target.closest('[data-resize-module]');
-        var handle = resize || target.closest('[data-move-module]');
+        var dragHeader = target.closest('[data-module-drag-handle]');
+        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"]');
+        var handle = resize || (!interactiveTarget && dragHeader);
         if (!handle) return;
         var card = target.closest('[data-sheet-module]');
+        if (!card) return;
         var module = findModule(state.document.modules, card.dataset.sheetModule);
+        if (!module) return;
         var placement = { col: module.col, row: module.row, colSpan: module.colSpan, rowSpan: module.rowSpan };
         handle.setPointerCapture(event.pointerId);
         setUi({ activeDrag: {
@@ -854,10 +1033,18 @@ if (studio) {
 
         var module = findModule(state.document.modules, drag.id);
         var preview = snappedPlacement(module, drag.layout, drag.start, event.clientX, event.clientY, drag.resize);
+        if (drag.resize) preview = fitPlacementToContents(drag.element, drag.layout, module, preview);
         var entry = findModuleEntry(drag.id);
-        if (entry.list.some(function (item) { return item.id !== module.id && placementsOverlap(preview, item); })) return;
         drag.placement = { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan };
-        setPlacement(drag.element, preview, drag.layout);
+        var dropContainer = drag.resize ? null : containerAtPlacement(entry.list, module, drag.placement);
+        drag.dropTargetId = dropContainer && dropContainer.id;
+        drag.previewPlacements = displaceOverlappingModules(entry.list, module.id, drag.placement, drag.dropTargetId);
+        drag.previewPlacements.forEach(function (item) {
+            var sibling = Array.prototype.find.call(drag.layout.children, function (element) {
+                return element.dataset.sheetModule === item.id;
+            });
+            if (sibling) setPlacement(sibling, item.placement, drag.layout);
+        });
     }
 
     function dropTool(drag, event) {
@@ -876,12 +1063,14 @@ if (studio) {
             columns
         );
         var rowSpan = drag.type === 'pages' ? 8 :
-            drag.type === 'group' ? 5 : drag.type === 'list' ? 5 : moduleSize.rowSpan;
-        var rect = destination.element.getBoundingClientRect();
-        var rowStep = parseFloat(getComputedStyle(destination.element).gridAutoRows) || 64;
+            drag.type === 'group' ? 5 : drag.type === 'list' ? 5 :
+                drag.type === 'checkbox' ? 4 : moduleSize.rowSpan;
+        var origin = layoutContentOrigin(destination.element);
+        var rowStep = layoutRowStep(destination.element);
+        var columnStep = layoutColumnStep(destination.element);
         var placement = nearestPlacement(siblings, { colSpan: colSpan, rowSpan: rowSpan }, columns, {
-            col: Math.max(1, Math.min(columns - colSpan + 1, Math.floor((event.clientX - rect.left) / (rect.width / columns)) + 1)),
-            row: Math.max(1, Math.floor((event.clientY - rect.top) / rowStep) + 1)
+            col: Math.max(1, Math.min(columns - colSpan + 1, Math.floor((event.clientX - origin.left) / columnStep) + 1)),
+            row: Math.max(1, Math.floor((event.clientY - origin.top) / rowStep) + 1)
         });
         dispatch({
             type: 'add-module',
@@ -895,13 +1084,17 @@ if (studio) {
     function dropModule(drag, event) {
         var entry = findModuleEntry(drag.id);
         if (drag.resize) {
-            dispatch({ type: 'move-module', id: drag.id, placement: drag.placement });
+            dispatch({
+                type: 'move-modules',
+                placements: drag.previewPlacements || [{ id: drag.id, placement: drag.placement }]
+            });
             return;
         }
         var target = document.elementFromPoint(event.clientX, event.clientY);
         var drop = canvasForPoint(event.clientX, event.clientY);
         // keep the module where it is if it is dropped outside a canvas or on itself.
-        var owner = drop ? drop.owner : entry.parent;
+        var owner = drop && drop.owner ? drop.owner :
+            drag.dropTargetId ? findModule(state.document.modules, drag.dropTargetId) : entry.parent;
         if (owner && owner.id === drag.id) owner = entry.parent;
         if ((entry.module.type === 'pages' || owner && owner.type === 'group' &&
             ['pages', 'group'].includes(entry.module.type)) && owner) {
@@ -912,7 +1105,10 @@ if (studio) {
             refresh();
             return;
         }
-        if (owner === entry.parent) dispatch({ type: 'move-module', id: drag.id, placement: drag.placement });
+        if (owner === entry.parent) dispatch({
+            type: 'move-modules',
+            placements: drag.previewPlacements || [{ id: drag.id, placement: drag.placement }]
+        });
         else dispatch({
             type: 'reparent-module',
             id: drag.id,
@@ -1144,6 +1340,29 @@ if (studio) {
         '[data-remove-module]': function(target) {
             if (isDeveloper()) dispatch({ type: 'remove-modules', ids: [target.dataset.removeModule] });
         },
+        '[data-add-checkbox-item]': function(target) {
+            var module = findModule(state.document.modules, target.dataset.addCheckboxItem);
+            if (!isDeveloper() || !module || module.type !== 'checkbox') return;
+            var items = Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
+                clone(module.checkboxItems) : [{
+                    id: 'legacy',
+                    label: module.checkboxLabel || '',
+                    checked: Boolean(module.checked)
+                }];
+            var nextId = items.reduce(function (next, item) {
+                var match = /^item-(\d+)$/.exec(String(item.id || ''));
+                return match ? Math.max(next, Number(match[1]) + 1) : next;
+            }, 1);
+            items.push({ id: 'item-' + nextId, label: '', checked: false });
+            dispatch({ type: 'update-setting', id: module.id, setting: 'checkboxItems', value: items });
+        },
+        '[data-remove-checkbox-item]': function(target) {
+            var module = findModule(state.document.modules, target.dataset.removeCheckboxItem);
+            if (!isDeveloper() || !module || module.type !== 'checkbox') return;
+            var items = Array.isArray(module.checkboxItems) ? clone(module.checkboxItems) : [];
+            items = items.filter(function (item) { return String(item.id) !== target.dataset.checkboxItem; });
+            if (items.length) dispatch({ type: 'update-setting', id: module.id, setting: 'checkboxItems', value: items });
+        },
         '[data-edit-module]': function(target) {
             if (isDeveloper()) setUi({ selectedId: target.dataset.editModule, selectedModuleIds: [] });
         }
@@ -1228,12 +1447,78 @@ if (studio) {
             var id = valueInput.dataset.moduleValue;
             dispatchPlayerOrDocumentChange(id, valueInput.value, 'values', 'value');
             updateLiveValues(studio, state, api);
+            if (isPlaytest()) {
+                var valueModule = findModule(state.document.modules, id);
+                var valueCard = valueInput.closest('[data-sheet-module]');
+                fitNotesModule(valueCard, valueCard && valueCard.parentElement.closest('[data-layout-canvas]'), valueModule);
+            }
+            return;
+        }
+        var moduleNameInput = target.closest('[data-module-name]');
+        if (moduleNameInput && !isPlaytest() && (event.type === 'input' || event.type === 'change')) {
+            moduleNameInput.size = Math.max(4, moduleNameInput.value.length);
+            dispatch({
+                type: 'update-setting',
+                id: moduleNameInput.dataset.moduleName,
+                setting: 'name',
+                value: moduleNameInput.value,
+                render: false
+            });
+            return;
+        }
+        var checkboxLabelInput = target.closest('[data-checkbox-label-module]');
+        if (checkboxLabelInput && !isPlaytest() && (event.type === 'input' || event.type === 'change')) {
+            checkboxLabelInput.style.height = 'auto';
+            checkboxLabelInput.style.height = Math.min(checkboxLabelInput.scrollHeight, 64) + 'px';
+            checkboxLabelInput.style.overflowY = checkboxLabelInput.scrollHeight > 64 ? 'auto' : 'hidden';
+            var checkboxModule = findModule(state.document.modules, checkboxLabelInput.dataset.checkboxLabelModule);
+            if (!checkboxModule) return;
+            var checkboxItems = Array.isArray(checkboxModule.checkboxItems) && checkboxModule.checkboxItems.length ?
+                clone(checkboxModule.checkboxItems) : [{
+                    id: 'legacy',
+                    label: checkboxModule.checkboxLabel || '',
+                    checked: Boolean(checkboxModule.checked)
+                }];
+            var checkboxItem = checkboxItems.find(function (item) {
+                return String(item.id) === checkboxLabelInput.dataset.checkboxItem;
+            });
+            if (!checkboxItem) return;
+            checkboxItem.label = checkboxLabelInput.value;
+            dispatch({
+                type: 'update-setting',
+                id: checkboxModule.id,
+                setting: 'checkboxItems',
+                value: checkboxItems,
+                render: false
+            });
             return;
         }
         var checkbox = event.type === 'change' && target.closest('[data-module-checked]');
         if (checkbox) {
             var checkId = checkbox.dataset.moduleChecked;
-            dispatchPlayerOrDocumentChange(checkId, checkbox.checked, 'checked', 'setting');
+            var checkboxModule = findModule(state.document.modules, checkId);
+            var itemId = checkbox.dataset.checkboxItem;
+            if (!checkboxModule || !itemId) return;
+            if (isPlaytest()) {
+                var playerCheckId = checkId + ':' + itemId;
+                dispatch({ type: 'player', key: 'checked', id: playerCheckId, value: checkbox.checked, render: false });
+            } else {
+                var checkboxItems = Array.isArray(checkboxModule.checkboxItems) && checkboxModule.checkboxItems.length ?
+                    clone(checkboxModule.checkboxItems) : [{
+                        id: 'legacy',
+                        label: checkboxModule.checkboxLabel || '',
+                        checked: Boolean(checkboxModule.checked)
+                    }];
+                var selectedCheckbox = checkboxItems.find(function (item) { return String(item.id) === itemId; });
+                if (!selectedCheckbox) return;
+                selectedCheckbox.checked = checkbox.checked;
+                dispatch({
+                    type: 'update-setting',
+                    id: checkboxModule.id,
+                    setting: 'checkboxItems',
+                    value: checkboxItems
+                });
+            }
             return;
         }
         if (event.type === 'change' && target.type === 'checkbox' && target.dataset.setting && !isPlaytest()) {
@@ -1291,8 +1576,8 @@ if (studio) {
             var rerender = !inPlace || setting === 'groupColumns';
             dispatch({ type: 'update-setting', id: selected.id, setting: setting, value: target.value, render: rerender });
             if (setting === 'name') {
-                var title = studio.querySelector('[data-sheet-module="' + selected.id + '"] [data-module-title]');
-                if (title) title.textContent = target.value || moduleTypes[selected.type].name;
+                var nameInput = studio.querySelector('[data-sheet-module="' + selected.id + '"] [data-module-name]');
+                if (nameInput) nameInput.value = target.value || moduleTypes[selected.type].name;
             } else if (inPlace && !rerender) {
                 updateLiveValues(studio, state, api);
             }
@@ -1445,6 +1730,16 @@ if (studio) {
         studio.addEventListener('change', handleInputs);
         studio.addEventListener('focusout', handleFocusout);
         studio.addEventListener('keydown', handleKeydown);
+        if (window.ResizeObserver) {
+            var canvasObserver = new window.ResizeObserver(function () {
+                if (updateResponsiveColumns()) refresh();
+            });
+            canvasObserver.observe(rootCanvas);
+        } else {
+            window.addEventListener('resize', function () {
+                if (updateResponsiveColumns()) refresh();
+            });
+        }
         if (playerSheet) return;
 
         studio.addEventListener('pointerdown', startPointer);

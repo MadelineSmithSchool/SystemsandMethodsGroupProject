@@ -1,0 +1,29 @@
+<div class="container mt-4" style="max-width: 600px;">
+  <h2>Settings</h2>
+
+  {{#each errors}}<div class="alert alert-danger">{{this}}</div>{{/each}}
+  {{#if success}}<div class="alert alert-success">{{success}}</div>{{/if}}
+
+  <h4 class="mt-4">Profile</h4>
+  <form action="/settings/profile" method="POST">
+    <label for="username">Username</label>
+    <input class="form-control" id="username" name="username" value="{{account.username}}" maxlength="50" required>
+    <label for="email" class="mt-2">Email</label>
+    <input class="form-control" id="email" type="email" name="email" value="{{account.email}}" maxlength="255" required>
+    <button class="btn btn-primary mt-3">Save profile</button>
+  </form>
+
+  <h4 class="mt-5">Change password</h4>
+  <form action="/settings/password" method="POST">
+    <input class="form-control mb-2" type="password" name="current_password" placeholder="Current password" required>
+    <input class="form-control mb-2" type="password" name="new_password" placeholder="New password" required>
+    <input class="form-control mb-2" type="password" name="confirm_password" placeholder="Confirm new password" required>
+    <button class="btn btn-secondary">Update password</button>
+  </form>
+
+  <h4 class="mt-5 text-danger">Delete account</h4>
+  <form action="/settings/delete" method="POST" onsubmit="return confirm('Delete your account? Only an admin can restore it.');">
+    <input class="form-control mb-2" type="password" name="password" placeholder="Confirm your password" required>
+    <button class="btn btn-danger">Delete my account</button>
+  </form>
+</div>

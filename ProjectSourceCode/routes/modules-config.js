@@ -1,7 +1,7 @@
 // Define module types and built-in presets.
 import { clone, flatten, linkSettings } from './modules-helper.js';
 
-export var moduleSize = { colSpan: 4, rowSpan: 3 };
+export var moduleSize = { colSpan: 5, rowSpan: 3 };
 
 var base = { value: '', source: '', visibility: 'shown', modifiers: [], children: [] };
 
@@ -29,7 +29,9 @@ export var moduleTypes = {
     checkbox: {
         name: 'Checkbox', control: 'checkbox', valueKind: 'checkbox',
         inspector: ['source', 'checkbox'],
-        defaults: withBase({ checked: false, uncheckedValue: 0, checkedValue: 1 })
+        defaults: withBase({
+            checked: false, checkboxLabel: '', checkboxItems: [], uncheckedValue: 0, checkedValue: 1
+        })
     },
     choice: {
         name: 'Choice', control: 'choice', valueKind: 'choice',
