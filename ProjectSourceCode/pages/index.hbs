@@ -1,57 +1,16 @@
 <main class="dash">
-  {{#if user}}
-    {{!-- ============ HOME SCREEN (logged in) ============ --}}
-    <section class="start" aria-labelledby="home-title">
-      <div class="start-head">
-        <h1 id="home-title">Welcome back{{#if user.username}}, {{user.username}}{{/if}}</h1>
-        <p>Pick up where you left off, or start something new.</p>
+  <section class="start" aria-labelledby="welcome-title">
+    <div class="row">
+      <div class="start-head col-md-6">
+        <h1 id="welcome-title">Character Builder</h1>
+        <p>Build and use custom Character Sheets for any Tabletop Roleplaying Game. Log in or create an account to get started.</p>
       </div>
-      <div class="row">
-        <div class="col">
-          <!-- TODO: Add images for the cards-->
-          <a class="option" href="/upload">
-            <span class="option-title">Upload template</span>
-            <img class="index-cards" src="" alt="image">
-            <span class="option-desc">Bring in a template file you already have.</span>
-          </a>
-        </div>
-        <div class="col">
-          <a class="option" href="/">
-            <span class="option-title">Send template</span>
-            <img class="index-cards" src="" alt="image">
-            <span class="option-desc">Share one of your templates with another player.</span>
-          </a>
-        </div>
-        <div class="col">
-          <a class="option" href="/dashboard">
-            <span class="option-title">Build new template</span>
-            <img class="index-cards" src="" alt="image">
-            <span class="option-desc">Design a character sheet from cards you choose.</span>
-          </a>
-        </div>
-        <div class="col">
-          <a class="option" href="#">
-            <span class="option-title">Template library</span>
-            <img class="index-cards" src="" alt="image">
-            <span class="option-desc">Browse and reopen your saved templates.</span>
-          </a>
-        </div>
+      <div class="workspace-actions">
+        <a class="btn btn--primary" href="/login">Log in</a>
+        <a class="btn" href="/register">Register</a>
       </div>
-    </section>
-  {{else}}
-    {{!-- ============ LOGGED OUT: shown if someone opens "/" without an account ============ --}}
-    <section class="start" aria-labelledby="welcome-title">
-      <div class="row">
-        <div class="start-head col-md-6">
-          <h1 id="welcome-title">Character Builder</h1>
-          <p>Build and use custom Character Sheets for any Tabletop Roleplaying Game. Log in or create an account to get started.</p>
-        </div>
-        <div class="workspace-actions">
-          <a class="btn btn--primary" href="/login">Log in</a>
-          <a class="btn" href="/register">Register</a>
-        </div>
-      </div>
-      
-    </section>
+    </div>
+    
+  </section>
   {{/if}}
 </main>

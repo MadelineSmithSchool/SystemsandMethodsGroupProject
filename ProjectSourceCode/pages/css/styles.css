@@ -490,7 +490,7 @@ option {
 /* ---------- 6. Home page + tutorial ---------- */
 .index-cards {
   width:auto;
-  max-height:100px;
+  max-height:50%;
 }
 
 .tutorial {
