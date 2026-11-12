@@ -42,6 +42,7 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 | --- | --- |
 | `server.spec.js` | `GET /welcome` returns the welcome message |
 | `register.spec.js` | `POST /register` with good input and with no password |
+| `login.spec.js` | Extra credit: `POST /login` with the right password (redirects to `/dashboard`) and the wrong one (renders login with an error, `401`) |
 
 ## POST /register
 
