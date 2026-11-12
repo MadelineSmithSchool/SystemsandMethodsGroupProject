@@ -445,6 +445,13 @@ option {
   color: var(--danger);
 }
 
+.site-alert {
+  border-color: var(--bronze-bright);
+  border-left-width: 4px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .alert-success {
   border-color: var(--bronze-bright);
   border-left-width: 4px;

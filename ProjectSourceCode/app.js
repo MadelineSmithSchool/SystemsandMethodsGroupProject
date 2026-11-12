@@ -65,6 +65,18 @@ app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
 
 // db connection lives in src/db.js so the tests use the same one
 const { db } = require('./src/db');
+const validateRegistration = require('./src/validateRegistration');
+
+// alert bar from the admin page, shows at the top of every page
+app.use(async (req, res, next) => {
+  try {
+    const alert = await db.oneOrNone('SELECT message FROM site_alerts ORDER BY created_at DESC LIMIT 1');
+    res.locals.siteAlert = alert && alert.message;
+  } catch (err) {
+    console.error('Could not load the site alert:', err);
+  }
+  next();
+});
 
 //ROUTES//
 
@@ -137,23 +149,7 @@ app.post('/register', async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
   const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
-  const errors = [];
-
-  if (!username) {
-    errors.push('Enter a username.');
-  } else if (username.length > 50) {
-    errors.push('Your username must be 50 characters or fewer.');
-  }
-
-  if (!email || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push('Enter a valid email address (255 characters or fewer).');
-  }
-
-  if (password.length < 8) {
-    errors.push('Your password must be at least 8 characters long.');
-  } else if (Buffer.byteLength(password, 'utf8') > 72) {
-    errors.push('Your password must be no more than 72 bytes long.');
-  }
+  const errors = validateRegistration({ username, email, password });
 
   if (errors.length > 0) {
     return res.status(400).render('pages/register', { errors, username, email });
@@ -215,6 +211,12 @@ app.post('/login', async (req, res) => {
     ) {
       return res.status(401).render('pages/login', {
         errors: ['The username or password is incorrect. Check your details and try again.'],
+        username,
+      });
+    }
+    if (user.deleted_at) {
+      return res.status(403).render('pages/login', {
+        errors: ['This account has been deleted. Ask an admin if you want it back.'],
         username,
       });
     }

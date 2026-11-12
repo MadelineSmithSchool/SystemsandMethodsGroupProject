@@ -1,12 +1,24 @@
 <main class="container my-4">
     <h2>Admin</h2>
+    <p>{{counts.users}} users ({{counts.deleted}} deleted) &middot; {{counts.templates}} templates ({{counts.shared}} shared)</p>
     {{#if userSearch}}<p class="text-muted">Users matching "{{userSearch}}" <a href="/manage">(clear)</a></p>{{/if}}
     {{#if templateSearch}}<p class="text-muted">Templates matching "{{templateSearch}}" <a href="/manage">(clear)</a></p>{{/if}}
+
+    <h4 class="mt-4">Alert bar</h4>
+    <form class="d-flex gap-2 mb-2" action="/manage/alert" method="POST">
+        <input class="form-control" type="text" name="message" maxlength="255" placeholder="Message everyone sees at the top of the page" required>
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+    {{#if siteAlert}}
+        <form action="/manage/alert/clear" method="POST">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Clear alert</button>
+        </form>
+    {{/if}}
 
     <h4 class="mt-4">Users</h4>
     <table class="table table-sm align-middle">
         <thead>
-            <tr><th>Username</th><th>Email</th><th>Templates</th><th>Joined</th></tr>
+            <tr><th>Username</th><th>Email</th><th>Templates</th><th>Joined</th><th></th></tr>
         </thead>
         <tbody>
             {{#each users}}
@@ -15,9 +27,24 @@
                     <td>{{email}}</td>
                     <td>{{template_count}}</td>
                     <td>{{joined}}</td>
+                    <td>
+                        {{#if deleted}}
+                            <span class="text-muted">Deleted {{deleted}}</span>
+                            <form class="d-inline" action="/manage/users/{{user_id}}/recover" method="POST">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Recover</button>
+                            </form>
+                        {{else}}
+                            <form class="d-inline" action="/manage/users/{{user_id}}/admin" method="POST">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">{{#if is_admin}}Remove admin{{else}}Make admin{{/if}}</button>
+                            </form>
+                            <form class="d-inline" action="/manage/users/{{user_id}}/delete" method="POST" onsubmit="return confirm('Delete this account?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        {{/if}}
+                    </td>
                 </tr>
             {{else}}
-                <tr><td colspan="4" class="text-muted">No users found.</td></tr>
+                <tr><td colspan="5" class="text-muted">No users found.</td></tr>
             {{/each}}
         </tbody>
     </table>
@@ -33,7 +60,16 @@
                     <td>{{template_name}}</td>
                     <td>{{username}}</td>
                     <td>{{created}}</td>
-                    <td>{{#if share_id}}<a href="/templates/shared/{{share_id}}">View</a>{{else}}<span class="text-muted">Not shared</span>{{/if}}</td>
+                    <td>
+                        {{#if share_id}}
+                            <a href="/templates/shared/{{share_id}}">View</a>
+                            <form class="d-inline" action="/manage/templates/{{template_id}}/unshare" method="POST">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Unshare</button>
+                            </form>
+                        {{else}}
+                            <span class="text-muted">Not shared</span>
+                        {{/if}}
+                    </td>
                 </tr>
             {{else}}
                 <tr><td colspan="4" class="text-muted">No templates found.</td></tr>
