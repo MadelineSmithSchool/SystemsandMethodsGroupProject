@@ -41,13 +41,14 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 | File | What it checks |
 | --- | --- |
 | `server.spec.js` | `GET /welcome` returns the welcome message |
+| `validation.spec.js` | Unit test: `src/validateRegistration.js` with good input and with no password (no server or db) |
 | `register.spec.js` | `POST /register` with good input and with no password |
-| `login.spec.js` | Extra credit: `POST /login` with the right password (redirects to `/dashboard`) and the wrong one (renders login with an error, `401`) |
+| `login.spec.js` | Extra credit: `POST /login` with the right password (redirects to `/dashboard` and the dashboard loads) and the wrong one (renders login with an error, `401`) |
 
 ## POST /register
 
 - Request: form data with `username`, `email`, `password`
-- Rules: username 1-50 chars, valid email, password at least 8 chars and at most 72 bytes
+- Rules: username 1-50 chars, valid email, password at least 8 chars and at most 72 bytes. These live in `src/validateRegistration.js`, which the route calls before hashing or saving anything
 - Success: `302` to `/login`, one new row in `users` with `username`, `email`, `password_hash` (bcrypt), `auth_token`
 - Missing password: `400`, register page shows "Your password must be at least 8 characters long.", nothing saved
 

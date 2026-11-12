@@ -32,12 +32,19 @@ describe('POST /login', () => {
   });
   afterEach(removeTestUser);
 
-  // positive + redirect test
+  // positive + redirect test, then makes sure the login actually stuck
   it('redirects to /dashboard for the right password', async () => {
-    const res = await chai.request(app).post('/login').type('form').send(testUser).redirects(0);
+    const agent = chai.request.agent(app); // keeps the session cookie
+    try {
+      const res = await agent.post('/login').type('form').send(testUser).redirects(0);
+      expect(res).to.have.status(302);
+      expect(res).to.have.header('location', '/dashboard');
 
-    expect(res).to.have.status(302);
-    expect(res).to.have.header('location', '/dashboard');
+      const dashboard = await agent.get('/dashboard').redirects(0);
+      expect(dashboard).to.have.status(200);
+    } finally {
+      agent.close();
+    }
   });
 
   // negative + render test

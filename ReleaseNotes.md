@@ -6,6 +6,7 @@
 ## Week of 11/16/2026
 - keep updated with what you work on in the past week
 - admin can send an alert bar from /manage that shows at the top of every page
+- lab 10 touchups: register rules moved to src/validateRegistration.js with a unit test, login tests for extra credit, UAT plan in MilestoneSubmissions
 
 ## Week of 11/9/2026
 - added visibility toggle to module setting
