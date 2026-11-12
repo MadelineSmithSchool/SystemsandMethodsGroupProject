@@ -444,6 +444,28 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             card.appendChild(createButton('', 'module-resize-handle', { resizeModule: '' }, 'Resize ' + module.name));
         }
         layout.appendChild(card);
+        if (mode === 'playtest' && module.type === 'notes') {
+            var noteText = card.querySelector('.module-value-text');
+            var noteBody = card.querySelector('.module-body');
+            if (noteText && noteBody) {
+                var canvasStyle = getComputedStyle(layout);
+                var rowHeightMatch = canvasStyle.gridTemplateRows.match(/^[\d.]+px/) ||
+                    canvasStyle.gridAutoRows.match(/[\d.]+px/);
+                var rowHeight = parseFloat(rowHeightMatch ? rowHeightMatch[0] : '') || 40;
+                var rowGap = parseFloat(canvasStyle.rowGap) || 0;
+                var header = card.querySelector('.sheet-module-header, .group-field-label');
+                var headerHeight = header ? header.getBoundingClientRect().height : 0;
+                var noteStyle = getComputedStyle(noteBody);
+                var bodyPadding = (parseFloat(noteStyle.paddingTop) || 0) +
+                    (parseFloat(noteStyle.paddingBottom) || 0);
+                var noteGap = parseFloat(noteStyle.rowGap) || 0;
+                var editButton = card.querySelector('.list-edit-toggle');
+                var contentHeight = headerHeight + bodyPadding + noteText.scrollHeight +
+                    (editButton ? editButton.getBoundingClientRect().height + noteGap : 0) + 2;
+                var neededRows = Math.ceil((contentHeight + rowGap) / (rowHeight + rowGap));
+                card.style.gridRow = module.row + ' / span ' + Math.max(module.rowSpan, neededRows);
+            }
+        }
         if (root && module.type === 'group') {
             var groupGrid = card.querySelector('.group-field-grid');
             if (groupGrid) {
