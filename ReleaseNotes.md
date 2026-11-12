@@ -26,6 +26,8 @@
 - admin can search users and templates from the nav search bars
 - admin can delete and recover accounts (deleted accounts cant log in)
 - admin can make/remove other admins and unshare templates, admin link added to nav
+- admin can send an alert bar from /manage that shows at the top of every page
+- lab 10 touchups: register rules moved to src/validateRegistration.js with a unit test, login tests for extra credit
 
 ## Week of 11/2/2026
 - set up register and sign in pages
