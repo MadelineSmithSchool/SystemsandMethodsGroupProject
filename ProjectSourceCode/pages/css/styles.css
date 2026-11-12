@@ -1237,6 +1237,32 @@ option {
   resize: vertical;
 }
 
+.sheet-module[data-module-type="notes"] > .module-body {
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.sheet-module[data-module-type="notes"] > .module-body > textarea,
+.sheet-module[data-module-type="notes"] .value-module > textarea {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  resize: none;
+}
+
+.sheet-module[data-module-type="notes"] .value-module {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.sheet-studio[data-mode="playtest"] .module-body .value-module > textarea {
+  overflow: auto;
+  resize: none;
+}
+
 .studio-layout {
   display: grid;
   grid-template-columns: 19rem minmax(0, 1fr);
@@ -1357,6 +1383,21 @@ option {
   margin-top: 0.7rem;
 }
 
+.inspector-panel {
+  border-color: var(--line-strong);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.inspector-panel.is-active {
+  border-color: var(--bronze-bright);
+  background: linear-gradient(135deg, rgba(238, 209, 43, 0.22), var(--surface) 72%);
+  box-shadow: 0 0 0 3px rgba(238, 209, 43, 0.48), 0 0 1.1rem rgba(238, 209, 43, 0.34), var(--shadow);
+}
+
+.inspector-panel.is-active > h2 {
+  color: var(--bronze-bright);
+}
+
 .studio-muted {
   margin: 0;
   color: var(--muted);
@@ -1456,7 +1497,8 @@ option {
   color: var(--text);
 }
 
-.pages-header > strong {
+.pages-header > strong,
+.pages-header > .module-name-input {
   flex: 0 0 auto;
   font-family: var(--font-head);
   font-size: 0.88rem;
@@ -1646,6 +1688,10 @@ option {
   min-width: 0;
 }
 
+.group-field-grid .group-field-label > .module-name-input {
+  flex: 0 1 auto;
+}
+
 .group-field-actions {
   display: none;
   flex: 0 0 auto;
@@ -1791,6 +1837,32 @@ option {
   white-space: nowrap;
 }
 
+.module-name-input {
+  width: auto;
+  min-width: 4ch;
+  max-width: 100%;
+  flex: 0 1 auto;
+  padding: 0.1rem 0.2rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+}
+
+.sheet-module-header > .module-name-input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-name-input:focus {
+  border-color: var(--bronze-bright);
+  outline: 0;
+  background: var(--field);
+}
+
 .module-edit,
 .module-remove {
   min-height: 1.65rem;
@@ -1840,6 +1912,71 @@ option {
 .module-body > input[type="checkbox"] {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+.checkbox-module {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.checkbox-list {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+}
+
+.checkbox-item-add,
+.checkbox-item-remove {
+  justify-self: start;
+  min-height: 1.65rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.checkbox-item-add:hover,
+.checkbox-item-remove:hover {
+  border-color: var(--bronze-bright);
+  background: var(--surface-raised);
+}
+
+.checkbox-module input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.1rem 0 0;
+}
+
+.checkbox-module-label {
+  min-width: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.checkbox-module-label-input {
+  width: 0;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2rem;
+  max-height: 4rem;
+  flex: 1 1 0;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  resize: none;
+  overflow-y: auto;
 }
 
 .list-module {

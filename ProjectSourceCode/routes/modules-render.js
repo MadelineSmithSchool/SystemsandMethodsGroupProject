@@ -66,12 +66,54 @@ function createInput(type, value, dataset, ariaLabel, opts) {
     return inp;
 }
 
+function createModuleName(module, mode) {
+    if (mode === 'developer') {
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'module-name-input';
+        input.dataset.moduleName = module.id;
+        input.value = module.name;
+        input.size = Math.max(4, module.name.length);
+        input.maxLength = 40;
+        input.setAttribute('aria-label', 'Module name');
+        return input;
+    }
+    var title = document.createElement('strong');
+    title.dataset.moduleTitle = '';
+    title.textContent = module.name;
+    return title;
+}
+
 export function setPlacement(element, module, layout) {
     var columns = layoutColumns(layout);
     var colSpan = Math.min(module.colSpan, columns);
     var col = Math.max(1, Math.min(columns - colSpan + 1, module.col));
     element.style.gridColumn = col + ' / span ' + colSpan;
     element.style.gridRow = module.row + ' / span ' + module.rowSpan;
+}
+
+export function fitNotesModule(card, layout, module) {
+    if (!card || !layout || !module || module.type !== 'notes') return;
+    var content = card.querySelector('.module-value-text, textarea[data-module-value]');
+    var body = card.querySelector('.module-body');
+    if (!content || !body) return;
+
+    var canvasStyle = getComputedStyle(layout);
+    var rowHeightMatch = canvasStyle.gridTemplateRows.match(/^[\d.]+px/) ||
+        canvasStyle.gridAutoRows.match(/[\d.]+px/);
+    var rowHeight = parseFloat(rowHeightMatch ? rowHeightMatch[0] : '') || 40;
+    var rowGap = parseFloat(canvasStyle.rowGap) || 0;
+    var header = card.querySelector('.sheet-module-header, .group-field-label');
+    var headerHeight = header ? header.getBoundingClientRect().height : 0;
+    var bodyStyle = getComputedStyle(body);
+    var bodyPadding = (parseFloat(bodyStyle.paddingTop) || 0) +
+        (parseFloat(bodyStyle.paddingBottom) || 0);
+    var bodyGap = parseFloat(bodyStyle.rowGap) || 0;
+    var editButton = card.querySelector('.list-edit-toggle');
+    var contentHeight = headerHeight + bodyPadding + content.scrollHeight +
+        (editButton ? editButton.getBoundingClientRect().height + bodyGap : 0) + 2;
+    var neededRows = Math.ceil((contentHeight + rowGap) / (rowHeight + rowGap));
+    card.style.gridRow = module.row + ' / span ' + Math.max(module.rowSpan, neededRows);
 }
 
 function moduleHidden(module, typeTable) {
@@ -222,9 +264,7 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
         var groupHeader = document.createElement('header');
         groupHeader.className = 'pages-header';
         if (mode === 'developer') groupHeader.dataset.moduleDragHandle = '';
-        var groupTitle = document.createElement('strong');
-        groupTitle.dataset.moduleTitle = '';
-        groupTitle.textContent = module.name;
+        var groupTitle = createModuleName(module, mode);
         if (mode === 'playtest' && module.hideGroupName) groupTitle.hidden = true;
         var tabs = document.createElement('div');
         tabs.className = 'pages-tabs';
@@ -330,9 +370,65 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
     }
 
     if (kind === 'checkbox') {
-        var checkbox = createInput('checkbox', 'on', { moduleChecked: module.id }, module.name);
-        checkbox.checked = mode === 'playtest' ? Boolean(player.checked[module.id]) : Boolean(module.checked);
-        body.appendChild(checkbox);
+        var checkboxItems = Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
+            module.checkboxItems : [{
+                id: 'legacy',
+                label: module.checkboxLabel || '',
+                checked: Boolean(module.checked)
+            }];
+        var checkboxList = document.createElement('div');
+        checkboxList.className = 'checkbox-list';
+        checkboxItems.forEach(function (item, index) {
+            var row = document.createElement('div');
+            row.className = 'checkbox-module';
+            var itemId = String(item.id || 'legacy-' + index);
+            var checkbox = createInput('checkbox', 'on', {
+                moduleChecked: module.id,
+                checkboxItem: itemId,
+                checkboxIndex: index
+            }, item.label || module.name);
+            checkbox.checked = mode === 'playtest' ?
+                Boolean(player.checked[module.id + ':' + itemId] !== undefined ?
+                    player.checked[module.id + ':' + itemId] :
+                    index === 0 ? player.checked[module.id] : false) :
+                Boolean(item.checked !== undefined ? item.checked : index === 0 && module.checked);
+            row.appendChild(checkbox);
+            if (mode === 'developer') {
+                var description = document.createElement('textarea');
+                description.rows = 1;
+                description.className = 'checkbox-module-label-input';
+                description.dataset.checkboxLabelModule = module.id;
+                description.dataset.checkboxItem = itemId;
+                description.value = item.label || '';
+                description.maxLength = 100;
+                description.placeholder = 'Add a description';
+                description.setAttribute('aria-label', 'Checkbox description');
+                description.style.height = '2rem';
+                description.addEventListener('focus', function () {
+                    description.style.height = 'auto';
+                    description.style.height = Math.min(description.scrollHeight, 64) + 'px';
+                });
+                row.appendChild(description);
+                if (checkboxItems.length > 1) {
+                    row.appendChild(createButton('Remove', 'checkbox-item-remove', {
+                        removeCheckboxItem: module.id,
+                        checkboxItem: itemId
+                    }, 'Remove checkbox'));
+                }
+            } else if (item.label) {
+                var label = document.createElement('span');
+                label.className = 'checkbox-module-label';
+                label.textContent = item.label;
+                row.appendChild(label);
+            }
+            checkboxList.appendChild(row);
+        });
+        if (mode === 'developer') {
+            checkboxList.appendChild(createButton('Add checkbox', 'checkbox-item-add', {
+                addCheckboxItem: module.id
+            }));
+        }
+        body.appendChild(checkboxList);
         return body;
     }
 
@@ -407,9 +503,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             var header = document.createElement('header');
             header.className = 'sheet-module-header';
             if (mode === 'developer') header.dataset.moduleDragHandle = '';
-            var title = document.createElement('strong');
-            title.dataset.moduleTitle = '';
-            title.textContent = module.name;
+            var title = createModuleName(module, mode);
             header.appendChild(title);
             if (mode === 'developer') {
                 header.appendChild(createButton('Edit', 'module-edit', { editModule: module.id }));
@@ -420,8 +514,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             var fieldLabel = document.createElement('div');
             fieldLabel.className = 'group-field-label';
             if (mode === 'developer') fieldLabel.dataset.moduleDragHandle = '';
-            var fieldName = document.createElement('span');
-            fieldName.textContent = module.name;
+            var fieldName = createModuleName(module, mode);
             fieldLabel.appendChild(fieldName);
             if (mode === 'developer') {
                 var fieldActions = document.createElement('div');
@@ -444,28 +537,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             card.appendChild(createButton('', 'module-resize-handle', { resizeModule: '' }, 'Resize ' + module.name));
         }
         layout.appendChild(card);
-        if (mode === 'playtest' && module.type === 'notes') {
-            var noteText = card.querySelector('.module-value-text');
-            var noteBody = card.querySelector('.module-body');
-            if (noteText && noteBody) {
-                var canvasStyle = getComputedStyle(layout);
-                var rowHeightMatch = canvasStyle.gridTemplateRows.match(/^[\d.]+px/) ||
-                    canvasStyle.gridAutoRows.match(/[\d.]+px/);
-                var rowHeight = parseFloat(rowHeightMatch ? rowHeightMatch[0] : '') || 40;
-                var rowGap = parseFloat(canvasStyle.rowGap) || 0;
-                var header = card.querySelector('.sheet-module-header, .group-field-label');
-                var headerHeight = header ? header.getBoundingClientRect().height : 0;
-                var noteStyle = getComputedStyle(noteBody);
-                var bodyPadding = (parseFloat(noteStyle.paddingTop) || 0) +
-                    (parseFloat(noteStyle.paddingBottom) || 0);
-                var noteGap = parseFloat(noteStyle.rowGap) || 0;
-                var editButton = card.querySelector('.list-edit-toggle');
-                var contentHeight = headerHeight + bodyPadding + noteText.scrollHeight +
-                    (editButton ? editButton.getBoundingClientRect().height + noteGap : 0) + 2;
-                var neededRows = Math.ceil((contentHeight + rowGap) / (rowHeight + rowGap));
-                card.style.gridRow = module.row + ' / span ' + Math.max(module.rowSpan, neededRows);
-            }
-        }
+        if (mode === 'playtest') fitNotesModule(card, layout, module);
         if (root && module.type === 'group') {
             var groupGrid = card.querySelector('.group-field-grid');
             if (groupGrid) {
@@ -608,8 +680,10 @@ export function renderInspector(studio, state, helpers) {
     var ui = state.ui;
     var typeTable = helpers.types;
     var inspector = studio.querySelector('[data-inspector]');
+    var inspectorPanel = inspector.closest('.inspector-panel');
     inspector.replaceChildren();
     var module = findModule(doc.modules, ui.selectedId);
+    if (inspectorPanel) inspectorPanel.classList.toggle('is-active', Boolean(module));
     if (!module) {
         var empty = document.createElement('p');
         empty.className = 'studio-muted';

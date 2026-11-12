@@ -29,7 +29,9 @@ export var moduleTypes = {
     checkbox: {
         name: 'Checkbox', control: 'checkbox', valueKind: 'checkbox',
         inspector: ['source', 'checkbox'],
-        defaults: withBase({ checked: false, uncheckedValue: 0, checkedValue: 1 })
+        defaults: withBase({
+            checked: false, checkboxLabel: '', checkboxItems: [], uncheckedValue: 0, checkedValue: 1
+        })
     },
     choice: {
         name: 'Choice', control: 'choice', valueKind: 'choice',
