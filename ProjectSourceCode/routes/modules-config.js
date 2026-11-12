@@ -1,4 +1,4 @@
-// lists module types and starter presets, the main file uses these to add modules to the sheet.
+// Define module types and built-in presets.
 import { clone, flatten, linkSettings } from './modules-helper.js';
 
 export var moduleSize = { colSpan: 4, rowSpan: 3 };
@@ -31,6 +31,10 @@ export var moduleTypes = {
         inspector: ['source', 'checkbox'],
         defaults: withBase({ checked: false, uncheckedValue: 0, checkedValue: 1 })
     },
+    choice: {
+        name: 'Choice', control: 'choice', valueKind: 'choice',
+        inspector: ['choice'], defaults: withBase({ choices: [] })
+    },
     notes: {
         name: 'Notes', control: 'notes', valueKind: 'input',
         inspector: ['source'], defaults: withBase()
@@ -39,12 +43,33 @@ export var moduleTypes = {
         name: 'Math', control: 'math', valueKind: 'math', inspector: ['math'],
         defaults: withBase({
             visibility: 'hidden', mathOperation: 'add', mathRounding: 'none',
-            leftValue: 0, leftSource: '', rightValue: 0, rightSource: ''
+            leftValue: 0, leftSource: '', rightValue: 0, rightSource: '', lookupEntries: []
         })
+    },
+    pages: {
+        name: 'Pages', control: 'pages', valueKind: 'pages',
+        inspector: ['pages'], defaults: withBase({ hideGroupName: false })
     },
     group: {
         name: 'Group', control: 'group', valueKind: 'group',
-        inspector: ['group'], defaults: withBase()
+        inspector: ['group'], defaults: withBase({ layout: 'grid', groupColumns: 2 })
+    },
+    list: {
+        name: 'List', control: 'list', valueKind: 'list',
+        inspector: ['list'],
+        defaults: withBase({
+            columns: [
+                { name: 'Name', type: 'text', source: '' },
+                { name: 'Quantity', type: 'number', source: '' },
+                { name: 'Notes', type: 'text', source: '' }
+            ],
+            rows: [
+                { cells: ['', '', ''] },
+                { cells: ['', '', ''] },
+                { cells: ['', '', ''] }
+            ],
+            stats: []
+        })
     }
 };
 
@@ -83,6 +108,13 @@ export function clonePresetModules(presetModules, firstId) {
     var copies = clone(presetModules);
     var idMap = {};
     var next = firstId;
+    function remapListSource(source) {
+        if (!source) return '';
+        var suffix = source.match(/(?:\.\d+\.\d+|\.length)$/);
+        suffix = suffix ? suffix[0] : '';
+        var sourceId = suffix ? source.slice(0, -suffix.length) : source;
+        return idMap[sourceId] ? idMap[sourceId] + suffix : '';
+    }
     flatten(copies).forEach(function (module) {
         Object.assign(module, Object.assign(clone(moduleTypes[module.type].defaults), module));
         idMap[module.id] = String(next);
@@ -91,7 +123,19 @@ export function clonePresetModules(presetModules, firstId) {
     });
     flatten(copies).forEach(function (module) {
         linkSettings.forEach(function (setting) {
-            if (module[setting]) module[setting] = idMap[module[setting]] || '';
+            if (module[setting]) module[setting] = remapListSource(module[setting]);
+        });
+        (module.columns || []).forEach(function (column) {
+            column.source = remapListSource(column.source);
+            (column.rowSources || []).forEach(function (source, index) {
+                column.rowSources[index] = remapListSource(source);
+            });
+        });
+        (module.stats || []).forEach(function (stat) {
+            stat.source = remapListSource(stat.source);
+        });
+        (module.choices || []).forEach(function (choice) {
+            choice.source = remapListSource(choice.source);
         });
         module.modifiers = module.modifiers
             .filter(function (item) { return idMap[item.source]; })

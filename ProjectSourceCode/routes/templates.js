@@ -4,7 +4,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
-const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group']);
+const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'choice', 'notes', 'math', 'pages', 'group', 'list']);
 
 function renderTemplateError(res, status, title, message, returnUrl = '/templates') {
   return res.status(status).render('pages/error', {
@@ -24,10 +24,24 @@ function renderNotFound(res) {
   );
 }
 
+function migrateLegacyGroupModules(modules, parentType) {
+  return (modules || []).map((module) => {
+    const type = module.type === 'group'
+      ? parentType === 'pages' ? 'group' : 'pages'
+      : module.type;
+    return {
+      ...module,
+      type,
+      groupColumns: type === 'group' ? module.groupColumns || 6 : module.groupColumns,
+      children: migrateLegacyGroupModules(module.children, type)
+    };
+  });
+}
+
 function toBuilderDocument(template, isStudioTemplate) {
   if (isStudioTemplate) {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       name: template.name.trim(),
       description: template.description || '',
       modules: template.modules
@@ -36,7 +50,7 @@ function toBuilderDocument(template, isStudioTemplate) {
 
   const stats = Object.entries(template.stats).concat(Object.entries(template.minorStats || {}));
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     name: template.name.trim(),
     description: template.description || '',
     modules: stats.map(([name, value], index) => ({
@@ -73,12 +87,13 @@ function checkLegacyTemplate(t) {
 
 function checkStudioTemplate(t) {
   if (!t || typeof t !== 'object' || Array.isArray(t)) return 'File must be a JSON object.';
-  if (t.schemaVersion !== 1) return 'Template has an unsupported format.';
+  if (![1, 2].includes(t.schemaVersion)) return 'Template has an unsupported format.';
   if (typeof t.name !== 'string' || !t.name.trim() || t.name.length > 50) return 'Template needs a name (50 characters max).';
   if (t.description !== undefined && (typeof t.description !== 'string' || t.description.length > 255)) return 'Description must be text (255 characters max).';
   if (!Array.isArray(t.modules) || t.modules.length === 0) return 'Template needs at least one module.';
 
   const ids = new Set();
+  const modulesById = new Map();
   function checkModules(modules) {
     for (const module of modules) {
       if (!module || typeof module !== 'object' || Array.isArray(module)) return 'Every module must be an object.';
@@ -86,6 +101,7 @@ function checkStudioTemplate(t) {
       if ((typeof module.id !== 'string' && typeof module.id !== 'number') || !String(module.id)) return 'Every module needs an ID.';
       if (ids.has(String(module.id))) return 'Module IDs must be unique.';
       ids.add(String(module.id));
+      modulesById.set(String(module.id), module);
       if (typeof module.name !== 'string' || !module.name.trim()) return 'Every module needs a name.';
       if (['col', 'row', 'colSpan', 'rowSpan'].some((key) => !Number.isInteger(module[key]) || module[key] < 1)) {
         return 'Every module needs a valid position and size.';
@@ -95,6 +111,51 @@ function checkStudioTemplate(t) {
       if (Array.isArray(module.modifiers) && module.modifiers.some((modifier) => !modifier || typeof modifier !== 'object' || Array.isArray(modifier))) {
         return 'Every module modifier must be an object.';
       }
+      if (module.type === 'group') {
+        if (module.children && module.children.some((child) =>
+          child && ['pages', 'group'].includes(child.type))) {
+          return 'Groups can contain fields but cannot contain other groups or pages.';
+        }
+        if (module.groupColumns !== undefined &&
+          (!Number.isInteger(module.groupColumns) || module.groupColumns < 1 || module.groupColumns > 6)) {
+          return 'Group field columns must be an integer from 1 to 6.';
+        }
+      }
+      if (module.type === 'list') {
+        if (!Array.isArray(module.columns) || module.columns.length === 0 ||
+          module.columns.some((column) => !column || typeof column.name !== 'string' ||
+            !['text', 'number', 'dice', 'checkbox', 'choice'].includes(column.type) ||
+            (column.source !== undefined && typeof column.source !== 'string') ||
+            (column.rowSources !== undefined && (!Array.isArray(column.rowSources) ||
+              column.rowSources.some((source) => typeof source !== 'string'))) ||
+            (column.options !== undefined && (!Array.isArray(column.options) ||
+              column.options.some((option) => typeof option !== 'string'))))) {
+          return 'Every list needs columns with a valid name, value type, and input source.';
+        }
+        if (!Array.isArray(module.rows) ||
+          module.rows.some((row) => !row || !Array.isArray(row.cells) || row.cells.length !== module.columns.length)) {
+          return 'Every list row must have a value for each column.';
+        }
+        if (module.stats !== undefined && (!Array.isArray(module.stats) ||
+          module.stats.some((stat) => !stat || typeof stat.name !== 'string' ||
+            (stat.source !== undefined && typeof stat.source !== 'string')))) {
+          return 'Every list stat must have a valid name and input source.';
+        }
+      }
+      if (module.type === 'choice' && (!Array.isArray(module.choices) ||
+        module.choices.some((choice) =>
+          !choice || typeof choice.label !== 'string' || typeof choice.source !== 'string'))) {
+        return 'Choice modules need options with a label and numeric value source.';
+      }
+      if (module.type === 'math') {
+        const operations = ['add', 'subtract', 'multiply', 'divide', 'modulo', 'minimum', 'maximum',
+          'abilityModifier', 'proficiencyBonus', 'lookup'];
+        if (!operations.includes(module.mathOperation)) return 'Math modules need a supported operation.';
+        if (module.lookupEntries !== undefined && (!Array.isArray(module.lookupEntries) ||
+          module.lookupEntries.some((entry) => !entry || !Number.isFinite(entry.input) || !Number.isFinite(entry.output)))) {
+          return 'Lookup tables need numeric input and output values.';
+        }
+      }
       if (module.children) {
         const error = checkModules(module.children || []);
         if (error) return error;
@@ -102,7 +163,39 @@ function checkStudioTemplate(t) {
     }
     return null;
   }
-  return checkModules(t.modules);
+  const structureError = checkModules(t.modules);
+  if (structureError) return structureError;
+
+  const sources = [];
+  function collectSources(modules) {
+    for (const module of modules) {
+      for (const key of ['source', 'countSource', 'sidesSource', 'keepHighestSource', 'bonusSource', 'leftSource', 'rightSource']) {
+        if (module[key]) sources.push(module[key]);
+      }
+      for (const modifier of module.modifiers || []) if (modifier.source) sources.push(modifier.source);
+      for (const choice of module.choices || []) if (choice.source) sources.push(choice.source);
+      for (const column of module.columns || []) {
+        if (column.source) sources.push(column.source);
+        for (const source of column.rowSources || []) if (source) sources.push(source);
+      }
+      collectSources(module.children || []);
+    }
+  }
+  collectSources(t.modules);
+  for (const source of sources) {
+    const match = /^(.+)\.(\d+)\.(\d+)$/.exec(String(source));
+    if (!match || modulesById.has(source)) continue;
+    const list = modulesById.get(match[1]);
+    const row = Number(match[2]) - 1;
+    const column = Number(match[3]) - 1;
+    if (!list || list.type !== 'list' || row < 0 || column < 0 ||
+      !Array.isArray(list.rows) || row >= list.rows.length ||
+      !Array.isArray(list.columns) || column >= list.columns.length ||
+      !['number', 'checkbox'].includes(list.columns[column].type)) {
+      return 'A value references a missing or non-numeric list cell.';
+    }
+  }
+  return null;
 }
 
 // sends a template back as a .json file (same format as uploads)
@@ -134,12 +227,12 @@ module.exports = (db, auth) => {
       if (!template) return renderNotFound(res);
 
       const data = template.template_data || {};
-      const sheet = data.schemaVersion === 1 && Array.isArray(data.modules)
+      const sheet = data.schemaVersion >= 1 && Array.isArray(data.modules)
         ? {
-          schemaVersion: 1,
+          schemaVersion: 2,
           name: template.template_name,
           description: template.template_desc || '',
-          modules: data.modules
+          modules: data.schemaVersion === 1 ? migrateLegacyGroupModules(data.modules) : data.modules
         }
         : toBuilderDocument({
           ...data,
@@ -246,8 +339,11 @@ module.exports = (db, auth) => {
     if (error) return fail(error);
 
     try {
+      const modules = isStudioTemplate && template.schemaVersion === 1
+        ? migrateLegacyGroupModules(template.modules)
+        : template.modules;
       const data = isStudioTemplate
-        ? { schemaVersion: 1, name: template.name.trim(), description: template.description || '', modules: template.modules }
+        ? { schemaVersion: 2, name: template.name.trim(), description: template.description || '', modules }
         : { name: template.name.trim(), description: template.description || '', stats: template.stats, minorStats: template.minorStats || {} };
       const row = await db.tx(async (transaction) => {
         const row = await transaction.one(
@@ -260,7 +356,10 @@ module.exports = (db, auth) => {
         );
         return row;
       });
-      req.session.uploadedTemplate = toBuilderDocument(template, isStudioTemplate);
+      req.session.uploadedTemplate = toBuilderDocument(
+        isStudioTemplate ? { ...template, modules } : template,
+        isStudioTemplate
+      );
       req.session.uploadedTemplateId = row.template_id;
       res.redirect('/templates/new');
     } catch (err) {
@@ -284,7 +383,7 @@ module.exports = (db, auth) => {
 
     try {
       const data = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         name: template.name.trim(),
         description: template.description || '',
         modules: template.modules
@@ -379,12 +478,12 @@ module.exports = (db, auth) => {
       const template = await getLibraryTemplate(req, true);
       if (!template) return renderNotFound(res);
       const data = template.template_data || {};
-      const sheet = data.schemaVersion === 1 && Array.isArray(data.modules)
+      const sheet = data.schemaVersion >= 1 && Array.isArray(data.modules)
         ? {
-          schemaVersion: 1,
+          schemaVersion: 2,
           name: template.template_name,
           description: template.template_desc || '',
-          modules: data.modules
+          modules: data.schemaVersion === 1 ? migrateLegacyGroupModules(data.modules) : data.modules
         }
         : toBuilderDocument({
           ...data,
