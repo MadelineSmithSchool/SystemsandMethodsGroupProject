@@ -1655,8 +1655,9 @@ option {
 }
 
 .group-field-grid > .sheet-module {
+  box-sizing: border-box;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1763,14 +1764,15 @@ option {
 .sheet-module {
   position: relative;
   display: flex;
+  box-sizing: border-box;
   min-width: 0;
-  min-height: 7rem;
+  min-height: 0;
   flex-direction: column;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   box-shadow: var(--shadow);
-  overflow: visible;
+  overflow: hidden;
 }
 
 .sheet-module.is-selected {
@@ -1793,6 +1795,7 @@ option {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
   min-width: 0;
   min-height: 2.25rem;
@@ -1893,11 +1896,28 @@ option {
 
 .module-body {
   display: grid;
+  box-sizing: border-box;
   min-width: 0;
+  min-height: 0;
+  max-width: 100%;
   flex: 1;
   align-content: start;
   gap: 0.45rem;
   padding: 0.45rem 0.55rem 0.65rem;
+  overflow: hidden;
+}
+
+.module-body > * {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.module-body button,
+.module-body input,
+.module-body select,
+.module-body textarea {
+  max-width: 100%;
 }
 
 .sheet-studio[data-mode="playtest"] .module-body {

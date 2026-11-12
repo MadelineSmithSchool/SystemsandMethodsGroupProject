@@ -185,6 +185,15 @@ if (studio) {
             first.row < second.row + second.rowSpan && first.row + first.rowSpan > second.row;
     }
 
+    function containerAtPlacement(modules, draggedModule, placement) {
+        if (draggedModule.type === 'pages') return null;
+        return modules.find(function (module) {
+            if (module.id === draggedModule.id || !['pages', 'group'].includes(module.type) ||
+                module.type === 'group' && ['pages', 'group'].includes(draggedModule.type)) return false;
+            return placementsOverlap(placement, module);
+        }) || null;
+    }
+
     function findOpenPlacement(list, columns, colSpan, rowSpan, preferred, ignoreId) {
         var lastRow = Math.max(24, preferred.row + 12);
         list.forEach(function (item) { lastRow = Math.max(lastRow, item.row + item.rowSpan + 8); });
@@ -209,11 +218,13 @@ if (studio) {
         return findOpenPlacement(list, columns, module.colSpan, module.rowSpan, preferred, module.id);
     }
 
-    function displaceOverlappingModules(modules, draggedId, draggedPlacement) {
+    function displaceOverlappingModules(modules, draggedId, draggedPlacement, containerTargetId) {
         var placements = [{ id: draggedId, placement: draggedPlacement }];
         var remaining = modules.filter(function (module) { return module.id !== draggedId; })
             .slice()
             .sort(function (first, second) {
+                if (first.id === containerTargetId) return -1;
+                if (second.id === containerTargetId) return 1;
                 return first.row - second.row || first.col - second.col;
             });
 
@@ -225,7 +236,8 @@ if (studio) {
                 rowSpan: module.rowSpan
             };
             while (placements.some(function (placed) {
-                return placementsOverlap(placement, placed.placement);
+                return !(module.id === containerTargetId && placed.id === draggedId) &&
+                    placementsOverlap(placement, placed.placement);
             })) {
                 placement.row += 1;
             }
@@ -274,6 +286,44 @@ if (studio) {
             col: Math.max(1, Math.min(columns - module.colSpan + 1, start.col + columnsMoved)),
             row: Math.max(1, start.row + rowsMoved)
         });
+    }
+
+    function fitPlacementToContents(card, layout, module, placement) {
+        var columns = layoutColumns(layout);
+        var minimumColumns = Math.min(columns, 3);
+        var minimumRows = Math.max(3,
+            module.type === 'checkbox' ?
+                (Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
+                    module.checkboxItems.length : 1) + 3 :
+                module.type === 'list' ? (module.rows || []).length + 2 :
+                    module.type === 'pages' ? 4 : 1);
+        var fitted = Object.assign({}, placement, {
+            colSpan: Math.max(minimumColumns, placement.colSpan),
+            rowSpan: Math.max(minimumRows, placement.rowSpan)
+        });
+        fitted.col = Math.max(1, Math.min(columns - fitted.colSpan + 1, fitted.col));
+        var body = card.querySelector('.module-body');
+        var header = card.querySelector('.sheet-module-header, .group-field-label, .pages-header');
+
+        for (var attempt = 0; attempt < 48; attempt += 1) {
+            setPlacement(card, fitted, layout);
+            var widthOverflow = card.scrollWidth > card.clientWidth + 1 ||
+                body && body.scrollWidth > body.clientWidth + 1 ||
+                header && header.scrollWidth > header.clientWidth + 1;
+            var heightOverflow = card.scrollHeight > card.clientHeight + 1 ||
+                body && body.scrollHeight > body.clientHeight + 1 ||
+                header && header.scrollHeight > header.clientHeight + 1;
+            if (!widthOverflow && !heightOverflow) break;
+            if (widthOverflow && fitted.colSpan < columns) {
+                fitted.colSpan += 1;
+                fitted.col = Math.max(1, Math.min(columns - fitted.colSpan + 1, fitted.col));
+            } else if (heightOverflow) {
+                fitted.rowSpan += 1;
+            } else {
+                break;
+            }
+        }
+        return fitted;
     }
 
     /* values and rolls */
@@ -555,7 +605,16 @@ if (studio) {
         }
         if (target.type === 'pages' && (action.setting === 'colSpan' || action.setting === 'rowSpan')) {
             var entry = findModuleEntry(target.id);
-            if (entry) Object.assign(target, nearestPlacement(entry.list, target, layoutColumns(rootCanvas), target));
+            if (entry) {
+                var card = Array.prototype.find.call(studio.querySelectorAll('[data-sheet-module]'), function (element) {
+                    return element.dataset.sheetModule === target.id;
+                });
+                var layout = card && card.parentElement.closest('[data-layout-canvas]');
+                if (card && layout) {
+                    Object.assign(target, fitPlacementToContents(card, layout, target, target));
+                }
+                Object.assign(target, nearestPlacement(entry.list, target, layoutColumns(rootCanvas), target));
+            }
         }
         if (target.type === 'group' && action.setting === 'groupColumns') {
             (target.children || []).forEach(function (child) {
@@ -974,9 +1033,12 @@ if (studio) {
 
         var module = findModule(state.document.modules, drag.id);
         var preview = snappedPlacement(module, drag.layout, drag.start, event.clientX, event.clientY, drag.resize);
+        if (drag.resize) preview = fitPlacementToContents(drag.element, drag.layout, module, preview);
         var entry = findModuleEntry(drag.id);
         drag.placement = { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan };
-        drag.previewPlacements = displaceOverlappingModules(entry.list, module.id, drag.placement);
+        var dropContainer = drag.resize ? null : containerAtPlacement(entry.list, module, drag.placement);
+        drag.dropTargetId = dropContainer && dropContainer.id;
+        drag.previewPlacements = displaceOverlappingModules(entry.list, module.id, drag.placement, drag.dropTargetId);
         drag.previewPlacements.forEach(function (item) {
             var sibling = Array.prototype.find.call(drag.layout.children, function (element) {
                 return element.dataset.sheetModule === item.id;
@@ -1031,7 +1093,8 @@ if (studio) {
         var target = document.elementFromPoint(event.clientX, event.clientY);
         var drop = canvasForPoint(event.clientX, event.clientY);
         // keep the module where it is if it is dropped outside a canvas or on itself.
-        var owner = drop ? drop.owner : entry.parent;
+        var owner = drop && drop.owner ? drop.owner :
+            drag.dropTargetId ? findModule(state.document.modules, drag.dropTargetId) : entry.parent;
         if (owner && owner.id === drag.id) owner = entry.parent;
         if ((entry.module.type === 'pages' || owner && owner.type === 'group' &&
             ['pages', 'group'].includes(entry.module.type)) && owner) {
