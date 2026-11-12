@@ -10,11 +10,10 @@
 *.userosscache
 *.sln.docstates
 *.env
+*.env.test
 *.env.test.example
 *.docker-compose.yaml
 
-#database
-/src/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

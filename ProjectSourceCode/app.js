@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
+const validateRegistration = require('./src/validateRegistration');
 
 //For handlebars
 const hbs = handlebars.create({
