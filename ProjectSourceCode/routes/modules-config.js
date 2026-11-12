@@ -1,7 +1,7 @@
 // Define module types and built-in presets.
 import { clone, flatten, linkSettings } from './modules-helper.js';
 
-export var moduleSize = { colSpan: 4, rowSpan: 3 };
+export var moduleSize = { colSpan: 5, rowSpan: 3 };
 
 var base = { value: '', source: '', visibility: 'shown', modifiers: [], children: [] };
 

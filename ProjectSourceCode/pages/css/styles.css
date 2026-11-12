@@ -1405,12 +1405,14 @@ option {
 
 .studio-canvas {
   --layout-columns: 12;
+  --canvas-row-size: 2.5rem;
+  --canvas-row-gap: 0.35rem;
   display: grid;
-  grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
-  grid-auto-rows: 4rem;
+  grid-template-columns: repeat(var(--layout-columns), var(--canvas-row-size));
+  grid-auto-rows: var(--canvas-row-size);
   grid-auto-flow: row;
   align-content: start;
-  gap: 0.6rem;
+  gap: var(--canvas-row-gap);
   min-width: 0;
   min-height: 44rem;
   padding: 0.75rem;
@@ -1420,7 +1422,9 @@ option {
   background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: calc(100% / var(--layout-columns)) 4.6rem;
+  background-size:
+    calc(var(--canvas-row-size) + var(--canvas-row-gap))
+    calc(var(--canvas-row-size) + var(--canvas-row-gap));
 }
 
 .studio-canvas {
@@ -1591,9 +1595,10 @@ option {
 
 .group-field-grid {
   --layout-columns: 2;
+  --group-row-size: 2.5rem;
   display: grid;
   grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
-  grid-auto-rows: minmax(3.5rem, auto);
+  grid-auto-rows: minmax(var(--group-row-size), auto);
   align-content: start;
   gap: 0.65rem 0.85rem;
   min-width: 0;
@@ -1745,6 +1750,26 @@ option {
   color: var(--text);
 }
 
+.sheet-module-header[data-module-drag-handle],
+.pages-header[data-module-drag-handle],
+.group-field-label[data-module-drag-handle] {
+  cursor: grab;
+  touch-action: none;
+}
+
+.sheet-module-header[data-module-drag-handle]:active,
+.pages-header[data-module-drag-handle]:active,
+.group-field-label[data-module-drag-handle]:active {
+  cursor: grabbing;
+}
+
+.sheet-module-header[data-module-drag-handle] button,
+.pages-header[data-module-drag-handle] button,
+.group-field-label[data-module-drag-handle] button {
+  cursor: pointer;
+  touch-action: auto;
+}
+
 .sheet-module.is-hidden .sheet-module-header {
   background: var(--mahogany);
   color: var(--muted);
@@ -1760,7 +1785,6 @@ option {
   white-space: nowrap;
 }
 
-.module-move-handle,
 .module-edit,
 .module-remove {
   min-height: 1.65rem;
@@ -1774,16 +1798,6 @@ option {
   cursor: pointer;
 }
 
-.module-move-handle {
-  cursor: grab;
-  touch-action: none;
-}
-
-.module-move-handle:active {
-  cursor: grabbing;
-}
-
-.module-move-handle:hover,
 .module-edit:hover,
 .module-remove:hover {
   background: rgba(255, 255, 255, 0.12);
@@ -1943,6 +1957,13 @@ option {
   padding: 0.25rem 0.4rem;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.sheet-module[data-module-type="number"] .module-value-text,
+.sheet-module input[type="number"],
+.list-table td input[type="number"] {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .list-player-add-row {
@@ -2110,7 +2131,6 @@ option {
 }
 
 .sheet-studio[data-mode="playtest"] [data-developer-only],
-.sheet-studio[data-mode="playtest"] .module-move-handle,
 .sheet-studio[data-mode="playtest"] .module-remove,
 .sheet-studio[data-mode="playtest"] .module-resize-handle,
 .sheet-studio[data-mode="playtest"] .module-dev-summary {
@@ -2305,10 +2325,6 @@ option {
   .studio-sidebar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .sheet-studio {
-    --layout-columns: 6;
-  }
 }
 
 @media (max-width: 40rem) {
@@ -2341,8 +2357,9 @@ option {
   }
 
   .studio-canvas {
+    --canvas-row-gap: 0.4rem;
     min-height: 40rem;
-    gap: 0.4rem;
+    gap: var(--canvas-row-gap);
     padding: 0.45rem;
   }
 
