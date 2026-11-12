@@ -55,7 +55,7 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 
 The good input test checks the status, that exactly one row got saved with the right username and email, and that the password is stored as a bcrypt hash. The missing password test checks the error shows up and no row exists.
 
-The route calls `src/validateRegistration.js` before hashing or inserting. Its unit tests cover valid input and the missing-password, invalid-email, and password-byte-limit rules.
+The route calls `src/validateRegistration.js` before hashing or inserting. Its unit tests in `validation.spec.js` cover valid input (no errors) and a missing password (just the password error).
 
 ## Cleanup
 
