@@ -141,6 +141,119 @@ app.get('/logout', (req, res) => {
   });
 });
 
+const renderSettings = async (req, res, extra = {}, status = 200) => {
+  try {
+    const account = await db.one(
+      'SELECT username, email FROM users WHERE user_id = $1',
+      [req.session.user.id]
+    );
+    const flash = req.session.flash || {};
+    delete req.session.flash;
+    res.status(status).render('pages/settings', {
+      title: 'Settings',
+      login: true,
+      account,
+      ...flash,
+      ...extra,
+    });
+  } catch (err) {
+    console.error('Settings load failed:', err);
+    res.redirect('/logout');
+  }
+};
+
+app.get('/settings', auth, (req, res) => renderSettings(req, res));
+
+app.post('/settings/profile', auth, async (req, res) => {
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+  const errors = [];
+
+  if (!username) errors.push('Enter a username.');
+  else if (username.length > 50) errors.push('Your username must be 50 characters or fewer.');
+
+  if (!email) errors.push('Enter an email.');
+  else if (email.length > 255 || !/^\S+@\S+\.\S+$/.test(email)) errors.push('Enter a valid email address.');
+
+  if (errors.length > 0) {
+    return renderSettings(req, res, { errors, account: { username, email } }, 400);
+  }
+
+  try {
+    await db.none(
+      'UPDATE users SET username = $1, email = $2 WHERE user_id = $3',
+      [username, email, req.session.user.id]
+    );
+    req.session.user.username = username;
+    req.session.flash = { success: 'Profile updated.' };
+    req.session.save(() => res.redirect('/settings'));
+  } catch (err) {
+    if (err.code === '23505' && err.constraint === 'users_username_key') {
+      return renderSettings(req, res, {
+        errors: ['That username is already taken.'],
+        account: { username, email },
+      }, 409);
+    }
+    console.error('Profile update failed:', err);
+    renderSettings(req, res, { errors: ['We could not update your profile right now.'] }, 500);
+  }
+});
+
+app.post('/settings/password', auth, async (req, res) => {
+  const current = typeof req.body.current_password === 'string' ? req.body.current_password : '';
+  const newPassword = typeof req.body.new_password === 'string' ? req.body.new_password : '';
+  const confirm = typeof req.body.confirm_password === 'string' ? req.body.confirm_password : '';
+
+  try {
+    const user = await db.one(
+      'SELECT username, email, password_hash FROM users WHERE user_id = $1',
+      [req.session.user.id]
+    );
+
+    if (!(await bcrypt.compare(current, user.password_hash))) {
+      return renderSettings(req, res, { errors: ['Your current password is incorrect.'] }, 401);
+    }
+    if (newPassword !== confirm) {
+      return renderSettings(req, res, { errors: ['The new passwords do not match.'] }, 400);
+    }
+
+    const errors = validateRegistration({
+      username: user.username,
+      email: user.email,
+      password: newPassword,
+    });
+    if (errors.length > 0) {
+      return renderSettings(req, res, { errors }, 400);
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.none('UPDATE users SET password_hash = $1 WHERE user_id = $2', [hash, req.session.user.id]);
+    req.session.flash = { success: 'Password updated.' };
+    req.session.save(() => res.redirect('/settings'));
+  } catch (err) {
+    console.error('Password change failed:', err);
+    renderSettings(req, res, { errors: ['We could not change your password right now.'] }, 500);
+  }
+});
+
+app.post('/settings/delete', auth, async (req, res) => {
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  try {
+    const user = await db.one('SELECT password_hash FROM users WHERE user_id = $1', [req.session.user.id]);
+    if (!(await bcrypt.compare(password, user.password_hash))) {
+      return renderSettings(req, res, { errors: ['Wrong password. Your account was not deleted.'] }, 401);
+    }
+    await db.none('UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = $1', [req.session.user.id]);
+    req.session.destroy(() => {
+      res.clearCookie('connect.sid');
+      res.redirect('/login');
+    });
+  } catch (err) {
+    console.error('Account delete failed:', err);
+    renderSettings(req, res, { errors: ['We could not delete your account right now.'] }, 500);
+  }
+});
+
 // This admin route is called /manage to make it marginally harder for bots to find.
 // make someone an admin with: UPDATE users SET is_admin = TRUE WHERE username = '...';
 app.use('/manage', require('./routes/admin')(db));
