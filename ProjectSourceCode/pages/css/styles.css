@@ -54,7 +54,7 @@ html {
   color-scheme: dark;
 }
 
-body {
+body{
   margin: 0;
   min-height: 100vh;
   display: flex;
@@ -444,6 +444,13 @@ option {
   color: var(--danger);
 }
 
+.site-alert {
+  border-color: var(--bronze-bright);
+  border-left-width: 4px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .alert-success {
   border-color: var(--bronze-bright);
   border-left-width: 4px;
@@ -490,6 +497,14 @@ option {
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+.tutorial h2{
+  color: var(--text);
+}
+
+.tutorial button{
+  color:#69140e;
 }
 
 .intro {

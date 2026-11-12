@@ -13,7 +13,7 @@ services:
       timeout: 5s
       retries: 5
   web:
-    image: node:lts
+    image: node:22.19.0-bookworm
     user: 'node'
     working_dir: /repository
     env_file: .env
