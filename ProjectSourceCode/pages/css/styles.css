@@ -684,18 +684,17 @@ option {
 }
 
 .start {
-  padding: 3rem var(--pad);
+  padding: 8rem var(--pad);
 }
 
 .start-head h1 {
   margin: 0 0 0.6rem;
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: clamp(2rem, 4vw, 3.5rem);
 }
 
 .start-head p {
   max-width: 40rem;
   margin: 0 0 2rem;
-  color: var(--muted);
 }
 
 .option {
