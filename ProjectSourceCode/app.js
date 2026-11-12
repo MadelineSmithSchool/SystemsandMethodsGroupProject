@@ -66,7 +66,6 @@ app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
 
 // db connection lives in src/db.js so the tests use the same one
 const { db } = require('./src/db');
-const validateRegistration = require('./src/validateRegistration');
 
 // alert bar from the admin page, shows at the top of every page
 app.use(async (req, res, next) => {
