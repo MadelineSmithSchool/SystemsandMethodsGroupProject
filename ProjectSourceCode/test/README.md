@@ -30,7 +30,8 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 
 ## How it's set up
 
-- `app.js` exports the app. It only starts the server when you run it directly (`npm start` / `nodemon app.js`), so the tests can require it without starting one.
+- `npm start` runs `node app.js`; `npm run dev` runs Nodemon for automatic restarts during development. `app.js` exports the app and only starts the server when run directly, so tests can require it without starting a server.
+- Development and test Compose services use Node `22.19.0-bookworm` and PostgreSQL 14. The test database uses its own `lab10-test-db-v14` volume.
 - `src/db.js` is the one db connection, used by the routes and the tests. It won't run tests unless the db name ends in `_test`.
 - `test/setup.js` loads first and turns on test mode, so running `npm test` against the dev db just errors out instead of touching it.
 - The test db gets its tables from `create.sql`.
@@ -41,16 +42,20 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 | File | What it checks |
 | --- | --- |
 | `server.spec.js` | `GET /welcome` returns the welcome message |
+| `validation.spec.js` | Unit test: `src/validateRegistration.js` with good input and with no password (no server or db) |
 | `register.spec.js` | `POST /register` with good input and with no password |
+| `login.spec.js` | Extra credit: `POST /login` with the right password (redirects to `/dashboard` and the dashboard loads) and the wrong one (renders login with an error, `401`) |
 
 ## POST /register
 
 - Request: form data with `username`, `email`, `password`
-- Rules: username 1-50 chars, valid email, password at least 8 chars and at most 72 bytes
+- Rules: username 1-50 chars, valid email, password at least 8 chars and at most 72 bytes. These live in `src/validateRegistration.js`, which the route calls before hashing or saving anything
 - Success: `302` to `/login`, one new row in `users` with `username`, `email`, `password_hash` (bcrypt), `auth_token`
 - Missing password: `400`, register page shows "Your password must be at least 8 characters long.", nothing saved
 
 The good input test checks the status, that exactly one row got saved with the right username and email, and that the password is stored as a bcrypt hash. The missing password test checks the error shows up and no row exists.
+
+The route calls `src/validateRegistration.js` before hashing or inserting. Its unit tests in `validation.spec.js` cover valid input (no errors) and a missing password (just the password error).
 
 ## Cleanup
 

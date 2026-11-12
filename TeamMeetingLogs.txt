@@ -30,3 +30,20 @@ Decisions made:
 Follow-up items:
 - Everyone: keep track of releasenotes better in the future, due before each meeting, these logs are due midnight after meeting
 
+== Week of 11/09/2026 - TA Meeting (Mon 11/09, 1:45 PM, Zoom) ==
+
+What everyone did:
+- Aidan Jiang: Added auth to the template routes, set up the library page, and added the characters page.
+- Sawyer Rockey: Split up and cleaned the template builder code, made uploads work with the builder, merged the share pages into templates, added an error page, and worked on styling.
+- Kristin Kim: Got the pages rendering, redid the nav bar, updated the dashboard, and styled the login and register pages.
+- Madeline Smith: Started Lab 10, cleaned up the nav bar, and fixed broken links after login.
+- Lucas Moraca: Set up Lab 10 testing and finished the admin page (search, delete/recover accounts, make/remove admin, alert bar).
+
+TA feedback:
+- Jen: Complimented the color scheme
+
+Decisions made:
+- 
+
+Follow-up items:
+- 

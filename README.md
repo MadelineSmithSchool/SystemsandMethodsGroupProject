@@ -28,3 +28,15 @@ Users build their own templates with drag-and-drop fields like stats, skills, in
 
 - Team meeting: Tuesdays, 1:00 PM (Zoom)
 - Meeting with TA: Mondays, 1:45 PM (Zoom)
+
+## Admin page
+
+Go to http://localhost:3001/manage. Only admins can see it.
+
+To make yourself an admin:
+1. Register an account
+2. In `ProjectSourceCode/`, run `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`
+3. Run `UPDATE users SET is_admin = TRUE WHERE username = 'yourname';` then `\q`
+4. Log out and back in
+
+After that you can make other people admins from the admin page.
