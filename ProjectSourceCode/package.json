@@ -13,8 +13,8 @@
         "pg-promise": "^12.6.1"
     },
     "scripts": {
-        "prestart": "npm install",
-        "start": "nodemon app.js",
+        "start": "node app.js",
+        "dev": "nodemon app.js",
         "test": "mocha --timeout 10000 --require test/setup.js \"test/**/*.spec.js\""
     },
     "version": "1.0.0",
@@ -37,3 +37,4 @@
     },
     "homepage": "https://github.com/MadelineSmithSchool/SystemsandMethodsGroupProject#readme"
 }
+

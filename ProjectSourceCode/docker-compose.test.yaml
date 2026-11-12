@@ -1,6 +1,6 @@
 services:
   db-test:
-    image: postgres:17.6
+    image: postgres:14
     env_file: .env.test
     healthcheck:
       test:
@@ -10,7 +10,7 @@ services:
       retries: 20
       start_period: 10s
     volumes:
-      - lab10-test-db:/var/lib/postgresql/data
+      - lab10-test-db-v14:/var/lib/postgresql/data
       - ./create.sql:/docker-entrypoint-initdb.d/create.sql:ro # same schema as the dev db
 
   tests:
@@ -23,10 +23,10 @@ services:
     volumes:
       - ../.:/repository
       - lab10-test-node-modules:/repository/ProjectSourceCode/node_modules
-    command: ['npm', 'test']
+    command: sh -c "npm install && npm test"
 
 volumes:
-  lab10-test-db:
+  lab10-test-db-v14:
   lab10-test-node-modules:
 
 

@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
+const validateRegistration = require('./src/validateRegistration');
 
 //For handlebars
 const hbs = handlebars.create({
@@ -134,26 +135,10 @@ app.get('/logout', (req, res) => {
 app.use('/manage', require('./routes/admin')(db));
 
 app.post('/register', async (req, res) => {
-  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
-  const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
-  const password = typeof req.body.password === 'string' ? req.body.password : '';
-  const errors = [];
-
-  if (!username) {
-    errors.push('Enter a username.');
-  } else if (username.length > 50) {
-    errors.push('Your username must be 50 characters or fewer.');
-  }
-
-  if (!email || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push('Enter a valid email address (255 characters or fewer).');
-  }
-
-  if (password.length < 8) {
-    errors.push('Your password must be at least 8 characters long.');
-  } else if (Buffer.byteLength(password, 'utf8') > 72) {
-    errors.push('Your password must be no more than 72 bytes long.');
-  }
+  const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  const errors = validateRegistration({ username, email, password });
 
   if (errors.length > 0) {
     return res.status(400).render('pages/register', { errors, username, email });

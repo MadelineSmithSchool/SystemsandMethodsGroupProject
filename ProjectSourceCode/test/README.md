@@ -30,7 +30,8 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 
 ## How it's set up
 
-- `app.js` exports the app. It only starts the server when you run it directly (`npm start` / `nodemon app.js`), so the tests can require it without starting one.
+- `npm start` runs `node app.js`; `npm run dev` runs Nodemon for automatic restarts during development. `app.js` exports the app and only starts the server when run directly, so tests can require it without starting a server.
+- Development and test Compose services use Node `22.19.0-bookworm` and PostgreSQL 14. The test database uses its own `lab10-test-db-v14` volume.
 - `src/db.js` is the one db connection, used by the routes and the tests. It won't run tests unless the db name ends in `_test`.
 - `test/setup.js` loads first and turns on test mode, so running `npm test` against the dev db just errors out instead of touching it.
 - The test db gets its tables from `create.sql`.
@@ -42,6 +43,7 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 | --- | --- |
 | `server.spec.js` | `GET /welcome` returns the welcome message |
 | `register.spec.js` | `POST /register` with good input and with no password |
+| `validation.spec.js` | Registration validation rules in isolation, without HTTP or a database |
 
 ## POST /register
 
@@ -51,6 +53,8 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 - Missing password: `400`, register page shows "Your password must be at least 8 characters long.", nothing saved
 
 The good input test checks the status, that exactly one row got saved with the right username and email, and that the password is stored as a bcrypt hash. The missing password test checks the error shows up and no row exists.
+
+The route calls `src/validateRegistration.js` before hashing or inserting. Its unit tests cover valid input and the missing-password, invalid-email, and password-byte-limit rules.
 
 ## Cleanup
 
