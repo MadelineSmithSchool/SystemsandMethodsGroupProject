@@ -1,0 +1,21 @@
+{{!-- search box + sort dropdown for list pages
+      use: {{> list-controls action="/library" label="Search templates" placeholder="..."}}
+      needs `list` from src/listQuery.js in the page data --}}
+<form class="list-controls" action="{{action}}" method="GET" role="search" aria-label="{{label}}">
+    <div class="list-controls-field list-controls-search">
+        <label for="list-search">Search</label>
+        <input id="list-search" type="search" name="q" value="{{list.search}}" maxlength="100" placeholder="{{placeholder}}">
+    </div>
+    <div class="list-controls-field">
+        <label for="list-sort">Sort by</label>
+        <select id="list-sort" name="sort">
+            {{#each list.sortOptions}}
+                <option value="{{value}}"{{#if selected}} selected{{/if}}>{{label}}</option>
+            {{/each}}
+        </select>
+    </div>
+    <div class="list-controls-actions">
+        <button type="submit" class="btn btn--primary">Search</button>
+        {{#if list.active}}<a href="{{action}}" class="btn btn--ghost">Clear</a>{{/if}}
+    </div>
+</form>

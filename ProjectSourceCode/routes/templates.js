@@ -2,6 +2,7 @@
 const express = require('express'); 
 const multer = require('multer');
 const crypto = require('crypto');
+const { listQuery } = require('../src/listQuery');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
 const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'notes', 'math', 'group']);
@@ -192,25 +193,34 @@ module.exports = (db, auth) => {
     [req.params.shareId]
   );
 
-  const getTemplateList = (userId) => db.any(
+  // search + sort for the list (?q=...&sort=..., see src/listQuery.js)
+  const readTemplateListQuery = (query) => listQuery(query, {
+    name: 't.template_name',
+    created: 't.created_at',
+    id: 't.template_id'
+  });
+
+  const getTemplateList = (userId, list) => db.any(
     `SELECT t.*, u.username AS creator_name, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date,
             (t.user_id = $1) AS is_owner
      FROM templates t
      JOIN users u ON u.user_id = t.user_id
-     WHERE t.user_id = $1
+     WHERE (t.user_id = $1
         OR EXISTS (
           SELECT 1 FROM player_library library
           WHERE library.template_id = t.template_id AND library.user_id = $1
-        )
-     ORDER BY t.created_at DESC`,
-    [userId]
+        ))
+       AND (t.template_name ILIKE $2 OR t.template_desc ILIKE $2 OR u.username ILIKE $2)
+     ORDER BY ${list.orderBy}`,
+    [userId, list.pattern]
   );
 
   // list of your templates (pick one to send)
   router.get('/', auth, async (req, res, next) => {
     try {
-      const templates = await getTemplateList(req.session.user.id);
-      res.render('pages/templates', { templates });
+      const list = readTemplateListQuery(req.query);
+      const templates = await getTemplateList(req.session.user.id, list);
+      res.render('pages/templates', { templates, list });
     } catch (err) {
       next(err);
     }
@@ -426,9 +436,11 @@ module.exports = (db, auth) => {
           [crypto.randomBytes(12).toString('hex'), template.template_id]);
       }
       const link = `${req.protocol}://${req.get('host')}/templates/shared/${template.share_id}`;
-      const templates = await getTemplateList(req.session.user.id);
+      const list = readTemplateListQuery({});
+      const templates = await getTemplateList(req.session.user.id, list);
       res.render('pages/templates', {
         templates,
+        list,
         shareLink: link,
         shareTemplateName: template.template_name
       });

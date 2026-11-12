@@ -1767,6 +1767,41 @@ option {
   text-align: center;
 }
 
+/* ---------- List search + sort (library, my templates, my characters) ---------- */
+.list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.list-controls-field {
+  display: flex;
+  flex: 0 1 12rem;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.list-controls-search {
+  flex: 1 1 16rem;
+}
+
+.list-controls label {
+  font-size: 0.9rem;
+}
+
+.list-controls-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 60rem) {
   .studio-layout {

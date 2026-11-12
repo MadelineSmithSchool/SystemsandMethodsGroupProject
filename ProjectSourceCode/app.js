@@ -10,6 +10,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
 const validateRegistration = require('./src/validateRegistration');
+const { listQuery } = require('./src/listQuery');
 
 //For handlebars
 const hbs = handlebars.create({
@@ -97,7 +98,9 @@ app.get('/dashboard', auth, (req, res) => {
 app.get('/tutorial', auth, (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard Tutorial' , login: true});
 });
+// search by name, description or creator, sort with ?sort= (see src/listQuery.js)
 app.get('/library', auth, async (req, res) => {
+  const list = listQuery(req.query, { name: 't.template_name', created: 't.created_at', id: 't.template_id' });
   try {
     const templates = await db.any(
       `SELECT t.template_id, t.template_name, t.template_desc, t.created_at,
@@ -105,17 +108,21 @@ app.get('/library', auth, async (req, res) => {
        FROM templates t
        LEFT JOIN users u ON u.user_id = t.user_id
        WHERE t.privacy_level = 1
-       ORDER BY t.created_at DESC`
+         AND (t.template_name ILIKE $1 OR t.template_desc ILIKE $1 OR u.username ILIKE $1)
+       ORDER BY ${list.orderBy}`,
+      [list.pattern]
     );
-    res.render('pages/library', { title: 'Template', login: true, templates });
+    res.render('pages/library', { title: 'Template', login: true, templates, list });
   } catch (err) {
     console.error('Library query failed:', err);
     res.status(500).render('pages/library', {
-      title: 'Template', login: true, templates: [], error: 'Could not load the library.'
+      title: 'Template', login: true, templates: [], list, error: 'Could not load the library.'
     });
   }
 });
+// search by character name or template name
 app.get('/characters', auth, async (req, res) => {
+  const list = listQuery(req.query, { name: 'c.character_name', created: 'c.created_at', id: 'c.character_id' });
   try {
     const characters = await db.any(
       `SELECT c.character_id, c.character_name, c.privacy_level, c.created_at,
@@ -123,14 +130,15 @@ app.get('/characters', auth, async (req, res) => {
        FROM characters c
        LEFT JOIN templates t ON t.template_id = c.template_id
        WHERE c.user_id = $1
-       ORDER BY c.created_at DESC`,
-      [req.session.user.id]
+         AND (c.character_name ILIKE $2 OR t.template_name ILIKE $2)
+       ORDER BY ${list.orderBy}`,
+      [req.session.user.id, list.pattern]
     );
-    res.render('pages/characters', { title: 'My Characters', login: true, characters });
+    res.render('pages/characters', { title: 'My Characters', login: true, characters, list });
   } catch (err) {
     console.error('Characters query failed:', err);
     res.status(500).render('pages/characters', {
-      title: 'My Characters', login: true, characters: [], error: 'Could not load your characters.'
+      title: 'My Characters', login: true, characters: [], list, error: 'Could not load your characters.'
     });
   }
 });

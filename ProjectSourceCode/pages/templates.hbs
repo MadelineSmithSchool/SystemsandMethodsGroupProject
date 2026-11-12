@@ -30,6 +30,8 @@
             <a href="/templates/upload" class="btn btn--primary">Upload a template</a>
         </header>
 
+        {{> list-controls action="/templates" label="Search your templates" placeholder="Name, description, or creator"}}
+
         <section class="templates-grid" aria-label="Your templates">
             {{#each templates}}
                 <article class="template-card">
@@ -55,7 +57,11 @@
                     </div>
                 </article>
             {{else}}
-                <p class="templates-empty">No templates yet. Upload a template or build one from scratch to get started.</p>
+                {{#if list.search}}
+                    <p class="templates-empty">None of your templates match "{{list.search}}".</p>
+                {{else}}
+                    <p class="templates-empty">No templates yet. Upload a template or build one from scratch to get started.</p>
+                {{/if}}
             {{/each}}
         </section>
     </main>
