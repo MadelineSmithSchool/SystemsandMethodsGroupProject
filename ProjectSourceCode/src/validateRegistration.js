@@ -1,8 +1,6 @@
-function validateRegistration(input) {
-  const data = input && typeof input === 'object' ? input : {};
-  const username = typeof data.username === 'string' ? data.username.trim() : '';
-  const email = typeof data.email === 'string' ? data.email.trim() : '';
-  const password = typeof data.password === 'string' ? data.password : '';
+// register form rules, used by POST /register and the unit test
+// returns a list of error messages, empty means its good
+function validateRegistration({ username, email, password }) {
   const errors = [];
 
   if (!username) {

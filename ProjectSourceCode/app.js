@@ -66,6 +66,18 @@ app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
 
 // db connection lives in src/db.js so the tests use the same one
 const { db } = require('./src/db');
+const validateRegistration = require('./src/validateRegistration');
+
+// alert bar from the admin page, shows at the top of every page
+app.use(async (req, res, next) => {
+  try {
+    const alert = await db.oneOrNone('SELECT message FROM site_alerts ORDER BY created_at DESC LIMIT 1');
+    res.locals.siteAlert = alert && alert.message;
+  } catch (err) {
+    console.error('Could not load the site alert:', err);
+  }
+  next();
+});
 
 //ROUTES//
 
@@ -135,9 +147,9 @@ app.get('/logout', (req, res) => {
 app.use('/manage', require('./routes/admin')(db));
 
 app.post('/register', async (req, res) => {
-  const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
-  const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
-  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
   const errors = validateRegistration({ username, email, password });
 
   if (errors.length > 0) {
@@ -200,6 +212,12 @@ app.post('/login', async (req, res) => {
     ) {
       return res.status(401).render('pages/login', {
         errors: ['The username or password is incorrect. Check your details and try again.'],
+        username,
+      });
+    }
+    if (user.deleted_at) {
+      return res.status(403).render('pages/login', {
+        errors: ['This account has been deleted. Ask an admin if you want it back.'],
         username,
       });
     }

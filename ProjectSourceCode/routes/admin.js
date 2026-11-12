@@ -11,6 +11,12 @@ module.exports = (db) => {
     next();
   });
 
+  // ids in the url have to be numbers
+  router.param('id', (req, res, next, id) => {
+    if (!/^\d{1,9}$/.test(id)) return res.status(404).send('Not found.');
+    next();
+  });
+
   // search users and templates (?users=... and ?templates=... from the nav search boxes)
   router.get('/', async (req, res, next) => {
     const userSearch = typeof req.query.users === 'string' ? req.query.users.trim() : '';
@@ -19,6 +25,7 @@ module.exports = (db) => {
     try {
       const users = await db.any(
         `SELECT u.user_id, u.username, u.email, u.is_admin, to_char(u.created_at, 'YYYY-MM-DD') AS joined,
+           to_char(u.deleted_at, 'YYYY-MM-DD') AS deleted,
            COUNT(t.template_id) AS template_count
          FROM users u LEFT JOIN templates t ON t.user_id = u.user_id
          WHERE u.username ILIKE $1 OR u.email ILIKE $1
@@ -32,7 +39,75 @@ module.exports = (db) => {
          ORDER BY t.created_at DESC LIMIT 50`,
         ['%' + templateSearch + '%']
       );
-      res.render('pages/admin', { title: 'Admin', users, templates, userSearch, templateSearch });
+      const counts = await db.one(
+        `SELECT (SELECT COUNT(*) FROM users) AS users,
+           (SELECT COUNT(*) FROM users WHERE deleted_at IS NOT NULL) AS deleted,
+           (SELECT COUNT(*) FROM templates) AS templates,
+           (SELECT COUNT(*) FROM templates WHERE share_id IS NOT NULL) AS shared`
+      );
+      res.render('pages/admin', { title: 'Admin', users, templates, counts, userSearch, templateSearch });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // delete just marks the account, so it can be recovered later
+  router.post('/users/:id/delete', async (req, res, next) => {
+    if (Number(req.params.id) === req.session.user.id) return res.status(400).send('You can not delete your own account.');
+    try {
+      await db.none('UPDATE users SET deleted_at = NOW() WHERE user_id = $1', [req.params.id]);
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/users/:id/recover', async (req, res, next) => {
+    try {
+      await db.none('UPDATE users SET deleted_at = NULL WHERE user_id = $1', [req.params.id]);
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // make admin / remove admin (they have to log in again for it to kick in)
+  router.post('/users/:id/admin', async (req, res, next) => {
+    if (Number(req.params.id) === req.session.user.id) return res.status(400).send('You can not change your own admin status.');
+    try {
+      await db.none('UPDATE users SET is_admin = NOT is_admin WHERE user_id = $1', [req.params.id]);
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // alert bar on every page (newest one shows)
+  router.post('/alert', async (req, res, next) => {
+    const message = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+    if (!message || message.length > 255) return res.status(400).send('Alert has to be 1-255 characters.');
+    try {
+      await db.none('INSERT INTO site_alerts (message) VALUES ($1)', [message]);
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/alert/clear', async (req, res, next) => {
+    try {
+      await db.none('DELETE FROM site_alerts');
+      res.redirect('/manage');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // turns off a template's share link
+  router.post('/templates/:id/unshare', async (req, res, next) => {
+    try {
+      await db.none('UPDATE templates SET share_id = NULL WHERE template_id = $1', [req.params.id]);
+      res.redirect('/manage');
     } catch (err) {
       next(err);
     }
