@@ -4,6 +4,7 @@ import {
     renderCanvas,
     renderInspector,
     renderSavedPresets,
+    fitNotesModule,
     setPlacement,
     updateLiveValues,
     updatePresetSelection
@@ -59,6 +60,20 @@ if (studio) {
         if (playerSheet) return;
         studio.querySelector('#sheet-name').value = state.document.name || '';
         studio.querySelector('#sheet-description').value = state.document.description || '';
+    }
+
+    function checkboxModuleChecked(module) {
+        var items = Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
+            module.checkboxItems : null;
+        if (!isPlaytest()) {
+            return items ? items.some(function (item) { return Boolean(item.checked); }) : Boolean(module.checked);
+        }
+        if (!items) return Boolean(state.player.checked[module.id]);
+        return items.some(function (item, index) {
+            var itemId = String(item.id || 'legacy-' + index);
+            var checked = state.player.checked[module.id + ':' + itemId];
+            return Boolean(checked !== undefined ? checked : index === 0 && state.player.checked[module.id]);
+        });
     }
 
     function updateResponsiveColumns() {
@@ -153,7 +168,8 @@ if (studio) {
                 type === 'list' ? 8 : moduleSize.colSpan,
             columns
         );
-        var rowSpan = type === 'pages' ? 8 : type === 'group' ? 5 : type === 'list' ? 5 : moduleSize.rowSpan;
+        var rowSpan = type === 'pages' ? 8 : type === 'group' ? 5 : type === 'list' ? 5 :
+            type === 'checkbox' ? 4 : moduleSize.rowSpan;
         var preferred = { col: 1 + (siblings.length % 3) * 4, row: 1 + Math.floor(siblings.length / 3) * 3 };
         return Object.assign(
             { id: id, type: type, name: moduleTypes[type].name },
@@ -341,7 +357,7 @@ if (studio) {
         } else if (kind === 'number') {
             return typed !== undefined ? typed : module.value || 0;
         } else if (kind === 'checkbox') {
-            var checked = isPlaytest() ? state.player.checked[module.id] : module.checked;
+            var checked = checkboxModuleChecked(module);
             return Number(checked ? module.checkedValue : module.uncheckedValue);
         } else {
             return typed !== undefined ? typed : module.value || '';
@@ -359,8 +375,7 @@ if (studio) {
     function applyModifiers(module, value) {
         (module.modifiers || []).forEach(function (modifier) {
             var checkbox = findModule(state.document.modules, modifier.source);
-            var checked = checkbox && checkbox.type === 'checkbox' &&
-                (isPlaytest() ? state.player.checked[checkbox.id] : checkbox.checked);
+            var checked = checkbox && checkbox.type === 'checkbox' && checkboxModuleChecked(checkbox);
             if (checked) value += Number(modifier.amount || 0);
         });
     }
@@ -505,12 +520,39 @@ if (studio) {
     function handleUpdateSetting(action) {
         var target = findModule(state.document.modules, action.id);
         if (!target) return;
+        var previousRowSpan = target.rowSpan;
         if (numericSettings.includes(action.setting)) {
             target[action.setting] = clampSetting(action.setting, Number(action.value));
         } else {
             target[action.setting] = action.value;
         }
         if (linkSettings.includes(action.setting)) state.player.rollResults[target.id] = null;
+        if (target.type === 'checkbox' && action.setting === 'checkboxItems') {
+            target.checkboxItems = action.value;
+            target.checkboxLabel = target.checkboxItems[0] && target.checkboxItems[0].label || '';
+            target.checked = target.checkboxItems.some(function (item) { return Boolean(item.checked); });
+            target.rowSpan = Math.max(4, target.rowSpan, target.checkboxItems.length + 3);
+        }
+        if (target.type === 'checkbox' && action.setting === 'rowSpan') {
+            var checkboxItemCount = Array.isArray(target.checkboxItems) ? target.checkboxItems.length : 1;
+            target.rowSpan = Math.max(4, checkboxItemCount + 3, target.rowSpan);
+        }
+        if (target.type === 'checkbox' && target.rowSpan !== previousRowSpan) {
+            var checkboxEntry = findModuleEntry(target.id);
+            if (checkboxEntry) {
+                var checkboxPlacement = {
+                    col: target.col,
+                    row: target.row,
+                    colSpan: target.colSpan,
+                    rowSpan: target.rowSpan
+                };
+                displaceOverlappingModules(checkboxEntry.list, target.id, checkboxPlacement)
+                    .forEach(function (item) {
+                        var sibling = findModule(checkboxEntry.list, item.id);
+                        if (sibling) Object.assign(sibling, item.placement);
+                    });
+            }
+        }
         if (target.type === 'pages' && (action.setting === 'colSpan' || action.setting === 'rowSpan')) {
             var entry = findModuleEntry(target.id);
             if (entry) Object.assign(target, nearestPlacement(entry.list, target, layoutColumns(rootCanvas), target));
@@ -934,11 +976,6 @@ if (studio) {
         var preview = snappedPlacement(module, drag.layout, drag.start, event.clientX, event.clientY, drag.resize);
         var entry = findModuleEntry(drag.id);
         drag.placement = { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan };
-        if (drag.resize) {
-            if (entry.list.some(function (item) { return item.id !== module.id && placementsOverlap(preview, item); })) return;
-            setPlacement(drag.element, preview, drag.layout);
-            return;
-        }
         drag.previewPlacements = displaceOverlappingModules(entry.list, module.id, drag.placement);
         drag.previewPlacements.forEach(function (item) {
             var sibling = Array.prototype.find.call(drag.layout.children, function (element) {
@@ -964,7 +1001,8 @@ if (studio) {
             columns
         );
         var rowSpan = drag.type === 'pages' ? 8 :
-            drag.type === 'group' ? 5 : drag.type === 'list' ? 5 : moduleSize.rowSpan;
+            drag.type === 'group' ? 5 : drag.type === 'list' ? 5 :
+                drag.type === 'checkbox' ? 4 : moduleSize.rowSpan;
         var origin = layoutContentOrigin(destination.element);
         var rowStep = layoutRowStep(destination.element);
         var columnStep = layoutColumnStep(destination.element);
@@ -984,7 +1022,10 @@ if (studio) {
     function dropModule(drag, event) {
         var entry = findModuleEntry(drag.id);
         if (drag.resize) {
-            dispatch({ type: 'move-module', id: drag.id, placement: drag.placement });
+            dispatch({
+                type: 'move-modules',
+                placements: drag.previewPlacements || [{ id: drag.id, placement: drag.placement }]
+            });
             return;
         }
         var target = document.elementFromPoint(event.clientX, event.clientY);
@@ -1236,6 +1277,29 @@ if (studio) {
         '[data-remove-module]': function(target) {
             if (isDeveloper()) dispatch({ type: 'remove-modules', ids: [target.dataset.removeModule] });
         },
+        '[data-add-checkbox-item]': function(target) {
+            var module = findModule(state.document.modules, target.dataset.addCheckboxItem);
+            if (!isDeveloper() || !module || module.type !== 'checkbox') return;
+            var items = Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
+                clone(module.checkboxItems) : [{
+                    id: 'legacy',
+                    label: module.checkboxLabel || '',
+                    checked: Boolean(module.checked)
+                }];
+            var nextId = items.reduce(function (next, item) {
+                var match = /^item-(\d+)$/.exec(String(item.id || ''));
+                return match ? Math.max(next, Number(match[1]) + 1) : next;
+            }, 1);
+            items.push({ id: 'item-' + nextId, label: '', checked: false });
+            dispatch({ type: 'update-setting', id: module.id, setting: 'checkboxItems', value: items });
+        },
+        '[data-remove-checkbox-item]': function(target) {
+            var module = findModule(state.document.modules, target.dataset.removeCheckboxItem);
+            if (!isDeveloper() || !module || module.type !== 'checkbox') return;
+            var items = Array.isArray(module.checkboxItems) ? clone(module.checkboxItems) : [];
+            items = items.filter(function (item) { return String(item.id) !== target.dataset.checkboxItem; });
+            if (items.length) dispatch({ type: 'update-setting', id: module.id, setting: 'checkboxItems', value: items });
+        },
         '[data-edit-module]': function(target) {
             if (isDeveloper()) setUi({ selectedId: target.dataset.editModule, selectedModuleIds: [] });
         }
@@ -1320,12 +1384,78 @@ if (studio) {
             var id = valueInput.dataset.moduleValue;
             dispatchPlayerOrDocumentChange(id, valueInput.value, 'values', 'value');
             updateLiveValues(studio, state, api);
+            if (isPlaytest()) {
+                var valueModule = findModule(state.document.modules, id);
+                var valueCard = valueInput.closest('[data-sheet-module]');
+                fitNotesModule(valueCard, valueCard && valueCard.parentElement.closest('[data-layout-canvas]'), valueModule);
+            }
+            return;
+        }
+        var moduleNameInput = target.closest('[data-module-name]');
+        if (moduleNameInput && !isPlaytest() && (event.type === 'input' || event.type === 'change')) {
+            moduleNameInput.size = Math.max(4, moduleNameInput.value.length);
+            dispatch({
+                type: 'update-setting',
+                id: moduleNameInput.dataset.moduleName,
+                setting: 'name',
+                value: moduleNameInput.value,
+                render: false
+            });
+            return;
+        }
+        var checkboxLabelInput = target.closest('[data-checkbox-label-module]');
+        if (checkboxLabelInput && !isPlaytest() && (event.type === 'input' || event.type === 'change')) {
+            checkboxLabelInput.style.height = 'auto';
+            checkboxLabelInput.style.height = Math.min(checkboxLabelInput.scrollHeight, 64) + 'px';
+            checkboxLabelInput.style.overflowY = checkboxLabelInput.scrollHeight > 64 ? 'auto' : 'hidden';
+            var checkboxModule = findModule(state.document.modules, checkboxLabelInput.dataset.checkboxLabelModule);
+            if (!checkboxModule) return;
+            var checkboxItems = Array.isArray(checkboxModule.checkboxItems) && checkboxModule.checkboxItems.length ?
+                clone(checkboxModule.checkboxItems) : [{
+                    id: 'legacy',
+                    label: checkboxModule.checkboxLabel || '',
+                    checked: Boolean(checkboxModule.checked)
+                }];
+            var checkboxItem = checkboxItems.find(function (item) {
+                return String(item.id) === checkboxLabelInput.dataset.checkboxItem;
+            });
+            if (!checkboxItem) return;
+            checkboxItem.label = checkboxLabelInput.value;
+            dispatch({
+                type: 'update-setting',
+                id: checkboxModule.id,
+                setting: 'checkboxItems',
+                value: checkboxItems,
+                render: false
+            });
             return;
         }
         var checkbox = event.type === 'change' && target.closest('[data-module-checked]');
         if (checkbox) {
             var checkId = checkbox.dataset.moduleChecked;
-            dispatchPlayerOrDocumentChange(checkId, checkbox.checked, 'checked', 'setting');
+            var checkboxModule = findModule(state.document.modules, checkId);
+            var itemId = checkbox.dataset.checkboxItem;
+            if (!checkboxModule || !itemId) return;
+            if (isPlaytest()) {
+                var playerCheckId = checkId + ':' + itemId;
+                dispatch({ type: 'player', key: 'checked', id: playerCheckId, value: checkbox.checked, render: false });
+            } else {
+                var checkboxItems = Array.isArray(checkboxModule.checkboxItems) && checkboxModule.checkboxItems.length ?
+                    clone(checkboxModule.checkboxItems) : [{
+                        id: 'legacy',
+                        label: checkboxModule.checkboxLabel || '',
+                        checked: Boolean(checkboxModule.checked)
+                    }];
+                var selectedCheckbox = checkboxItems.find(function (item) { return String(item.id) === itemId; });
+                if (!selectedCheckbox) return;
+                selectedCheckbox.checked = checkbox.checked;
+                dispatch({
+                    type: 'update-setting',
+                    id: checkboxModule.id,
+                    setting: 'checkboxItems',
+                    value: checkboxItems
+                });
+            }
             return;
         }
         if (event.type === 'change' && target.type === 'checkbox' && target.dataset.setting && !isPlaytest()) {
@@ -1383,8 +1513,8 @@ if (studio) {
             var rerender = !inPlace || setting === 'groupColumns';
             dispatch({ type: 'update-setting', id: selected.id, setting: setting, value: target.value, render: rerender });
             if (setting === 'name') {
-                var title = studio.querySelector('[data-sheet-module="' + selected.id + '"] [data-module-title]');
-                if (title) title.textContent = target.value || moduleTypes[selected.type].name;
+                var nameInput = studio.querySelector('[data-sheet-module="' + selected.id + '"] [data-module-name]');
+                if (nameInput) nameInput.value = target.value || moduleTypes[selected.type].name;
             } else if (inPlace && !rerender) {
                 updateLiveValues(studio, state, api);
             }
