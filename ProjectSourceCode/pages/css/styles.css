@@ -395,13 +395,11 @@ option {
 .form h2 {
   margin: 0 0 1.25rem;
   font-size: 1.9rem;
-  color:white;
 }
 
 .form label {
   display: block;
   margin-bottom: 0.35rem;
-  color:white;
 }
 
 .form input:not([type="submit"]):not([type="checkbox"]):not([type="radio"]) {
@@ -421,7 +419,7 @@ option {
 
 .form p {
   margin: 1.25rem 0 0;
-  color:white;
+  color: var(--muted);
 }
 
 .form-error,
@@ -492,7 +490,7 @@ option {
 /* ---------- 6. Home page + tutorial ---------- */
 .index-cards {
   width:auto;
-  max-height:100px;
+  max-height:50%;
 }
 
 .tutorial {
