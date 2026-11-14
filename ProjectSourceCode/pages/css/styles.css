@@ -12,7 +12,7 @@
   --bronze-bright: #eed12b;
   --text: #fffefc;
   --muted: #fff3e0;
-  --line: rgba(255, 255, 255, 0.14);
+  --line: rgba(150, 150, 150, 0.14);
   --line-strong: rgba(255, 255, 255, 0.3);
   --danger: #ff9aab;
   --danger-bg: rgba(255, 120, 140, 0.12);
@@ -2497,6 +2497,16 @@ option {
   border-radius: var(--radius);
   color: var(--muted);
   text-align: center;
+}
+
+/* ---------- Admin ---------- */
+.admin-page .table {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+.admin-page .text-muted {
+  color: var(--muted) !important;
 }
 
 /* ---------- Responsive ---------- */
