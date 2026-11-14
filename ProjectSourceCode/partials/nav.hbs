@@ -1,5 +1,5 @@
 <header class="site-header">
-  <a class="brand" href="/dashboard">RPG Templates</a>
+  <a class="brand" href="/">RPG Templates</a>
   <nav class="navbar" aria-label="Main">
     {{#if admin}}
       <ul class="nav-list">
@@ -26,6 +26,7 @@
           </details>
         </li>
         <li><a href="/logout">Log out</a></li>
+        <li><a href="/settings">Settings</a></li>
       </ul>
     {{else}}
       <ul class="nav-list">
@@ -37,7 +38,6 @@
 </header>
 
 <script>
-  // Marks the nav link that matches the current URL, so every page highlights the right item.
   (function () {
     var here = location.pathname.replace(/\/+$/, '') || '/';
     document.querySelectorAll('.nav-list a').forEach(function (a) {
@@ -47,11 +47,6 @@
       var targetPath = target.pathname.replace(/\/+$/, '') || '/';
       if (targetPath === here && target.search === location.search) {
         a.setAttribute('aria-current', 'page');
-        var dropdown = a.closest('.nav-dropdown');
-        if (dropdown) {
-          dropdown.querySelector('details').open = true;
-          dropdown.querySelector('summary').setAttribute('aria-current', 'page');
-        }
       }
     });
   })();

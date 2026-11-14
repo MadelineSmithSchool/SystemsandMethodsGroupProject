@@ -1,17 +1,20 @@
-<h1>My Characters</h1>
-{{#if error}}<p class="error">{{error}}</p>{{/if}}
-{{> list-controls action="/characters" label="Search your characters" placeholder="Character or template name"}}
-<div class="character-list">
-  {{#each characters}}
-    <div class="card">
-      <h3>{{this.character_name}}</h3>
-      {{#if this.template_name}}<p>Template: {{this.template_name}}</p>{{/if}}
-    </div>
-  {{else}}
-    {{#if list.search}}
-      <p>None of your characters match "{{list.search}}".</p>
+<main class="templates-page">
+  <h1>My Characters</h1>
+  <a href="/characters/new" class="btn btn--primary">Create new character</a>
+  {{#if error}}<p class="error">{{error}}</p>{{/if}}
+  {{> list-controls action="/characters" label="Search your characters" placeholder="Character or template name"}}
+  <div class="character-list">
+    {{#each characters}}
+      <div class="card">
+        <h3>{{this.character_name}}</h3>
+        {{#if this.template_name}}<p>Template: {{this.template_name}}</p>{{/if}}
+      </div>
     {{else}}
-      <p>You haven't made any characters yet.</p>
-    {{/if}}
-  {{/each}}
-</div>
+      {{#if list.search}}
+        <p>None of your characters match "{{list.search}}".</p>
+      {{else}}
+        <p>You haven't made any characters yet.</p>
+      {{/if}}
+    {{/each}}
+  </div>
+</main>

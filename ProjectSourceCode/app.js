@@ -53,6 +53,7 @@ const auth = (req, res, next) => {
 // Serve the stylesheet at /css/styles.css no matter what the folder is called
 // (CSS, css, ...) or how deep it sits inside ProjectSourceCode.
 app.use('/css', express.static(path.join(__dirname, 'pages', 'css')));
+app.use('/images', express.static(path.join(__dirname, 'pages', 'images')));
 [
   'modules-main.js',
   'modules-render.js',

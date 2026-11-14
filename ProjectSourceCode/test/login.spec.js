@@ -47,6 +47,30 @@ describe('POST /login', () => {
     }
   });
 
+  it('links authenticated users to the character builder', async () => {
+    const agent = chai.request.agent(app);
+    try {
+      await agent.post('/login').type('form').send(testUser).redirects(0);
+
+      const characters = await agent.get('/characters');
+      expect(characters).to.have.status(200);
+      expect(characters.text).to.include('href="/characters/new"');
+      expect(characters.text).to.include('Create new character');
+
+      const builder = await agent.get('/characters/new');
+      expect(builder).to.have.status(200);
+      expect(builder.text).to.include('<h1>Character Builder</h1>');
+    } finally {
+      agent.close();
+    }
+  });
+
+  it('redirects unauthenticated users from the character builder to login', async () => {
+    const res = await chai.request(app).get('/characters/new').redirects(0);
+    expect(res).to.have.status(302);
+    expect(res).to.have.header('location', '/login');
+  });
+
   // negative + render test
   it('renders the login page with an error for the wrong password', async () => {
     const res = await chai.request(app).post('/login').type('form')

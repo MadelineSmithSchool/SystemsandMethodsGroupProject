@@ -5,8 +5,8 @@
 
 ## Week of 11/16/2026
 - keep updated with what you work on in the past week
-- admin can send an alert bar from /manage that shows at the top of every page
-- lab 10 touchups: register rules moved to src/validateRegistration.js with a unit test, login tests for extra credit
+- added list module
+- updated group module to be less cluttered
 - search + sort (part 1): search box and sort dropdown on the template library, my templates, and my characters (newest, oldest, name A-Z / Z-A)
 
 ## Week of 11/9/2026
@@ -25,6 +25,8 @@
 - admin can search users and templates from the nav search bars
 - admin can delete and recover accounts (deleted accounts cant log in)
 - admin can make/remove other admins and unshare templates, admin link added to nav
+- admin can send an alert bar from /manage that shows at the top of every page
+- lab 10 touchups: register rules moved to src/validateRegistration.js with a unit test, login tests for extra credit
 
 ## Week of 11/2/2026
 - set up register and sign in pages

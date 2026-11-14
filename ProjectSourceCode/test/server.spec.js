@@ -14,6 +14,12 @@ after(() => {
 });
 
 describe('Welcome route', () => {
+  it('renders the landing page for visitors', async () => {
+    const res = await chai.request(app).get('/');
+    expect(res).to.have.status(200);
+    expect(res.text).to.include('Build and use custom Character Sheets');
+  });
+
   it('returns the default welcome message', async () => {
     const res = await chai.request(app).get('/welcome');
     expect(res).to.have.status(200);
