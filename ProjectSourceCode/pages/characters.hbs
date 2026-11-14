@@ -1,13 +1,15 @@
-<h1>My Characters</h1>
-<a href="/characters/new" class="btn btn--primary">Create new character</a>
-{{#if error}}<p class="error">{{error}}</p>{{/if}}
-<div class="character-list">
-  {{#each characters}}
-    <div class="card">
-      <h3>{{this.character_name}}</h3>
-      {{#if this.template_name}}<p>Template: {{this.template_name}}</p>{{/if}}
-    </div>
-  {{else}}
-    <p>You haven't made any characters yet.</p>
-  {{/each}}
-</div>
+<main class="templates-page">
+  <h1>My Characters</h1>
+  <a href="/characters/new" class="btn btn--primary">Create new character</a>
+  {{#if error}}<p class="error">{{error}}</p>{{/if}}
+  <div class="character-list">
+    {{#each characters}}
+      <div class="card">
+        <h3>{{this.character_name}}</h3>
+        {{#if this.template_name}}<p>Template: {{this.template_name}}</p>{{/if}}
+      </div>
+    {{else}}
+      <p>You haven't made any characters yet.</p>
+    {{/each}}
+  </div>
+</main>

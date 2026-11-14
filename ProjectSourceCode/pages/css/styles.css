@@ -504,7 +504,8 @@ option {
 }
 
 .tutorial button{
-  color:#69140e;
+  color:var(--garnett);
+  background: var(--bronze-dark);
 }
 
 .intro {
