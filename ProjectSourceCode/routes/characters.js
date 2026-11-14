@@ -1,3 +1,9 @@
-const express = require('express'); 
-const multer = require('multer');
-const crypto = require('crypto');
+const express = require('express');
+
+const router = express.Router();
+
+router.get('/new', (req, res) => {
+  res.render('pages/character-builder', { title: 'Character Builder' });
+});
+
+module.exports = router;
