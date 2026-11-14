@@ -134,6 +134,7 @@ app.get('/characters', auth, async (req, res) => {
     });
   }
 });
+app.use('/characters', auth, require('./routes/characters'));
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('connect.sid');
