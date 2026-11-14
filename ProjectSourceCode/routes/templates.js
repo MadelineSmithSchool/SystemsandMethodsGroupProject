@@ -287,10 +287,21 @@ module.exports = (db, auth) => {
   );
 
   // search + sort for the list (?q=...&sort=..., see src/listQuery.js)
+  // ?show= picks all templates, only ones you made, or only ones you saved from someone else
   const readTemplateListQuery = (query) => listQuery(query, {
     name: 't.template_name',
     created: 't.created_at',
     id: 't.template_id'
+  }, {
+    filter: {
+      name: 'show',
+      label: 'Show',
+      options: [
+        { value: 'all', label: 'All templates' },
+        { value: 'mine', label: 'Made by me' },
+        { value: 'saved', label: 'Saved from others' }
+      ]
+    }
   });
 
   const getTemplateList = (userId, list) => db.any(
@@ -304,8 +315,9 @@ module.exports = (db, auth) => {
           WHERE library.template_id = t.template_id AND library.user_id = $1
         ))
        AND (t.template_name ILIKE $2 OR t.template_desc ILIKE $2 OR u.username ILIKE $2)
+       AND ($3 = 'all' OR ($3 = 'mine' AND t.user_id = $1) OR ($3 = 'saved' AND t.user_id <> $1))
      ORDER BY ${list.orderBy}`,
-    [userId, list.pattern]
+    [userId, list.pattern, list.filter.value]
   );
 
   // list of your templates (pick one to send)

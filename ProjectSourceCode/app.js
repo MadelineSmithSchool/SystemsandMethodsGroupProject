@@ -10,7 +10,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
 const validateRegistration = require('./src/validateRegistration');
-const { listQuery } = require('./src/listQuery');
+const { listQuery, MOST_SAVED } = require('./src/listQuery');
 
 //For handlebars
 const hbs = handlebars.create({
@@ -100,12 +100,19 @@ app.get('/tutorial', auth, (req, res) => {
   res.render('pages/tutorial', { title: 'Dashboard Tutorial' , login: true});
 });
 // search by name, description or creator, sort with ?sort= (see src/listQuery.js)
+// times_saved = how many other people saved it to their templates (same count as the template page)
 app.get('/library', auth, async (req, res) => {
-  const list = listQuery(req.query, { name: 't.template_name', created: 't.created_at', id: 't.template_id' });
+  const list = listQuery(
+    req.query,
+    { name: 't.template_name', created: 't.created_at', id: 't.template_id', saves: 'times_saved' },
+    { sorts: [MOST_SAVED] }
+  );
   try {
     const templates = await db.any(
       `SELECT t.template_id, t.template_name, t.template_desc, t.created_at,
-              u.username AS creator
+              u.username AS creator,
+              (SELECT COUNT(DISTINCT library.user_id)::int FROM player_library library
+               WHERE library.template_id = t.template_id AND library.user_id <> t.user_id) AS times_saved
        FROM templates t
        LEFT JOIN users u ON u.user_id = t.user_id
        WHERE t.privacy_level = 1
@@ -113,6 +120,9 @@ app.get('/library', auth, async (req, res) => {
        ORDER BY ${list.orderBy}`,
       [list.pattern]
     );
+    templates.forEach((template) => {
+      template.saves_label = template.times_saved === 1 ? '1 save' : `${template.times_saved} saves`;
+    });
     res.render('pages/library', { title: 'Template', login: true, templates, list });
   } catch (err) {
     console.error('Library query failed:', err);

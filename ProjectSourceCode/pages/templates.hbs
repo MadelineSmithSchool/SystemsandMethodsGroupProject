@@ -59,6 +59,8 @@
             {{else}}
                 {{#if list.search}}
                     <p class="templates-empty">None of your templates match "{{list.search}}".</p>
+                {{else if list.filtered}}
+                    <p class="templates-empty">No templates to show here. Pick "All templates" to see everything.</p>
                 {{else}}
                     <p class="templates-empty">No templates yet. Upload a template or build one from scratch to get started.</p>
                 {{/if}}
