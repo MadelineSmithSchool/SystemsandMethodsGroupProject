@@ -488,10 +488,6 @@ option {
 }
 
 /* ---------- 6. Home page + tutorial ---------- */
-.index-cards {
-  width:auto;
-  max-height:50%;
-}
 
 .tutorial {
   flex: 1;
@@ -504,7 +500,8 @@ option {
 }
 
 .tutorial button{
-  color:#69140e;
+  color:var(--garnett);
+  background: var(--bronze-dark);
 }
 
 .intro {
@@ -684,18 +681,17 @@ option {
 }
 
 .start {
-  padding: 3rem var(--pad);
+  padding: 8rem var(--pad);
 }
 
 .start-head h1 {
   margin: 0 0 0.6rem;
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: clamp(2rem, 4vw, 3.5rem);
 }
 
 .start-head p {
   max-width: 40rem;
   margin: 0 0 2rem;
-  color: var(--muted);
 }
 
 .option {
@@ -726,10 +722,21 @@ option {
   font-weight: 700;
   font-size: 1.25rem;
   line-height: 1.2;
+  text-decoration-line: underline;
 }
 
 .option-desc {
   color: var(--muted);
+  text-align:center;
+}
+
+.option img{
+  width: 100%;
+  height: auto;
+}
+
+.option img:hover{
+  opacity:0.8;
 }
 
 .workspace {
