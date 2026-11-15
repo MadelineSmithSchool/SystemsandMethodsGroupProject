@@ -46,7 +46,7 @@ if (studio) {
         },
         player: {
             values: {}, checked: {}, rollResults: {}, listRows: {},
-            listEditing: {}, valueEditing: {}, lastRoll: null
+            listEditing: {}, lastRoll: null
         },
         history: { undo: [], redo: [] },
         nextModuleId: 1
@@ -1210,7 +1210,7 @@ if (studio) {
                 'Developer canvas' : (state.document.name || 'Character sheet');
             studio.querySelector('[data-workspace-help]').textContent = isDev ?
                 'Use Pages for tabs and Groups for compact field panels. Lists provide repeatable rows.' :
-                'Enter values, toggle conditions, and roll dice to test the sheet.';
+                'Double-click a field (or press Enter or F2) to edit, then tab away to finish. Player values are white; linked values are gold.';
         },
         '[data-page-tab]': function(target) {
             var activeGroupTabs = Object.assign({}, state.ui.activeGroupTabs);
@@ -1280,14 +1280,6 @@ if (studio) {
                 key: 'listEditing',
                 id: target.dataset.toggleListEdit,
                 value: !state.player.listEditing[target.dataset.toggleListEdit]
-            });
-        },
-        '[data-toggle-value-edit]': function(target) {
-            dispatch({
-                type: 'player',
-                key: 'valueEditing',
-                id: target.dataset.toggleValueEdit,
-                value: !state.player.valueEditing[target.dataset.toggleValueEdit]
             });
         },
         '[data-list-action]': function(target) {
@@ -1686,7 +1678,29 @@ if (studio) {
         URL.revokeObjectURL(url);
     }
 
+    function startPlayerValueEdit(display) {
+        var input = display.parentElement.querySelector('[data-module-value]');
+        display.hidden = true;
+        input.hidden = false;
+        input.focus();
+    }
+
     function handleKeydown(event) {
+        var valueDisplay = event.target.closest('[data-player-editable]');
+        if (isPlaytest() && valueDisplay) {
+            if (event.key === 'Enter' || event.key === 'F2' || event.key === ' ') {
+                event.preventDefault();
+                startPlayerValueEdit(valueDisplay);
+            }
+            return;
+        }
+        var valueInput = event.target.closest('.value-module > [data-module-value]');
+        if (isPlaytest() && valueInput && event.key === 'Enter' && valueInput.tagName !== 'TEXTAREA') {
+            event.preventDefault();
+            valueInput.blur();
+            valueInput.parentElement.querySelector('[data-player-editable]').focus();
+            return;
+        }
         var groupTab = event.target.closest('[data-page-tab]');
         if (groupTab) {
             var tabs = Array.prototype.slice.call(groupTab.parentElement.querySelectorAll('[data-page-tab]'));
@@ -1713,6 +1727,16 @@ if (studio) {
     }
 
     function handleFocusout(event) {
+        var valueInput = event.target.closest('.value-module > [data-module-value]');
+        if (isPlaytest() && valueInput) {
+            var display = valueInput.parentElement.querySelector('[data-player-editable]');
+            display.textContent = valueInput.value;
+            valueInput.hidden = true;
+            display.hidden = false;
+            var valueModule = findModule(state.document.modules, valueInput.dataset.moduleValue);
+            var valueCard = valueInput.closest('[data-sheet-module]');
+            fitNotesModule(valueCard, valueCard && valueCard.parentElement.closest('[data-layout-canvas]'), valueModule);
+        }
         var cell = event.target.closest('[data-list-cell]');
         if (!cell || state.ui.mode !== 'playtest') return;
         var module = findModule(state.document.modules, cell.dataset.listCell);
@@ -1726,6 +1750,10 @@ if (studio) {
     // load the last draft, then draw the sheet.
     function attachListeners() {
         studio.addEventListener('click', handleClick);
+        studio.addEventListener('dblclick', function (event) {
+            var valueDisplay = event.target.closest('[data-player-editable]');
+            if (isPlaytest() && valueDisplay) startPlayerValueEdit(valueDisplay);
+        });
         studio.addEventListener('input', handleInputs);
         studio.addEventListener('change', handleInputs);
         studio.addEventListener('focusout', handleFocusout);
