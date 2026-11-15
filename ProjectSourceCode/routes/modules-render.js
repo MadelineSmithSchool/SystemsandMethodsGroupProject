@@ -68,6 +68,15 @@ function createInput(type, value, dataset, ariaLabel, opts) {
 
 function createModuleName(module, mode) {
     if (mode === 'developer') {
+        var container = document.createElement('span');
+        container.className = 'module-name';
+        var display = document.createElement('strong');
+        display.dataset.moduleNameDisplay = '';
+        display.textContent = module.name || 'Unnamed module';
+        display.tabIndex = 0;
+        display.setAttribute('role', 'button');
+        display.setAttribute('aria-label', 'Edit ' + (module.name || 'unnamed module') + '. Double-click or press Enter or F2.');
+        display.title = 'Double-click or press Enter or F2 to edit the module name.';
         var input = document.createElement('input');
         input.type = 'text';
         input.className = 'module-name-input';
@@ -75,8 +84,10 @@ function createModuleName(module, mode) {
         input.value = module.name;
         input.size = Math.max(4, module.name.length);
         input.maxLength = 40;
+        input.hidden = true;
         input.setAttribute('aria-label', 'Module name');
-        return input;
+        container.append(display, input);
+        return container;
     }
     var title = document.createElement('strong');
     title.dataset.moduleTitle = '';
@@ -94,7 +105,7 @@ export function setPlacement(element, module, layout) {
 
 export function fitNotesModule(card, layout, module) {
     if (!card || !layout || !module || module.type !== 'notes') return;
-    var content = card.querySelector('.module-value-text, textarea[data-module-value]');
+    var content = card.querySelector('.module-value-text:not([hidden]), textarea[data-module-value]:not([hidden])');
     var body = card.querySelector('.module-body');
     if (!content || !body) return;
 
@@ -108,10 +119,7 @@ export function fitNotesModule(card, layout, module) {
     var bodyStyle = getComputedStyle(body);
     var bodyPadding = (parseFloat(bodyStyle.paddingTop) || 0) +
         (parseFloat(bodyStyle.paddingBottom) || 0);
-    var bodyGap = parseFloat(bodyStyle.rowGap) || 0;
-    var editButton = card.querySelector('.list-edit-toggle');
-    var contentHeight = headerHeight + bodyPadding + content.scrollHeight +
-        (editButton ? editButton.getBoundingClientRect().height + bodyGap : 0) + 2;
+    var contentHeight = headerHeight + bodyPadding + content.scrollHeight + 2;
     var neededRows = Math.ceil((contentHeight + rowGap) / (rowHeight + rowGap));
     card.style.gridRow = module.row + ' / span ' + Math.max(module.rowSpan, neededRows);
 }
@@ -451,32 +459,31 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
         return body;
     }
     var valueContainer = body;
-    var editingValue = mode !== 'playtest' || Boolean(player.valueEditing[module.id]);
     if (mode === 'playtest') {
         valueContainer = document.createElement('div');
         valueContainer.className = 'value-module';
-        var btn = createButton(editingValue ? 'Done' : 'Edit', 'list-edit-toggle',
-            { toggleValueEdit: module.id }, (editingValue ? 'Finish editing ' : 'Edit ') + module.name);
-        btn.setAttribute('aria-pressed', String(editingValue));
-        valueContainer.appendChild(btn);
-        if (!editingValue) {
-            var valueText = document.createElement('span');
-            valueText.className = 'module-value-text';
-            valueText.textContent = value;
-            valueContainer.appendChild(valueText);
-        }
+        var valueText = document.createElement('span');
+        valueText.className = 'module-value-text';
+        valueText.dataset.playerEditable = '';
+        valueText.tabIndex = 0;
+        valueText.setAttribute('role', 'button');
+        valueText.setAttribute('aria-label', module.name + '. Double-click or press Enter or F2 to edit.');
+        valueText.title = 'Double-click or press Enter or F2 to edit. Tab away to finish.';
+        valueText.textContent = value;
+        valueContainer.appendChild(valueText);
         body.appendChild(valueContainer);
     }
 
-    if (editingValue) {
-        var input = kind === 'notes' ? document.createElement('textarea') : document.createElement('input');
-        if (kind !== 'notes') input.type = kind === 'number' ? 'number' : 'text';
-        input.value = value;
-        input.dataset.moduleValue = module.id;
-        input.setAttribute('aria-label', module.name);
-        input.placeholder = kind === 'notes' ? 'Write notes' : kind === 'number' ? '0' : 'Enter text';
-        valueContainer.appendChild(input);
+    var input = kind === 'notes' ? document.createElement('textarea') : document.createElement('input');
+    if (kind !== 'notes') input.type = kind === 'number' ? 'number' : 'text';
+    input.value = value;
+    input.dataset.moduleValue = module.id;
+    input.setAttribute('aria-label', module.name);
+    input.placeholder = kind === 'notes' ? 'Write notes' : kind === 'number' ? '0' : 'Enter text';
+    if (mode === 'playtest') {
+        input.hidden = true;
     }
+    valueContainer.appendChild(input);
     return body;
 }
 
@@ -553,7 +560,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             }
         }
     });
-    if (root && emptyState) emptyState.hidden = visible.length > 0;
+    if (emptyState) emptyState.hidden = visible.length > 0;
 }
 
 export function updateLiveValues(studio, state, helpers) {
@@ -652,7 +659,10 @@ export function renderCanvas(studio, state, helpers) {
     var rootCanvas = studio.querySelector('[data-root-canvas]');
     var emptyState = studio.querySelector('[data-empty-state]');
     rootCanvas.querySelectorAll('[data-sheet-module]').forEach(function (element) { element.remove(); });
-    drawModules(rootCanvas, doc.modules, true, doc, player, helpers, typeTable, ui.mode, ui, emptyState);
+    var modules = doc.modules.filter(function (module) {
+        return (module.canvasId || doc.canvases[0].id) === ui.activeCanvasId;
+    });
+    drawModules(rootCanvas, modules, true, doc, player, helpers, typeTable, ui.mode, ui, emptyState);
     var rollOverlay = rootCanvas.querySelector('[data-roll-overlay]');
     if (!rollOverlay) {
         rollOverlay = document.createElement('output');

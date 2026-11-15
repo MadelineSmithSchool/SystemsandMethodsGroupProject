@@ -1,6 +1,13 @@
 
 /* ---------- 1. Tokens ---------- */
 :root {
+  --dark-wine: #6F1D1B;
+  --camel: #BB9457;
+  --dark-coffee: #432818;
+  --chocolate-brown: #99582A;
+  --light-apricot: #FFE6A7;
+  --soft-apricot: #FFF2D0;
+
   /* Brand accents */
   --bronze: #D58936;
   --rust: #A44200;
@@ -1262,7 +1269,7 @@ option {
 .sheet-module[data-module-type="notes"] .value-module {
   height: 100%;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .sheet-studio[data-mode="playtest"] .module-body .value-module > textarea {
@@ -1299,6 +1306,25 @@ option {
 .workspace-heading h2 {
   margin: 0;
   font-size: 1.15rem;
+}
+
+.sheet-settings summary {
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sheet-settings .inspector-field,
+.sheet-settings > button {
+  margin-top: 0.75rem;
+}
+
+.canvas-tabs {
+  margin-bottom: 0.6rem;
+}
+
+.canvas-tabs[hidden] {
+  display: none;
 }
 
 .studio-panel > p {
@@ -1458,6 +1484,25 @@ option {
 }
 
 .studio-canvas {
+  --sheet-canvas-color: var(--mahogany);
+  --sheet-header-color: var(--dark-wine);
+  --sheet-module-color: var(--light-apricot);
+  --sheet-input-color: var(--soft-apricot);
+  --sheet-accent-color: var(--camel);
+  --sheet-canvas-text: #ffffff;
+  --sheet-header-text: #ffffff;
+  --sheet-module-text: #000000;
+  --sheet-input-text: #000000;
+  --sheet-accent-text: #000000;
+  --sheet-linked-text: var(--dark-wine);
+  --bg: var(--sheet-module-color);
+  --surface: var(--sheet-module-color);
+  --surface-raised: var(--sheet-header-color);
+  --field: var(--sheet-input-color);
+  --text: var(--sheet-module-text);
+  --muted: var(--sheet-module-text);
+  --bronze: var(--sheet-accent-color);
+  --bronze-bright: var(--sheet-accent-color);
   --layout-columns: 12;
   --canvas-row-size: 2.5rem;
   --canvas-row-gap: 0.35rem;
@@ -1472,10 +1517,11 @@ option {
   padding: 0.75rem;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  background-color: var(--field);
+  background-color: var(--sheet-canvas-color);
+  color: var(--sheet-canvas-text);
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in srgb, var(--sheet-canvas-text) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--sheet-canvas-text) 10%, transparent) 1px, transparent 1px);
   background-size:
     calc(var(--canvas-row-size) + var(--canvas-row-gap))
     calc(var(--canvas-row-size) + var(--canvas-row-gap));
@@ -1494,6 +1540,8 @@ option {
 }
 
 .pages-header {
+  --text: var(--sheet-header-text);
+  --muted: var(--sheet-header-text);
   display: flex;
   min-width: 0;
   align-items: center;
@@ -1505,7 +1553,7 @@ option {
 }
 
 .pages-header > strong,
-.pages-header > .module-name-input {
+.pages-header > .module-name {
   flex: 0 0 auto;
   font-family: var(--font-head);
   font-size: 0.88rem;
@@ -1696,7 +1744,7 @@ option {
   min-width: 0;
 }
 
-.group-field-grid .group-field-label > .module-name-input {
+.group-field-grid .group-field-label > .module-name {
   flex: 0 1 auto;
 }
 
@@ -1768,6 +1816,11 @@ option {
   pointer-events: none;
 }
 
+.canvas-palette-prompt {
+  background: var(--mahogany);
+  color: #fff;
+}
+
 .sheet-module {
   position: relative;
   display: flex;
@@ -1778,6 +1831,7 @@ option {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
+  color: var(--sheet-module-text);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -1799,6 +1853,8 @@ option {
 }
 
 .sheet-module-header {
+  --text: var(--sheet-header-text);
+  --muted: var(--sheet-header-text);
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -1833,8 +1889,8 @@ option {
 }
 
 .sheet-module.is-hidden .sheet-module-header {
-  background: var(--mahogany);
-  color: var(--muted);
+  background: var(--surface-raised);
+  color: var(--sheet-header-text);
 }
 
 .sheet-module-header strong {
@@ -1845,6 +1901,29 @@ option {
   font-size: 0.84rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.module-name {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+}
+
+.module-name > [hidden] {
+  display: none;
+}
+
+.module-name > [data-module-name-display] {
+  min-width: 4ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.module-name > [data-module-name-display]:focus-visible {
+  outline: 2px solid var(--bronze-bright);
 }
 
 .module-name-input {
@@ -1861,7 +1940,7 @@ option {
   font-weight: 700;
 }
 
-.sheet-module-header > .module-name-input {
+.sheet-module-header .module-name-input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2018,6 +2097,10 @@ option {
   gap: 0.2rem;
 }
 
+.value-module > [hidden] {
+  display: none !important;
+}
+
 .sheet-studio[data-mode="playtest"] .value-module {
   min-height: 100%;
   align-content: stretch;
@@ -2026,11 +2109,6 @@ option {
 .sheet-studio[data-mode="playtest"] .sheet-module[data-module-type="notes"] .value-module {
   min-height: 0;
   align-content: start;
-}
-
-.value-module > .list-edit-toggle {
-  position: static;
-  justify-self: end;
 }
 
 .list-edit-toggle {
@@ -2157,7 +2235,6 @@ option {
   min-height: 3rem;
   place-items: center;
   padding: 0.2rem;
-  color: var(--bronze-bright);
   font-family: var(--font-head);
   font-size: clamp(1.4rem, 22cqi, 3.25rem);
   font-weight: 700;
@@ -2165,6 +2242,23 @@ option {
   overflow-wrap: anywhere;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module [data-player-editable],
+.sheet-studio[data-mode="playtest"] .sheet-module .value-module > [data-module-value] {
+  color: var(--text);
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module [data-player-editable] {
+  cursor: pointer;
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module [data-player-editable]:focus-visible {
+  outline: 2px solid var(--bronze-bright);
+}
+
+.sheet-studio[data-mode="playtest"] [data-list-column-source] {
+  color: var(--bronze-bright);
 }
 
 .sheet-studio[data-mode="playtest"] .sheet-module[data-module-type="notes"] .module-value-text,
@@ -2340,6 +2434,40 @@ option {
   font-weight: 700;
   text-align: center;
   overflow-wrap: anywhere;
+}
+
+.studio-canvas :is(input:not([type="checkbox"]), textarea, select, option) {
+  --text: var(--sheet-input-text);
+  color: var(--sheet-input-text);
+  background-color: var(--field);
+}
+
+.studio-canvas .list-table td :is(input:not([type="checkbox"]), select) {
+  background-color: var(--field);
+}
+
+.studio-canvas :is(.module-output, .math-result, .module-dev-summary, .list-stat output),
+.sheet-studio[data-mode="playtest"] .studio-canvas [data-list-column-source]:not(button) {
+  color: var(--sheet-linked-text);
+}
+
+.studio-canvas :is(.module-output, .math-result, [data-list-column-source]:not(button)) {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.15em;
+}
+
+.studio-canvas :is(.dice-formula.dice-roll-trigger, .list-dice-trigger),
+.studio-canvas :is(.dice-formula.dice-roll-trigger, .list-dice-trigger):hover {
+  color: var(--sheet-accent-text);
+}
+
+.studio-canvas :is(.checkbox-item-add, .checkbox-item-remove, .list-player-add-row, .group-tab-edit):hover {
+  color: var(--sheet-header-text);
+}
+
+.studio-canvas .dice-roll-overlay {
+  background: var(--surface);
+  color: var(--sheet-module-text);
 }
 
 .sheet-studio[data-mode="playtest"] [data-developer-only],

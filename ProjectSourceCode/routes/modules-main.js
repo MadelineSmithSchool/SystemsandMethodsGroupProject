@@ -31,13 +31,63 @@ if (studio) {
         'update-list-stat', 'update-list-row-source', 'add-list-column', 'remove-list-column', 'add-list-row',
         'remove-list-row', 'add-list-stat', 'remove-list-stat',
         'update-document-meta', 'restore-document',
-        'update-choice', 'add-choice', 'remove-choice'
+        'update-choice', 'add-choice', 'remove-choice', 'add-canvas', 'update-canvas', 'move-to-canvas',
+        'update-sheet-color'
     ];
+    var sheetColorTokens = {
+        canvas: '--mahogany',
+        header: '--dark-wine',
+        module: '--light-apricot',
+        input: '--soft-apricot',
+        accent: '--camel'
+    };
+
+    function defaultSheetColors() {
+        var styles = getComputedStyle(document.documentElement);
+        var colors = {};
+        Object.keys(sheetColorTokens).forEach(function (key) {
+            colors[key] = styles.getPropertyValue(sheetColorTokens[key]).trim();
+        });
+        return colors;
+    }
+
+    function colorLuminance(color) {
+        var rgb = [1, 3, 5].map(function (offset) {
+            var value = parseInt(color.slice(offset, offset + 2), 16) / 255;
+            return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    }
+
+    function contrastingText(color) {
+        return colorLuminance(color) > 0.179 ? '#000000' : '#ffffff';
+    }
+
+    function colorContrast(first, second) {
+        var a = colorLuminance(first);
+        var b = colorLuminance(second);
+        return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    }
+
+    function applySheetColors(colors) {
+        Object.keys(sheetColorTokens).forEach(function (key) {
+            rootCanvas.style.setProperty('--sheet-' + key + '-color', colors[key]);
+            rootCanvas.style.setProperty('--sheet-' + key + '-text', contrastingText(colors[key]));
+        });
+        var linked = colorContrast(colors.accent, colors.module) >= 4.5 ? colors.accent :
+            colorContrast(colors.header, colors.module) >= 4.5 ? colors.header : contrastingText(colors.module);
+        rootCanvas.style.setProperty('--sheet-linked-text', linked);
+    }
 
     var state = {
-        document: { name: '', description: '', modules: [], savedPresets: [] },
+        document: {
+            name: '', description: '', modules: [], savedPresets: [],
+            canvases: [{ id: 'canvas-1', name: 'Canvas 1', gridSize: 40 }],
+            sheetColors: defaultSheetColors()
+        },
         ui: {
             mode: playerSheet ? 'playtest' : 'developer',
+            activeCanvasId: 'canvas-1',
             selectedId: null,
             selectedModuleIds: [],
             activeGroupTabs: {},
@@ -46,7 +96,7 @@ if (studio) {
         },
         player: {
             values: {}, checked: {}, rollResults: {}, listRows: {},
-            listEditing: {}, valueEditing: {}, lastRoll: null
+            listEditing: {}, lastRoll: null
         },
         history: { undo: [], redo: [] },
         nextModuleId: 1
@@ -55,6 +105,105 @@ if (studio) {
 
     var isPlaytest = function() { return state.ui.mode === 'playtest'; };
     var isDeveloper = function() { return state.ui.mode === 'developer'; };
+
+    function activeCanvas() {
+        return state.document.canvases.find(function (canvas) { return canvas.id === state.ui.activeCanvasId; }) ||
+            state.document.canvases[0];
+    }
+
+    function activeModules() {
+        return state.document.modules.filter(function (module) {
+            return (module.canvasId || state.document.canvases[0].id) === activeCanvas().id;
+        });
+    }
+
+    function placementSiblings(entry) {
+        return entry.parent ? entry.list : activeModules();
+    }
+
+    function restoreCanvasReferences(doc) {
+        if (!Array.isArray(doc.canvases) || !doc.canvases.length) {
+            doc.canvases = [{ id: 'canvas-1', name: 'Canvas 1', gridSize: 40 }];
+        }
+        var canvasIds = new Set(doc.canvases.map(function (canvas) { return canvas.id; }));
+        var recovered = 0;
+        doc.modules.forEach(function (module) {
+            if (!module.canvasId) module.canvasId = doc.canvases[0].id;
+            if (typeof module.canvasId !== 'string') throw new Error('Invalid canvas ID in the saved document.');
+            if (!canvasIds.has(module.canvasId)) {
+                var match = /^canvas-(\d{1,30})$/.exec(module.canvasId);
+                doc.canvases.push({
+                    id: module.canvasId,
+                    name: match ? 'Canvas ' + match[1] : 'Recovered canvas ' + (recovered + 1),
+                    gridSize: doc.canvases[0].gridSize
+                });
+                canvasIds.add(module.canvasId);
+                recovered += 1;
+            }
+        });
+        return recovered;
+    }
+
+    function renderSheetSettings() {
+        var canvas = activeCanvas();
+        state.ui.activeCanvasId = canvas.id;
+        var tabs = studio.querySelector('[data-canvas-tabs]');
+        var options = state.document.canvases.map(function (item) { return [item.id, item.name]; });
+        var signature = JSON.stringify(options.map(function (item) { return item[0]; }));
+        if (tabs.dataset.options !== signature) {
+            tabs.replaceChildren();
+            options.forEach(function (item, index) {
+                var tab = document.createElement('button');
+                tab.type = 'button';
+                tab.className = 'pages-tab';
+                tab.id = 'canvas-tab-' + index;
+                tab.dataset.canvasTab = item[0];
+                tab.textContent = item[1];
+                tab.setAttribute('role', 'tab');
+                tab.setAttribute('aria-controls', rootCanvas.id);
+                tabs.appendChild(tab);
+            });
+            tabs.dataset.options = signature;
+        }
+        tabs.hidden = options.length <= 1;
+        tabs.querySelectorAll('[data-canvas-tab]').forEach(function (tab, index) {
+            if (tab.textContent !== options[index][1]) tab.textContent = options[index][1];
+            var selected = tab.dataset.canvasTab === canvas.id;
+            tab.setAttribute('aria-selected', String(selected));
+            tab.tabIndex = selected ? 0 : -1;
+            if (selected && !tabs.hidden) rootCanvas.setAttribute('aria-labelledby', tab.id);
+        });
+        rootCanvas.setAttribute('role', tabs.hidden ? 'region' : 'tabpanel');
+        if (tabs.hidden) rootCanvas.removeAttribute('aria-labelledby');
+        rootCanvas.style.setProperty('--canvas-row-size', canvas.gridSize + 'px');
+        applySheetColors(state.document.sheetColors);
+        if (!playerSheet) {
+            var name = studio.querySelector('[data-canvas-name]');
+            var size = studio.querySelector('[data-canvas-grid-size]');
+            var destination = studio.querySelector('[data-move-canvas]');
+            var destinations = options.filter(function (item) { return item[0] !== canvas.id; });
+            var destinationSignature = JSON.stringify(destinations);
+            if (destination.dataset.options !== destinationSignature) {
+                destination.replaceChildren();
+                destinations.forEach(function (item) {
+                    var option = document.createElement('option');
+                    option.value = item[0];
+                    option.textContent = item[1];
+                    destination.appendChild(option);
+                });
+                destination.dataset.options = destinationSignature;
+            }
+            destination.disabled = !destinations.length;
+            studio.querySelector('[data-move-to-canvas]').disabled = !destinations.length ||
+                !state.document.modules.some(function (module) { return module.id === state.ui.selectedId; });
+            if (document.activeElement !== name) name.value = canvas.name;
+            if (document.activeElement !== size) size.value = canvas.gridSize;
+            studio.querySelector('[data-grid-size-output]').textContent = canvas.gridSize + ' px';
+            studio.querySelectorAll('[data-sheet-color]').forEach(function (input) {
+                if (document.activeElement !== input) input.value = state.document.sheetColors[input.dataset.sheetColor];
+            });
+        }
+    }
 
     function setDocumentFields() {
         if (playerSheet) return;
@@ -76,14 +225,19 @@ if (studio) {
         });
     }
 
+    function columnsForGridSize(cellSize) {
+        var style = getComputedStyle(rootCanvas);
+        var gap = parseFloat(style.columnGap) || 0;
+        var horizontalPadding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+        var availableWidth = Math.max(0, rootCanvas.clientWidth - horizontalPadding);
+        return Math.max(1, Math.floor((availableWidth + gap) / (cellSize + gap)));
+    }
+
     function updateResponsiveColumns() {
         var style = getComputedStyle(rootCanvas);
         var cellSize = parseFloat(style.getPropertyValue('--canvas-row-size'));
-        var gap = parseFloat(style.columnGap) || 0;
-        var horizontalPadding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
         if (!Number.isFinite(cellSize) || cellSize <= 0) return false;
-        var availableWidth = Math.max(0, rootCanvas.clientWidth - horizontalPadding);
-        var columns = Math.max(1, Math.floor((availableWidth + gap) / (cellSize + gap)));
+        var columns = columnsForGridSize(cellSize);
         var previousColumns = Number(style.getPropertyValue('--layout-columns').trim());
         if (columns === previousColumns) return false;
         rootCanvas.style.setProperty('--layout-columns', String(columns));
@@ -97,7 +251,15 @@ if (studio) {
 
     function continueDraft() {
         if (!pendingDraft) return;
-        dispatch({ type: 'restore-document', document: pendingDraft, recordHistory: false, render: false });
+        try {
+            dispatch({ type: 'restore-document', document: pendingDraft, recordHistory: false, render: false });
+        } catch (error) {
+            console.error('Template builder draft restore failed:', error);
+            var errorMessage = studio.querySelector('[data-draft-error]');
+            errorMessage.textContent = 'The saved draft could not be restored.';
+            errorMessage.hidden = false;
+            return;
+        }
         pendingDraft = null;
         setDocumentFields();
         handleDialogClose();
@@ -161,8 +323,8 @@ if (studio) {
         return String(source || '').replace(/\.\d+\.\d+$|\.length$/, '');
     }
 
-    function makeModule(type, id, siblings) {
-        var columns = siblings === state.document.modules ? 12 : 6;
+    function makeModule(type, id, siblings, root) {
+        var columns = root ? layoutColumns(rootCanvas) : 6;
         var colSpan = Math.min(
             type === 'pages' ? columns : type === 'group' ? Math.min(6, columns) :
                 type === 'list' ? 8 : moduleSize.colSpan,
@@ -492,6 +654,7 @@ if (studio) {
     };
 
     function refresh() {
+        renderSheetSettings();
         updateResponsiveColumns();
         renderCanvas(studio, state, api);
         if (!playerSheet) {
@@ -516,8 +679,8 @@ if (studio) {
         if ((action.parentId && (!parent || !['pages', 'group'].includes(parent.type))) ||
             (parent && (action.moduleType === 'pages' ||
                 (parent.type === 'group' && ['pages', 'group'].includes(action.moduleType))))) return;
-        var siblings = parent ? parent.children : state.document.modules;
-        var added = Object.assign(makeModule(action.moduleType, String(state.nextModuleId), siblings), action.placement);
+        var siblings = parent ? parent.children : activeModules();
+        var added = Object.assign(makeModule(action.moduleType, String(state.nextModuleId), siblings, !parent), action.placement);
         if (parent && parent.type === 'pages') {
             Object.assign(added, { col: 1, row: 1 });
         } else if (parent && parent.type === 'group') {
@@ -526,7 +689,12 @@ if (studio) {
             Object.assign(added, nearestPlacement(siblings, added, groupColumns, { col: 1, row: 1 }));
         }
         state.nextModuleId += 1;
-        siblings.push(added);
+        if (parent) {
+            siblings.push(added);
+        } else {
+            added.canvasId = activeCanvas().id;
+            state.document.modules.push(added);
+        }
         if (parent && parent.type === 'pages') state.ui.activeGroupTabs[parent.id] = added.id;
         choose(action.keepSelection && parent ? parent.id : added.id);
     }
@@ -596,7 +764,7 @@ if (studio) {
                     colSpan: target.colSpan,
                     rowSpan: target.rowSpan
                 };
-                displaceOverlappingModules(checkboxEntry.list, target.id, checkboxPlacement)
+                displaceOverlappingModules(placementSiblings(checkboxEntry), target.id, checkboxPlacement)
                     .forEach(function (item) {
                         var sibling = findModule(checkboxEntry.list, item.id);
                         if (sibling) Object.assign(sibling, item.placement);
@@ -613,7 +781,7 @@ if (studio) {
                 if (card && layout) {
                     Object.assign(target, fitPlacementToContents(card, layout, target, target));
                 }
-                Object.assign(target, nearestPlacement(entry.list, target, layoutColumns(rootCanvas), target));
+                Object.assign(target, nearestPlacement(placementSiblings(entry), target, layoutColumns(rootCanvas), target));
             }
         }
         if (target.type === 'group' && action.setting === 'groupColumns') {
@@ -651,7 +819,8 @@ if (studio) {
         state.nextModuleId = loaded.nextId;
         loaded.modules.forEach(function (module) {
             module.colSpan = Math.min(module.colSpan, cols);
-            Object.assign(module, nearestPlacement(state.document.modules, module, cols, module));
+            module.canvasId = activeCanvas().id;
+            Object.assign(module, nearestPlacement(activeModules(), module, cols, module));
             state.document.modules.push(module);
         });
         choose(loaded.modules.length ? loaded.modules[loaded.modules.length - 1].id : null);
@@ -685,7 +854,7 @@ if (studio) {
             (newParent && (!['pages', 'group'].includes(newParent.type) ||
                 entry.module.type === 'pages' ||
                 (newParent.type === 'group' && ['pages', 'group'].includes(entry.module.type))))) return;
-        var targetList = newParent ? newParent.children : state.document.modules;
+        var targetList = newParent ? newParent.children : activeModules();
         var cols = newParent && newParent.type === 'group' ? Math.max(1, Math.min(6, Number(newParent.groupColumns) || 2)) : newParent ? 6 : layoutColumns(rootCanvas);
         var prevParent = entry.parent;
         entry.list.splice(entry.index, 1);
@@ -699,7 +868,13 @@ if (studio) {
         } else {
             Object.assign(entry.module, nearestPlacement(targetList, entry.module, cols, { col: 1, row: 1 }));
         }
-        targetList.push(entry.module);
+        if (newParent) {
+            delete entry.module.canvasId;
+            targetList.push(entry.module);
+        } else {
+            entry.module.canvasId = activeCanvas().id;
+            state.document.modules.push(entry.module);
+        }
         if (newParent) state.ui.activeGroupTabs[newParent.id] = entry.module.id;
         if (action.selectionId) state.ui.selectedId = action.selectionId;
     }
@@ -825,6 +1000,31 @@ if (studio) {
     }
 
     var actionHandlers = new Map([
+        ['add-canvas', function () {
+            var number = state.document.canvases.length + 1;
+            while (state.document.canvases.some(function (canvas) { return canvas.id === 'canvas-' + number; })) number += 1;
+            var canvas = { id: 'canvas-' + number, name: 'Canvas ' + number, gridSize: activeCanvas().gridSize };
+            state.document.canvases.push(canvas);
+            state.ui.activeCanvasId = canvas.id;
+            choose(null);
+        }],
+        ['update-canvas', function (action) {
+            activeCanvas()[action.setting] = action.value;
+        }],
+        ['update-sheet-color', function (action) {
+            state.document.sheetColors[action.key] = action.value;
+        }],
+        ['move-to-canvas', function (action) {
+            var module = state.document.modules.find(function (item) { return item.id === state.ui.selectedId; });
+            var canvas = state.document.canvases.find(function (item) { return item.id === action.canvasId; });
+            if (!module || !canvas || canvas.id === activeCanvas().id) return;
+            var siblings = state.document.modules.filter(function (item) { return item.canvasId === canvas.id; });
+            var columns = columnsForGridSize(canvas.gridSize);
+            module.colSpan = Math.min(module.colSpan, columns);
+            Object.assign(module, nearestPlacement(siblings, module, columns, module));
+            module.canvasId = canvas.id;
+            choose(null);
+        }],
         ['add-module', handleAddModule],
         ['remove-modules', handleRemoveModules],
         ['update-setting', handleUpdateSetting],
@@ -894,7 +1094,23 @@ if (studio) {
                     migrateModules(restoredDocument.modules);
                     restoredDocument.schemaVersion = 2;
                 }
+                if (restoredDocument.sheetColors === undefined) restoredDocument.sheetColors = defaultSheetColors();
+                if (!restoredDocument.sheetColors || typeof restoredDocument.sheetColors !== 'object' ||
+                    Array.isArray(restoredDocument.sheetColors) ||
+                    Object.keys(sheetColorTokens).some(function (key) {
+                        return typeof restoredDocument.sheetColors[key] !== 'string' ||
+                            !/^#[0-9a-f]{6}$/i.test(restoredDocument.sheetColors[key]);
+                    }) || Object.keys(restoredDocument.sheetColors).some(function (key) {
+                        return !Object.prototype.hasOwnProperty.call(sheetColorTokens, key);
+                    })) {
+                    throw new Error('Invalid sheet colors in the saved document.');
+                }
+                var recoveredCanvases = restoreCanvasReferences(restoredDocument);
                 state.document = Object.assign({ savedPresets: [] }, restoredDocument);
+                if (recoveredCanvases) {
+                    window.alert('Recovered ' + recoveredCanvases + ' missing canvas(es). Check their names and grid sizes in Sheet settings.');
+                }
+                state.ui.activeCanvasId = state.document.canvases[0].id;
                 state.nextModuleId = flatten(state.document.modules).reduce(function (next, module) {
                     var numericId = Number(module.id);
                     return Number.isFinite(numericId) ? Math.max(next, numericId + 1) : next;
@@ -977,7 +1193,7 @@ if (studio) {
         }
         var resize = target.closest('[data-resize-module]');
         var dragHeader = target.closest('[data-module-drag-handle]');
-        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"]');
+        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"], [data-module-name-display]');
         var handle = resize || (!interactiveTarget && dragHeader);
         if (!handle) return;
         var card = target.closest('[data-sheet-module]');
@@ -1036,9 +1252,10 @@ if (studio) {
         if (drag.resize) preview = fitPlacementToContents(drag.element, drag.layout, module, preview);
         var entry = findModuleEntry(drag.id);
         drag.placement = { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan };
-        var dropContainer = drag.resize ? null : containerAtPlacement(entry.list, module, drag.placement);
+        var siblings = placementSiblings(entry);
+        var dropContainer = drag.resize ? null : containerAtPlacement(siblings, module, drag.placement);
         drag.dropTargetId = dropContainer && dropContainer.id;
-        drag.previewPlacements = displaceOverlappingModules(entry.list, module.id, drag.placement, drag.dropTargetId);
+        drag.previewPlacements = displaceOverlappingModules(siblings, module.id, drag.placement, drag.dropTargetId);
         drag.previewPlacements.forEach(function (item) {
             var sibling = Array.prototype.find.call(drag.layout.children, function (element) {
                 return element.dataset.sheetModule === item.id;
@@ -1056,7 +1273,7 @@ if (studio) {
         var columns = destination.owner && destination.owner.type === 'group' ?
             Math.max(1, Math.min(6, Number(destination.owner.groupColumns) || 2)) :
             destination.owner ? 6 : layoutColumns(destination.element);
-        var siblings = destination.owner ? destination.owner.children : state.document.modules;
+        var siblings = destination.owner ? destination.owner.children : activeModules();
         var colSpan = Math.min(
             drag.type === 'pages' ? columns : drag.type === 'group' ? Math.min(6, columns) :
                 drag.type === 'list' ? 8 : moduleSize.colSpan,
@@ -1199,6 +1416,19 @@ if (studio) {
     }
 
     var clickHandlers = {
+        '[data-canvas-tab]': function (target) {
+            if (target.dataset.canvasTab === activeCanvas().id) return;
+            choose(null);
+            setUi({ activeCanvasId: target.dataset.canvasTab, activeDrag: null });
+        },
+        '[data-add-canvas]': function () {
+            if (isDeveloper()) dispatch({ type: 'add-canvas' });
+        },
+        '[data-move-to-canvas]': function () {
+            if (isDeveloper()) {
+                dispatch({ type: 'move-to-canvas', canvasId: studio.querySelector('[data-move-canvas]').value });
+            }
+        },
         '[data-view-button]': function(target) {
             setUi({ mode: target.dataset.viewButton, selectedId: null, selectedModuleIds: [], activeDrag: null });
             studio.dataset.mode = state.ui.mode;
@@ -1210,7 +1440,7 @@ if (studio) {
                 'Developer canvas' : (state.document.name || 'Character sheet');
             studio.querySelector('[data-workspace-help]').textContent = isDev ?
                 'Use Pages for tabs and Groups for compact field panels. Lists provide repeatable rows.' :
-                'Enter values, toggle conditions, and roll dice to test the sheet.';
+                'Double-click a field (or press Enter or F2) to edit, then tab away to finish. Linked values are underlined.';
         },
         '[data-page-tab]': function(target) {
             var activeGroupTabs = Object.assign({}, state.ui.activeGroupTabs);
@@ -1280,14 +1510,6 @@ if (studio) {
                 key: 'listEditing',
                 id: target.dataset.toggleListEdit,
                 value: !state.player.listEditing[target.dataset.toggleListEdit]
-            });
-        },
-        '[data-toggle-value-edit]': function(target) {
-            dispatch({
-                type: 'player',
-                key: 'valueEditing',
-                id: target.dataset.toggleValueEdit,
-                value: !state.player.valueEditing[target.dataset.toggleValueEdit]
             });
         },
         '[data-list-action]': function(target) {
@@ -1402,6 +1624,43 @@ if (studio) {
     function handleInputs(event) {
         var target = event.target;
         var isSelect = target.tagName === 'SELECT';
+        if (isDeveloper() && target.hasAttribute('data-canvas-name')) {
+            if (event.type === 'change') {
+                var name = target.value.trim();
+                if (!name) {
+                    target.setCustomValidity('Enter a canvas name.');
+                    target.reportValidity();
+                    target.value = activeCanvas().name;
+                    target.setCustomValidity('');
+                } else if (name !== activeCanvas().name) {
+                    target.value = name;
+                    dispatch({ type: 'update-canvas', setting: 'name', value: name });
+                }
+            }
+            return;
+        }
+        if (isDeveloper() && target.hasAttribute('data-canvas-grid-size')) {
+            studio.querySelector('[data-grid-size-output]').textContent = target.value + ' px';
+            if (event.type === 'input') {
+                rootCanvas.style.setProperty('--canvas-row-size', target.value + 'px');
+                updateResponsiveColumns();
+                renderCanvas(studio, state, api);
+            } else if (event.type === 'change') {
+                dispatch({ type: 'update-canvas', setting: 'gridSize', value: Number(target.value) });
+            }
+            return;
+        }
+        if (isDeveloper() && target.hasAttribute('data-sheet-color')) {
+            var colorKey = target.dataset.sheetColor;
+            if (event.type === 'input') {
+                var preview = Object.assign({}, state.document.sheetColors);
+                preview[colorKey] = target.value;
+                applySheetColors(preview);
+            } else if (event.type === 'change') {
+                dispatch({ type: 'update-sheet-color', key: colorKey, value: target.value });
+            }
+            return;
+        }
         var groupSizeSetting = target.dataset.setting;
         var selectedGroup = !isPlaytest() && findModule(state.document.modules, state.ui.selectedId);
         if (selectedGroup && selectedGroup.type === 'pages' &&
@@ -1464,6 +1723,11 @@ if (studio) {
                 value: moduleNameInput.value,
                 render: false
             });
+            setModuleNameDisplay(moduleNameInput.parentElement.querySelector('[data-module-name-display]'), moduleNameInput.value);
+            var inspectorName = studio.querySelector('[data-inspector] [data-setting="name"]');
+            if (inspectorName && state.ui.selectedId === moduleNameInput.dataset.moduleName) {
+                inspectorName.value = moduleNameInput.value;
+            }
             return;
         }
         var checkboxLabelInput = target.closest('[data-checkbox-label-module]');
@@ -1577,7 +1841,11 @@ if (studio) {
             dispatch({ type: 'update-setting', id: selected.id, setting: setting, value: target.value, render: rerender });
             if (setting === 'name') {
                 var nameInput = studio.querySelector('[data-sheet-module="' + selected.id + '"] [data-module-name]');
-                if (nameInput) nameInput.value = target.value || moduleTypes[selected.type].name;
+                if (nameInput) {
+                    nameInput.value = target.value;
+                    nameInput.size = Math.max(4, target.value.length);
+                    setModuleNameDisplay(nameInput.parentElement.querySelector('[data-module-name-display]'), target.value);
+                }
             } else if (inPlace && !rerender) {
                 updateLiveValues(studio, state, api);
             }
@@ -1686,10 +1954,61 @@ if (studio) {
         URL.revokeObjectURL(url);
     }
 
+    function startPlayerValueEdit(display) {
+        var input = display.parentElement.querySelector('[data-module-value]');
+        display.hidden = true;
+        input.hidden = false;
+        input.focus();
+    }
+
+    function setModuleNameDisplay(display, name) {
+        display.textContent = name || 'Unnamed module';
+        display.setAttribute('aria-label', 'Edit ' + (name || 'unnamed module') + '. Double-click or press Enter or F2.');
+    }
+
+    function startModuleNameEdit(display) {
+        var input = display.parentElement.querySelector('[data-module-name]');
+        display.hidden = true;
+        input.hidden = false;
+        input.focus();
+        input.select();
+    }
+
     function handleKeydown(event) {
-        var groupTab = event.target.closest('[data-page-tab]');
+        var nameDisplay = event.target.closest('[data-module-name-display]');
+        if (isDeveloper() && nameDisplay) {
+            if (event.key === 'Enter' || event.key === 'F2' || event.key === ' ') {
+                event.preventDefault();
+                startModuleNameEdit(nameDisplay);
+            }
+            return;
+        }
+        var nameInput = event.target.closest('[data-module-name]');
+        if (isDeveloper() && nameInput && event.key === 'Enter') {
+            event.preventDefault();
+            nameInput.blur();
+            nameInput.parentElement.querySelector('[data-module-name-display]').focus();
+            return;
+        }
+        var valueDisplay = event.target.closest('[data-player-editable]');
+        if (isPlaytest() && valueDisplay) {
+            if (event.key === 'Enter' || event.key === 'F2' || event.key === ' ') {
+                event.preventDefault();
+                startPlayerValueEdit(valueDisplay);
+            }
+            return;
+        }
+        var valueInput = event.target.closest('.value-module > [data-module-value]');
+        if (isPlaytest() && valueInput && event.key === 'Enter' && valueInput.tagName !== 'TEXTAREA') {
+            event.preventDefault();
+            valueInput.blur();
+            valueInput.parentElement.querySelector('[data-player-editable]').focus();
+            return;
+        }
+        var groupTab = event.target.closest('[data-page-tab], [data-canvas-tab]');
         if (groupTab) {
-            var tabs = Array.prototype.slice.call(groupTab.parentElement.querySelectorAll('[data-page-tab]'));
+            var canvasTab = groupTab.hasAttribute('data-canvas-tab');
+            var tabs = Array.prototype.slice.call(groupTab.parentElement.querySelectorAll(canvasTab ? '[data-canvas-tab]' : '[data-page-tab]'));
             var index = tabs.indexOf(groupTab);
             var nextIndex = event.key === 'ArrowRight' ? (index + 1) % tabs.length :
                 event.key === 'ArrowLeft' ? (index - 1 + tabs.length) % tabs.length :
@@ -1697,6 +2016,7 @@ if (studio) {
             if (nextIndex !== index) {
                 event.preventDefault();
                 tabs[nextIndex].click();
+                if (canvasTab) tabs[nextIndex].focus();
             }
             return;
         }
@@ -1713,6 +2033,23 @@ if (studio) {
     }
 
     function handleFocusout(event) {
+        var nameInput = event.target.closest('[data-module-name]');
+        if (isDeveloper() && nameInput) {
+            var nameDisplay = nameInput.parentElement.querySelector('[data-module-name-display]');
+            setModuleNameDisplay(nameDisplay, nameInput.value);
+            nameInput.hidden = true;
+            nameDisplay.hidden = false;
+        }
+        var valueInput = event.target.closest('.value-module > [data-module-value]');
+        if (isPlaytest() && valueInput) {
+            var display = valueInput.parentElement.querySelector('[data-player-editable]');
+            display.textContent = valueInput.value;
+            valueInput.hidden = true;
+            display.hidden = false;
+            var valueModule = findModule(state.document.modules, valueInput.dataset.moduleValue);
+            var valueCard = valueInput.closest('[data-sheet-module]');
+            fitNotesModule(valueCard, valueCard && valueCard.parentElement.closest('[data-layout-canvas]'), valueModule);
+        }
         var cell = event.target.closest('[data-list-cell]');
         if (!cell || state.ui.mode !== 'playtest') return;
         var module = findModule(state.document.modules, cell.dataset.listCell);
@@ -1726,6 +2063,15 @@ if (studio) {
     // load the last draft, then draw the sheet.
     function attachListeners() {
         studio.addEventListener('click', handleClick);
+        studio.addEventListener('dblclick', function (event) {
+            var nameDisplay = event.target.closest('[data-module-name-display]');
+            if (isDeveloper() && nameDisplay) {
+                startModuleNameEdit(nameDisplay);
+                return;
+            }
+            var valueDisplay = event.target.closest('[data-player-editable]');
+            if (isPlaytest() && valueDisplay) startPlayerValueEdit(valueDisplay);
+        });
         studio.addEventListener('input', handleInputs);
         studio.addEventListener('change', handleInputs);
         studio.addEventListener('focusout', handleFocusout);
