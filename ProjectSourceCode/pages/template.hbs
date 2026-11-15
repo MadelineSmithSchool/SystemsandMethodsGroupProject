@@ -25,7 +25,9 @@
 
     <div class="studio-layout">
         <section class="studio-workspace" aria-label="Character sheet">
-            <div class="studio-canvas" data-layout-canvas data-root-canvas role="region" aria-label="Character sheet" tabindex="0">
+            <p class="studio-muted">Double-click a field (or press Enter or F2) to edit, then tab away to finish. Linked values are underlined.</p>
+            <div class="canvas-tabs pages-tabs" data-canvas-tabs role="tablist" aria-label="Canvases" hidden></div>
+            <div id="sheet-canvas" class="studio-canvas" data-layout-canvas data-root-canvas role="region" aria-label="Character sheet" tabindex="0">
                 <p class="canvas-empty-state" data-empty-state>No character sheet modules to display.</p>
             </div>
         </section>

@@ -7,6 +7,9 @@
 - keep updated with what you work on in the past week
 - added list module
 - updated group module to be less cluttered
+- page module
+- new character page
+- sheet settings panel to change colours and grid size
 
 ## Week of 11/9/2026
 - added visibility toggle to module setting
