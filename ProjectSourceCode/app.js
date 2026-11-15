@@ -10,6 +10,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
 const validateRegistration = require('./src/validateRegistration');
+const { sendResetEmail } = require('./src/mailer');
 
 //For handlebars
 const hbs = handlebars.create({
@@ -242,6 +243,96 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// ---------- FORGOT / RESET PASSWORD ----------
+const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
+
+app.get('/forgot-password', (req, res) => res.render('pages/forgot-password'));
+
+app.post('/forgot-password', async (req, res) => {
+  const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+  const done = () => res.render('pages/forgot-password', {
+    success: 'If an account uses that email, a reset link is on its way.',
+  });
+
+  if (!email || email.length > 255) return done();
+
+  try {
+    const users = await db.any(
+      'SELECT user_id FROM users WHERE lower(email) = lower($1) AND deleted_at IS NULL',
+      [email]
+    );
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    for (const u of users) {
+      const token = crypto.randomBytes(32).toString('hex');
+      await db.none(
+        `UPDATE users SET reset_token_hash = $1, reset_expires_at = NOW() + INTERVAL '1 hour'
+         WHERE user_id = $2`,
+        [hashToken(token), u.user_id]
+      );
+      await sendResetEmail(email, `${baseUrl}/reset-password/${token}`);
+    }
+  } catch (err) {
+    console.error('Forgot password failed:', err);
+  }
+  done();
+});
+
+const findResetUser = (token) => db.oneOrNone(
+  `SELECT user_id, username, email FROM users
+   WHERE reset_token_hash = $1 AND reset_expires_at > NOW() AND deleted_at IS NULL`,
+  [hashToken(token)]
+);
+
+app.get('/reset-password/:token', async (req, res) => {
+  try {
+    if (!(await findResetUser(req.params.token))) {
+      return res.status(400).render('pages/forgot-password', {
+        errors: ['That reset link is invalid or has expired. Request a new one.'],
+      });
+    }
+    res.render('pages/reset-password', { token: req.params.token });
+  } catch (err) {
+    console.error('Reset page failed:', err);
+    res.redirect('/forgot-password');
+  }
+});
+
+app.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  const confirm = typeof req.body.confirm_password === 'string' ? req.body.confirm_password : '';
+
+  try {
+    const user = await findResetUser(token);
+    if (!user) {
+      return res.status(400).render('pages/forgot-password', {
+        errors: ['That reset link is invalid or has expired. Request a new one.'],
+      });
+    }
+    if (password !== confirm) {
+      return res.status(400).render('pages/reset-password', { token, errors: ['The passwords do not match.'] });
+    }
+    const errors = validateRegistration({ username: user.username, email: user.email, password });
+    if (errors.length > 0) {
+      return res.status(400).render('pages/reset-password', { token, errors });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    await db.none(
+      `UPDATE users SET password_hash = $1, reset_token_hash = NULL, reset_expires_at = NULL
+       WHERE user_id = $2`,
+      [hash, user.user_id]
+    );
+    res.render('pages/login', { success: 'Password updated. Log in with your new password.' });
+  } catch (err) {
+    console.error('Password reset failed:', err);
+    res.status(500).render('pages/reset-password', {
+      token,
+      errors: ['Cannnot reset password right now. Please try again.'],
+    });
+  }
+});
+
 // upload / send / edit templates templates (routes/templates.js)
 const templateRoutes = require('./routes/templates')(db, auth);
 app.use('/templates', auth, templateRoutes);
@@ -260,6 +351,7 @@ const startServer = async () => {
     ); 
     await db.none(migration);
     await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '002_admin.sql'), 'utf8'));
+    await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '003_password_reset.sql'), 'utf8'));
     console.log('Database connection successful');
   } catch (error) {
     console.error('Database initialization failed:', error);
