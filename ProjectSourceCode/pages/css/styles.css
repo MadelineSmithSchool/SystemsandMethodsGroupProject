@@ -33,14 +33,6 @@
 
   --font-head: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
-
-  /* Old variable names, kept so any leftover inline styles still work */
-  --ink: var(--text);
-  --ink-soft: var(--muted);
-  --card: var(--surface);
-  --mat: var(--bg);
-  --teal: var(--bronze-bright);
-  --gold: var(--bronze-bright);
 }
 
 /* ---------- 2. Base ---------- */
@@ -722,16 +714,17 @@ option {
   font-weight: 700;
   font-size: 1.25rem;
   line-height: 1.2;
-  text-decoration-line: underline;
+  text-align:center;
 }
 
 .option-desc {
   color: var(--muted);
   text-align:center;
+  padding: 0 4rem 0 4rem;
 }
 
 .option img{
-  width: 100%;
+  width: 90%;
   height: auto;
 }
 
