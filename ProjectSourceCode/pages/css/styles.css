@@ -12,7 +12,7 @@
   --bronze-bright: #eed12b;
   --text: #fffefc;
   --muted: #fff3e0;
-  --line: rgba(150, 150, 150, 0.14);
+  --line: rgba(86, 0, 0, 0.14);
   --line-strong: rgba(255, 255, 255, 0.3);
   --danger: #ff9aab;
   --danger-bg: rgba(255, 120, 140, 0.12);
@@ -27,7 +27,7 @@
   --radius-sm: 8px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 
-  --pad: clamp(1.25rem, 5vw, 4rem);
+  --pad: clamp(1.25rem, 5vw, 8rem);
   --card-w: clamp(19rem, 32vw, 28rem);
   --token: 2.5rem;
 
@@ -673,7 +673,7 @@ option {
 }
 
 .start {
-  padding: 8rem var(--pad);
+  padding: 4rem var(--pad);
 }
 
 .start-head h1 {
@@ -689,47 +689,44 @@ option {
 .option {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
   width: 100%;
-  height: 100%;
-  padding: 1.25rem;
-  border: 1px solid var(--line);
+  height:100%;
+  padding: 2rem;
+  border: 15px solid var(--garnett);
   border-radius: var(--radius);
-  background: var(--surface);
   color: var(--text);
   font: inherit;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  background-size: cover; 
+  background-position: center;
+  background-color: rgb(230, 196, 187);
+  background-blend-mode: multiply;
 }
 
 .option:hover {
-  border-color: var(--bronze-bright);
-  background: var(--surface-raised);
+  border: 1px solid var(--bronze-bright);
+  background-color: var(--surface-raised);
+  background-blend-mode: lighten;
   color: var(--text);
 }
 
 .option-title {
   font-family: var(--font-head);
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   line-height: 1.2;
   text-align:center;
+}
+
+.buffer{
+  height:15rem;
 }
 
 .option-desc {
   color: var(--muted);
   text-align:center;
-  padding: 0 4rem 0 4rem;
-}
-
-.option img{
-  width: 90%;
-  height: auto;
-}
-
-.option img:hover{
-  opacity:0.8;
 }
 
 .workspace {
