@@ -68,6 +68,15 @@ function createInput(type, value, dataset, ariaLabel, opts) {
 
 function createModuleName(module, mode) {
     if (mode === 'developer') {
+        var container = document.createElement('span');
+        container.className = 'module-name';
+        var display = document.createElement('strong');
+        display.dataset.moduleNameDisplay = '';
+        display.textContent = module.name || 'Unnamed module';
+        display.tabIndex = 0;
+        display.setAttribute('role', 'button');
+        display.setAttribute('aria-label', 'Edit ' + (module.name || 'unnamed module') + '. Double-click or press Enter or F2.');
+        display.title = 'Double-click or press Enter or F2 to edit the module name.';
         var input = document.createElement('input');
         input.type = 'text';
         input.className = 'module-name-input';
@@ -75,8 +84,10 @@ function createModuleName(module, mode) {
         input.value = module.name;
         input.size = Math.max(4, module.name.length);
         input.maxLength = 40;
+        input.hidden = true;
         input.setAttribute('aria-label', 'Module name');
-        return input;
+        container.append(display, input);
+        return container;
     }
     var title = document.createElement('strong');
     title.dataset.moduleTitle = '';
@@ -648,7 +659,10 @@ export function renderCanvas(studio, state, helpers) {
     var rootCanvas = studio.querySelector('[data-root-canvas]');
     var emptyState = studio.querySelector('[data-empty-state]');
     rootCanvas.querySelectorAll('[data-sheet-module]').forEach(function (element) { element.remove(); });
-    drawModules(rootCanvas, doc.modules, true, doc, player, helpers, typeTable, ui.mode, ui, emptyState);
+    var modules = doc.modules.filter(function (module) {
+        return (module.canvasId || doc.canvases[0].id) === ui.activeCanvasId;
+    });
+    drawModules(rootCanvas, modules, true, doc, player, helpers, typeTable, ui.mode, ui, emptyState);
     var rollOverlay = rootCanvas.querySelector('[data-roll-overlay]');
     if (!rollOverlay) {
         rollOverlay = document.createElement('output');
