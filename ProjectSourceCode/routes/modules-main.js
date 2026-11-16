@@ -1192,7 +1192,7 @@ if (studio) {
         }
         var resize = target.closest('[data-resize-module]');
         var dragHeader = target.closest('[data-module-drag-handle]');
-        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"], [data-module-name-display], .module-actions');
+        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"], .module-actions');
         var handle = resize || (!interactiveTarget && dragHeader);
         if (!handle) return;
         var card = target.closest('[data-sheet-module]');
