@@ -47,3 +47,18 @@ Decisions made:
 
 Follow-up items:
 - 
+
+== Week of 11/16/2026 - TA Meeting (Mon 11/16, 1:45 PM, Zoom) ==
+
+What everyone did:
+- Aidan Jiang: Added the settings page and forgot password.
+- Sawyer Rockey: Added new template builder features.
+- Kristin Kim: Added images, styled the dashboard, fixed the library page, and worked on styling.
+- Madeline Smith: Lab 10 UAT and setup, and cleaned up the dashboard and template building.
+- Lucas Moraca: Did the Lab 10 extra credit (login tests) and added search and sort to the template library, my templates, and my characters.
+
+Decisions made:
+- The last 2 things left to build are the character sheet and images
+
+Follow-up items:
+- Everyone: finish the character sheet and images

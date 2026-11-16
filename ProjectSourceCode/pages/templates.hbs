@@ -30,9 +30,11 @@
             <a href="/templates/upload" class="btn btn--primary">Upload a template</a>
         </header>
 
-        <section class="templates-grid" aria-label="Your templates">
+        {{> list-controls action="/templates" label="Search your templates" placeholder="Name, description, or creator"}}
+
+        <section class="templates-grid" aria-label="Your templates" data-list-results>
             {{#each templates}}
-                <article class="template-card">
+                <article class="template-card" data-list-item>
                     <h2><a href="/templates/{{template_id}}">{{template_name}}</a></h2>
                     {{#if template_desc}}
                         <p class="template-card-description">{{template_desc}}</p>
@@ -55,7 +57,13 @@
                     </div>
                 </article>
             {{else}}
-                <p class="templates-empty">No templates yet. Upload a template or build one from scratch to get started.</p>
+                {{#if list.search}}
+                    <p class="templates-empty">None of your templates match "{{list.search}}".</p>
+                {{else if list.filtered}}
+                    <p class="templates-empty">No templates to show here. Pick "All templates" to see everything.</p>
+                {{else}}
+                    <p class="templates-empty">No templates yet. Upload a template or build one from scratch to get started.</p>
+                {{/if}}
             {{/each}}
         </section>
     </main>

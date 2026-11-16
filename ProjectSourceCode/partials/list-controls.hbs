@@ -1,0 +1,34 @@
+{{!-- search box + sort dropdown (+ filter dropdown if the page has one) for list pages
+      use: {{> list-controls action="/library" label="Search templates" placeholder="..."}}
+      needs `list` from src/listQuery.js in the page data
+      for live search the page marks its results box with data-list-results and each result with data-list-item --}}
+<form class="list-controls" action="{{action}}" method="GET" role="search" aria-label="{{label}}" data-list-controls>
+    <div class="list-controls-field list-controls-search">
+        <label for="list-search">Search</label>
+        <input id="list-search" type="search" name="q" value="{{list.search}}" maxlength="100" placeholder="{{placeholder}}">
+    </div>
+    {{#if list.filter}}
+        <div class="list-controls-field">
+            <label for="list-filter">{{list.filter.label}}</label>
+            <select id="list-filter" name="{{list.filter.name}}">
+                {{#each list.filter.options}}
+                    <option value="{{value}}"{{#if selected}} selected{{/if}}>{{label}}</option>
+                {{/each}}
+            </select>
+        </div>
+    {{/if}}
+    <div class="list-controls-field">
+        <label for="list-sort">Sort by</label>
+        <select id="list-sort" name="sort">
+            {{#each list.sortOptions}}
+                <option value="{{value}}"{{#if selected}} selected{{/if}}>{{label}}</option>
+            {{/each}}
+        </select>
+    </div>
+    <div class="list-controls-actions">
+        <button type="submit" class="btn btn--primary">Search</button>
+        {{#if list.active}}<a href="{{action}}" class="btn btn--ghost">Clear</a>{{/if}}
+    </div>
+    <p class="visually-hidden" role="status" aria-live="polite" data-list-status></p>
+</form>
+<script src="/js/list-controls.js" defer></script>
