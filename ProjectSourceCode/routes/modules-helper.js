@@ -37,6 +37,16 @@ export function layoutColumns(layout) {
     return Number(getComputedStyle(layout).getPropertyValue('--layout-columns').trim()) || 12;
 }
 
+export function availableGroupColumns(groupCard) {
+    var grid = groupCard && groupCard.querySelector('.group-field-grid');
+    if (!grid) return 6;
+    var style = getComputedStyle(grid);
+    var padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+    var gap = parseFloat(style.columnGap) || 0;
+    var contentWidth = Math.max(0, grid.clientWidth - padding);
+    return Math.max(1, Math.min(6, Math.floor((contentWidth + gap) / (80 + gap))));
+}
+
 export function isChecked(value) {
     return value === true || value === 'true' || value === '1' || value === 'on' ||
         (typeof value === 'number' && value !== 0);
