@@ -2,6 +2,7 @@
 import { availableGroupColumns, findModule, flatten, layoutColumns, listCellKey } from './modules-helper.js';
 
 var mathSymbols = { add: '+', subtract: '−', multiply: '×', divide: '÷', modulo: '%' };
+var nextActionsMenuId = 0;
 
 // DOM helpers
 function field(labelText, control) {
@@ -42,6 +43,40 @@ function createButton(text, className, dataset, ariaLabel) {
     if (ariaLabel) btn.setAttribute('aria-label', ariaLabel);
     Object.assign(btn.dataset, dataset || {});
     return btn;
+}
+
+function createModuleActions(module) {
+    var actions = document.createElement('div');
+    actions.className = 'module-actions';
+    var menu = document.createElement('div');
+    menu.id = 'module-actions-' + (++nextActionsMenuId);
+    menu.className = 'module-actions-menu';
+    menu.setAttribute('popover', 'auto');
+    menu.setAttribute('role', 'group');
+    menu.setAttribute('aria-label', 'Actions for ' + module.name);
+
+    var toggle = createButton('▾', 'module-actions-toggle', null, 'Actions for ' + module.name);
+    toggle.setAttribute('popovertarget', menu.id);
+    toggle.setAttribute('aria-controls', menu.id);
+    toggle.setAttribute('aria-expanded', 'false');
+    menu.appendChild(createButton('Edit', 'module-edit', { editModule: module.id }));
+    menu.appendChild(createButton('Remove', 'module-remove', { removeModule: module.id }));
+    menu.addEventListener('beforetoggle', function (event) {
+        if (event.newState !== 'open') return;
+        var bounds = toggle.getBoundingClientRect();
+        menu.style.top = bounds.bottom + 'px';
+        menu.style.left = bounds.left + 'px';
+    });
+    menu.addEventListener('toggle', function (event) {
+        var open = event.newState === 'open';
+        toggle.setAttribute('aria-expanded', String(open));
+        if (!open) return;
+        var bounds = toggle.getBoundingClientRect();
+        menu.style.left = Math.max(4, Math.min(bounds.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 4)) + 'px';
+        menu.style.top = Math.max(4, Math.min(bounds.bottom + 4, window.innerHeight - menu.offsetHeight - 4)) + 'px';
+    });
+    actions.append(toggle, menu);
+    return actions;
 }
 
 function createSelect(dataset, ariaLabel) {
@@ -289,11 +324,7 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
         });
         groupHeader.append(groupTitle, tabs);
         if (mode === 'developer') {
-            var groupActions = document.createElement('div');
-            groupActions.className = 'group-editor-actions';
-            groupActions.appendChild(createButton('Settings', 'module-edit', { editModule: module.id }));
-            groupActions.appendChild(createButton('Remove', 'module-remove', { removeModule: module.id }));
-            groupHeader.appendChild(groupActions);
+            groupHeader.appendChild(createModuleActions(module));
         }
         body.appendChild(groupHeader);
 
@@ -338,6 +369,11 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
     if (kind === 'group') {
         var grid = document.createElement('div');
         grid.className = 'group-field-grid';
+        if (module.children && module.children.length && module.children.every(function (child) {
+            return child.type === 'number' || child.type === 'text';
+        })) {
+            grid.classList.add('group-field-grid--compact');
+        }
         grid.dataset.layoutCanvas = '';
         grid.dataset.groupDropzone = module.id;
         grid.style.setProperty('--layout-columns', String(Math.max(1, Math.min(6, Number(module.groupColumns) || 2))));
@@ -513,8 +549,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             var title = createModuleName(module, mode);
             header.appendChild(title);
             if (mode === 'developer') {
-                header.appendChild(createButton('Edit', 'module-edit', { editModule: module.id }));
-                header.appendChild(createButton('Remove', 'module-remove', { removeModule: module.id }));
+                header.appendChild(createModuleActions(module));
             }
             card.appendChild(header);
         } else if (compactFields && module.type !== 'pages') {
@@ -524,16 +559,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             var fieldName = createModuleName(module, mode);
             fieldLabel.appendChild(fieldName);
             if (mode === 'developer') {
-                var fieldActions = document.createElement('div');
-                fieldActions.className = 'group-field-actions';
-                var moveHandle = document.createElement('span');
-                moveHandle.className = 'group-field-move';
-                moveHandle.dataset.moduleDragHandle = '';
-                moveHandle.textContent = 'Move';
-                moveHandle.title = 'Drag to move ' + module.name;
-                fieldActions.appendChild(moveHandle);
-                fieldActions.appendChild(createButton('Edit', 'module-edit', { editModule: module.id }));
-                fieldLabel.appendChild(fieldActions);
+                fieldLabel.appendChild(createModuleActions(module));
             }
             card.appendChild(fieldLabel);
         }

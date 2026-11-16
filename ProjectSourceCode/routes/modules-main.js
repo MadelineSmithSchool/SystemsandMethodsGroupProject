@@ -102,6 +102,7 @@ if (studio) {
         nextModuleId: 1
     };
     var pendingDraft = null;
+    var editingSheetColor = null;
 
     var isPlaytest = function() { return state.ui.mode === 'playtest'; };
     var isDeveloper = function() { return state.ui.mode === 'developer'; };
@@ -561,28 +562,25 @@ if (studio) {
         });
     }
 
-    function fitPlacementToContents(card, layout, module, placement) {
+    function fitPlacementToContents(card, layout, placement) {
         var columns = layoutColumns(layout);
-        var minimumColumns = layout.matches('.group-field-grid') ? 1 : Math.min(columns, 3);
-        var minimumRows = Math.max(3,
-            module.type === 'checkbox' ?
-                (Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
-                    module.checkboxItems.length : 1) + 3 :
-                module.type === 'list' ? (module.rows || []).length + 2 :
-                    module.type === 'pages' ? 4 : 1);
         var fitted = Object.assign({}, placement, {
-            colSpan: Math.max(minimumColumns, placement.colSpan),
-            rowSpan: Math.max(minimumRows, placement.rowSpan)
+            colSpan: Math.max(1, placement.colSpan),
+            rowSpan: Math.max(1, placement.rowSpan)
         });
         fitted.col = Math.max(1, Math.min(columns - fitted.colSpan + 1, fitted.col));
         var body = card.querySelector('.module-body');
         var header = card.querySelector('.sheet-module-header, .group-field-label, .pages-header');
+        var nestedControls = card.querySelectorAll('.group-field-label, .checkbox-list, .checkbox-module');
 
         for (var attempt = 0; attempt < 48; attempt += 1) {
             setPlacement(card, fitted, layout);
             var widthOverflow = card.scrollWidth > card.clientWidth + 1 ||
                 body && body.scrollWidth > body.clientWidth + 1 ||
-                header && header.scrollWidth > header.clientWidth + 1;
+                header && header.scrollWidth > header.clientWidth + 1 ||
+                Array.prototype.some.call(nestedControls, function (control) {
+                    return control.scrollWidth > control.clientWidth + 1;
+                });
             var heightOverflow = card.scrollHeight > card.clientHeight + 1 ||
                 body && body.scrollHeight > body.clientHeight + 1 ||
                 header && header.scrollHeight > header.clientHeight + 1;
@@ -901,7 +899,7 @@ if (studio) {
                 });
                 var layout = card && card.parentElement.closest('[data-layout-canvas]');
                 if (card && layout) {
-                    Object.assign(target, fitPlacementToContents(card, layout, target, target));
+                    Object.assign(target, fitPlacementToContents(card, layout, target));
                 }
                 Object.assign(target, nearestPlacement(placementSiblings(entry), target, layoutColumns(rootCanvas), target));
             }
@@ -1208,6 +1206,7 @@ if (studio) {
     ]);
 
     function dispatch(action) {
+        if (action.type !== 'update-sheet-color') editingSheetColor = null;
         var edits = documentActions.includes(action.type);
         if (edits && action.recordHistory !== false) {
             state.history.undo.push(clone(state.document));
@@ -1350,7 +1349,7 @@ if (studio) {
         }
         var resize = target.closest('[data-resize-module]');
         var dragHeader = target.closest('[data-module-drag-handle]');
-        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"], [data-module-name-display]');
+        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"], [data-module-name-display], .module-actions');
         var handle = resize || (!interactiveTarget && dragHeader);
         if (!handle) return;
         var card = target.closest('[data-sheet-module]');
@@ -1406,7 +1405,7 @@ if (studio) {
 
         var module = findModule(state.document.modules, drag.id);
         var preview = snappedPlacement(module, drag.layout, drag.start, event.clientX, event.clientY, drag.resize);
-        if (drag.resize) preview = fitPlacementToContents(drag.element, drag.layout, module, preview);
+        if (drag.resize) preview = fitPlacementToContents(drag.element, drag.layout, preview);
         var entry = findModuleEntry(drag.id);
         drag.placement = { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan };
         var siblings = placementSiblings(entry);
@@ -1812,13 +1811,15 @@ if (studio) {
         }
         if (isDeveloper() && target.hasAttribute('data-sheet-color')) {
             var colorKey = target.dataset.sheetColor;
-            if (event.type === 'input') {
-                var preview = Object.assign({}, state.document.sheetColors);
-                preview[colorKey] = target.value;
-                applySheetColors(preview);
-            } else if (event.type === 'change') {
-                dispatch({ type: 'update-sheet-color', key: colorKey, value: target.value });
+            if (state.document.sheetColors[colorKey].toLowerCase() !== target.value.toLowerCase()) {
+                dispatch({
+                    type: 'update-sheet-color', key: colorKey, value: target.value,
+                    recordHistory: editingSheetColor !== colorKey, render: false
+                });
+                editingSheetColor = colorKey;
+                applySheetColors(state.document.sheetColors);
             }
+            if (event.type === 'change') editingSheetColor = null;
             return;
         }
         var groupSizeSetting = target.dataset.setting;
