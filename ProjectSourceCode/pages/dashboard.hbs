@@ -3,8 +3,8 @@
   {{!-- ============ START SCREEN: how do you want to begin? ============ --}}
   <section class="start" id="start-screen" aria-labelledby="start-title">
     <div class="start-head">
-      <h1 id="home-title">Welcome back{{#if user.username}}, {{user.username}}{{/if}}</h1>
-      <p>Pick how you want to begin.</p>
+      <h1 id="home-title">Welcome{{#if user.username}}, {{user.username}}{{/if}}</h1>
+      <p>Pick how you want to begin:</p>
     </div>
     <div class="row" style="margin-bottom:10px;">
       <div class="col-sm-4">
@@ -15,14 +15,14 @@
         </a>
       </div>
       <div class="col-sm-4">
-        <a class="option" href="/templates" style="background-image: url('/images/tempCard.JPG');">
+        <a class="option" href="/templates" style="background-image: url('/images/tempCard2.JPG');">
           <span class="option-title">Template Library</span><hr>
           <div class="buffer"></div>
           <hr><span class="option-desc">Browse and reopen your saved templates.</span>
         </a>
       </div>
       <div class="col-sm-4">
-        <a class="option" href="/templates/new" style="background-image: url('/images/tempCard.JPG');">
+        <a class="option" href="/templates/new" style="background-image: url('/images/tempCard3.JPG');">
           <span class="option-title">Build From Scratch</span><hr>
           <div class="buffer"></div>
           <hr><span class="option-desc">Start with an empty dashboard and add only the cards you want.</span>
