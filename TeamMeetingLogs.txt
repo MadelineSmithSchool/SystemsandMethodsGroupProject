@@ -43,6 +43,11 @@ TA feedback:
 - Jen: Complimented the color scheme
 
 Decisions made:
+
+
+== Week of 11/16/2026 - TA Meeting (Mon 11/09, 1:45 PM, Zoom) ==
+- Madeline: lab 10 UAT etc, cleaned up dashboard/template building x2
+
 - 
 
 Follow-up items:
