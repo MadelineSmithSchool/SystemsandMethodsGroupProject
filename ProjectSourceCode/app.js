@@ -61,6 +61,7 @@ app.use('/images', express.static(path.join(__dirname, 'pages', 'images')));
   'modules-database.js',
   'modules-helper.js',
   'modules-config.js',
+  'list-controls.js',
 ].forEach((file) => {
   app.get('/js/' + file, (req, res) => {
     res.sendFile(path.join(__dirname, 'routes', file));

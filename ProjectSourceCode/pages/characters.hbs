@@ -1,11 +1,11 @@
 <main class="templates-page">
   <h1>My Characters</h1>
   <a href="/characters/new" class="btn btn--primary">Create new character</a>
-  {{#if error}}<p class="error">{{error}}</p>{{/if}}
+  {{#if error}}<p class="error" data-list-error>{{error}}</p>{{/if}}
   {{> list-controls action="/characters" label="Search your characters" placeholder="Character or template name"}}
-  <div class="character-list">
+  <div class="character-list" data-list-results>
     {{#each characters}}
-      <div class="card">
+      <div class="card" data-list-item>
         <h3>{{this.character_name}}</h3>
         {{#if this.template_name}}<p>Template: {{this.template_name}}</p>{{/if}}
       </div>

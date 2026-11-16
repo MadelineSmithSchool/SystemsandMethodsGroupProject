@@ -44,6 +44,7 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 | `server.spec.js` | `GET /welcome` returns the welcome message |
 | `validation.spec.js` | Unit test: `src/validateRegistration.js` with good input and with no password (no server or db) |
 | `listQuery.spec.js` | Unit test: `src/listQuery.js` (search + sort for the list pages): defaults, picking a sort, ignoring unknown sorts, escaping `%` and `_`, the "most saved" sort, and the filter dropdown (no server or db) |
+| `listSearch.spec.js` | Live search on the list pages: `/js/list-controls.js` is served, and `/library?q=...` sends back only the matching templates inside the `data-list-results` box the script swaps in |
 | `register.spec.js` | `POST /register` with good input and with no password |
 | `login.spec.js` | Extra credit: `POST /login` with the right password (redirects to `/dashboard` and the dashboard loads) and the wrong one (renders login with an error, `401`) |
 

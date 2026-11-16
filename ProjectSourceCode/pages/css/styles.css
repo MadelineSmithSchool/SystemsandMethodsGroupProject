@@ -2759,6 +2759,15 @@ option {
   gap: 0.5rem;
 }
 
+/* fades the old results while live search loads new ones (routes/list-controls.js) */
+[data-list-results] {
+  transition: opacity 0.15s ease;
+}
+
+[data-list-results][aria-busy="true"] {
+  opacity: 0.6;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 60rem) {
   .studio-layout {

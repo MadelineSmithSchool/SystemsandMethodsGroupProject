@@ -1,10 +1,10 @@
 <main class="templates-page">
   <h1>Template Library</h1>
-  {{#if error}}<p class="error">{{error}}</p>{{/if}}
+  {{#if error}}<p class="error" data-list-error>{{error}}</p>{{/if}}
   {{> list-controls action="/library" label="Search the template library" placeholder="Name, description, or creator"}}
-  <div class="templates-grid">
+  <div class="templates-grid" data-list-results>
     {{#each templates}}
-      <article class="template-card">
+      <article class="template-card" data-list-item>
           <h2><a href="/templates/{{template_id}}">{{template_name}}</a></h2>
           {{#if template_desc}}
               <p class="template-card-description">{{template_desc}}</p>
