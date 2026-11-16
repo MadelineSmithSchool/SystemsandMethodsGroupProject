@@ -4,7 +4,6 @@
 - keep updated with what you work on in the past week (idk if we will have a meeting this week)
 
 ## Week of 11/16/2026
-- keep updated with what you work on in the past week
 - added list module
 - updated group module to be less cluttered
 - page module
@@ -12,6 +11,8 @@
 - sheet settings panel to change colours and grid size
 - settings page
 - forgot password, reset password
+- added art cards for dashboard and edited formatting
+- fixed template library formatting
 
 ## Week of 11/9/2026
 - added visibility toggle to module setting
