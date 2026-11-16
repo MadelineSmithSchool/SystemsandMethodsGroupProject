@@ -102,8 +102,8 @@ app.get('/tutorial', auth, (req, res) => {
 app.get('/library', auth, async (req, res) => {
   try {
     const templates = await db.any(
-      `SELECT t.template_id, t.template_name, t.template_desc, t.created_at,
-              u.username AS creator
+      `SELECT t.template_id, t.template_name, t.template_desc, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date,
+          u.username AS creator_name
        FROM templates t
        LEFT JOIN users u ON u.user_id = t.user_id
        WHERE t.privacy_level = 1
