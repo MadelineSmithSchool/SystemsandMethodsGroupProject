@@ -12,6 +12,7 @@
 - sheet settings panel to change colours and grid size
 - settings page
 - forgot password, reset password
+- copy paste added
 
 ## Week of 11/9/2026
 - added visibility toggle to module setting

@@ -26,7 +26,7 @@ if (studio) {
     ];
     var documentActions = [
         'add-module', 'remove-modules', 'update-setting', 'update-modifier',
-        'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'move-module', 'move-modules',
+        'add-modifier', 'remove-modifier', 'load-preset', 'save-preset', 'paste-modules', 'move-module', 'move-modules',
         'reparent-module', 'update-document-value', 'update-list-cell', 'update-list-column',
         'update-list-stat', 'update-list-row-source', 'add-list-column', 'remove-list-column', 'add-list-row',
         'remove-list-row', 'add-list-stat', 'remove-list-stat',
@@ -103,6 +103,7 @@ if (studio) {
     };
     var pendingDraft = null;
     var editingSheetColor = null;
+    var moduleClipboard = null;
 
     var isPlaytest = function() { return state.ui.mode === 'playtest'; };
     var isDeveloper = function() { return state.ui.mode === 'developer'; };
@@ -953,6 +954,34 @@ if (studio) {
         state.ui.selectedModuleIds = [];
     }
 
+    function handlePasteModules(action) {
+        var loaded = clonePresetModules(action.modules, state.nextModuleId, function (id) {
+            return Boolean(findModule(state.document.modules, id));
+        });
+        state.nextModuleId = loaded.nextId;
+        var modules = loaded.modules;
+        var columns = layoutColumns(rootCanvas);
+        var minCol = Math.min.apply(null, modules.map(function (module) { return module.col; }));
+        var minRow = Math.min.apply(null, modules.map(function (module) { return module.row; }));
+        var width = Math.max.apply(null, modules.map(function (module) { return module.col + module.colSpan; })) - minCol;
+        var height = Math.max.apply(null, modules.map(function (module) { return module.row + module.rowSpan; })) - minRow;
+        var origin = width <= columns ?
+            findOpenPlacement(activeModules(), columns, width, height, { col: minCol, row: minRow + 1 }) : null;
+        modules.forEach(function (module) {
+            module.canvasId = activeCanvas().id;
+            delete module.preferredColSpan;
+            if (origin) {
+                module.col += origin.col - minCol;
+                module.row += origin.row - minRow;
+            } else {
+                module.colSpan = Math.min(module.colSpan, columns);
+                Object.assign(module, nearestPlacement(activeModules(), module, columns, module));
+            }
+            state.document.modules.push(module);
+        });
+        choose(null, modules.map(function (module) { return module.id; }));
+    }
+
     function handleMoveModule(action) {
         var module = findModule(state.document.modules, action.id);
         if (module) Object.assign(module, action.placement);
@@ -1186,6 +1215,7 @@ if (studio) {
         ['remove-modifier', handleRemoveModifier],
         ['load-preset', handleLoadPreset],
         ['save-preset', handleSavePreset],
+        ['paste-modules', handlePasteModules],
         ['move-module', handleMoveModule],
         ['move-modules', handleMoveModules],
         ['reparent-module', handleReparentModule],
@@ -1320,6 +1350,32 @@ if (studio) {
         dispatch({ type: 'remove-modules', ids: ids });
     }
 
+    function selectedModules() {
+        var ids = state.ui.selectedModuleIds.length ? state.ui.selectedModuleIds : [state.ui.selectedId];
+        return ids.map(function (id) { return findModule(state.document.modules, id); }).filter(Boolean);
+    }
+
+    function handleModuleClipboard(event) {
+        if (!isDeveloper() || event.target.closest('input, textarea, select, [contenteditable="true"], dialog[open]')) return;
+        var key = event.key.toLowerCase();
+        if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || !['c', 'x', 'v'].includes(key)) return;
+        if (key === 'v') {
+            if (!moduleClipboard) return;
+            event.preventDefault();
+            dispatch({ type: 'paste-modules', modules: moduleClipboard });
+            rootCanvas.focus();
+            return;
+        }
+        var modules = selectedModules();
+        if (!modules.length) return;
+        event.preventDefault();
+        moduleClipboard = clone(modules);
+        if (key === 'x') {
+            dispatch({ type: 'remove-modules', ids: modules.map(function (module) { return module.id; }) });
+            rootCanvas.focus();
+        }
+    }
+
     function startPointer(event) {
         if (state.ui.mode !== 'developer') return;
         var target = event.target;
@@ -1349,7 +1405,7 @@ if (studio) {
         }
         var resize = target.closest('[data-resize-module]');
         var dragHeader = target.closest('[data-module-drag-handle]');
-        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"], [data-module-name-display], .module-actions');
+        var interactiveTarget = target.closest('button, a, input, select, textarea, [contenteditable="true"], .module-actions');
         var handle = resize || (!interactiveTarget && dragHeader);
         if (!handle) return;
         var card = target.closest('[data-sheet-module]');
@@ -2136,6 +2192,8 @@ if (studio) {
     }
 
     function handleKeydown(event) {
+        handleModuleClipboard(event);
+        if (event.defaultPrevented) return;
         var nameDisplay = event.target.closest('[data-module-name-display]');
         if (isDeveloper() && nameDisplay) {
             if (event.key === 'Enter' || event.key === 'F2' || event.key === ' ') {
