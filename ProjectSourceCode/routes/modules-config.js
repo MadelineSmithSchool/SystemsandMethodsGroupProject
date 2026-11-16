@@ -106,7 +106,7 @@ export var builtinPresets = {
     ]
 };
 
-export function clonePresetModules(presetModules, firstId) {
+export function clonePresetModules(presetModules, firstId, preserveSource) {
     var copies = clone(presetModules);
     var idMap = {};
     var next = firstId;
@@ -115,7 +115,8 @@ export function clonePresetModules(presetModules, firstId) {
         var suffix = source.match(/(?:\.\d+\.\d+|\.length)$/);
         suffix = suffix ? suffix[0] : '';
         var sourceId = suffix ? source.slice(0, -suffix.length) : source;
-        return idMap[sourceId] ? idMap[sourceId] + suffix : '';
+        return idMap[sourceId] ? idMap[sourceId] + suffix :
+            preserveSource && preserveSource(sourceId) ? source : '';
     }
     flatten(copies).forEach(function (module) {
         Object.assign(module, Object.assign(clone(moduleTypes[module.type].defaults), module));
@@ -140,8 +141,8 @@ export function clonePresetModules(presetModules, firstId) {
             choice.source = remapListSource(choice.source);
         });
         module.modifiers = module.modifiers
-            .filter(function (item) { return idMap[item.source]; })
-            .map(function (item) { return { source: idMap[item.source], amount: item.amount }; });
+            .filter(function (item) { return idMap[item.source] || preserveSource && preserveSource(item.source); })
+            .map(function (item) { return { source: idMap[item.source] || item.source, amount: item.amount }; });
     });
     return { modules: copies, nextId: next };
 }
