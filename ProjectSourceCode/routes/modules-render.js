@@ -1,7 +1,8 @@
 // draws the sheet and settings, the main file gives it the sheet data and shared helpers.
-import { findModule, flatten, layoutColumns, listCellKey } from './modules-helper.js';
+import { availableGroupColumns, findModule, flatten, layoutColumns, listCellKey } from './modules-helper.js';
 
 var mathSymbols = { add: '+', subtract: '−', multiply: '×', divide: '÷', modulo: '%' };
+var nextActionsMenuId = 0;
 
 // DOM helpers
 function field(labelText, control) {
@@ -44,6 +45,40 @@ function createButton(text, className, dataset, ariaLabel) {
     return btn;
 }
 
+function createModuleActions(module) {
+    var actions = document.createElement('div');
+    actions.className = 'module-actions';
+    var menu = document.createElement('div');
+    menu.id = 'module-actions-' + (++nextActionsMenuId);
+    menu.className = 'module-actions-menu';
+    menu.setAttribute('popover', 'auto');
+    menu.setAttribute('role', 'group');
+    menu.setAttribute('aria-label', 'Actions for ' + module.name);
+
+    var toggle = createButton('▾', 'module-actions-toggle', null, 'Actions for ' + module.name);
+    toggle.setAttribute('popovertarget', menu.id);
+    toggle.setAttribute('aria-controls', menu.id);
+    toggle.setAttribute('aria-expanded', 'false');
+    menu.appendChild(createButton('Edit', 'module-edit', { editModule: module.id }));
+    menu.appendChild(createButton('Remove', 'module-remove', { removeModule: module.id }));
+    menu.addEventListener('beforetoggle', function (event) {
+        if (event.newState !== 'open') return;
+        var bounds = toggle.getBoundingClientRect();
+        menu.style.top = bounds.bottom + 'px';
+        menu.style.left = bounds.left + 'px';
+    });
+    menu.addEventListener('toggle', function (event) {
+        var open = event.newState === 'open';
+        toggle.setAttribute('aria-expanded', String(open));
+        if (!open) return;
+        var bounds = toggle.getBoundingClientRect();
+        menu.style.left = Math.max(4, Math.min(bounds.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 4)) + 'px';
+        menu.style.top = Math.max(4, Math.min(bounds.bottom + 4, window.innerHeight - menu.offsetHeight - 4)) + 'px';
+    });
+    actions.append(toggle, menu);
+    return actions;
+}
+
 function createSelect(dataset, ariaLabel) {
     var sel = document.createElement('select');
     Object.assign(sel.dataset, dataset || {});
@@ -68,6 +103,15 @@ function createInput(type, value, dataset, ariaLabel, opts) {
 
 function createModuleName(module, mode) {
     if (mode === 'developer') {
+        var container = document.createElement('span');
+        container.className = 'module-name';
+        var display = document.createElement('strong');
+        display.dataset.moduleNameDisplay = '';
+        display.textContent = module.name || 'Unnamed module';
+        display.tabIndex = 0;
+        display.setAttribute('role', 'button');
+        display.setAttribute('aria-label', 'Edit ' + (module.name || 'unnamed module') + '. Double-click or press Enter or F2.');
+        display.title = 'Double-click or press Enter or F2 to edit the module name.';
         var input = document.createElement('input');
         input.type = 'text';
         input.className = 'module-name-input';
@@ -75,8 +119,10 @@ function createModuleName(module, mode) {
         input.value = module.name;
         input.size = Math.max(4, module.name.length);
         input.maxLength = 40;
+        input.hidden = true;
         input.setAttribute('aria-label', 'Module name');
-        return input;
+        container.append(display, input);
+        return container;
     }
     var title = document.createElement('strong');
     title.dataset.moduleTitle = '';
@@ -94,7 +140,7 @@ export function setPlacement(element, module, layout) {
 
 export function fitNotesModule(card, layout, module) {
     if (!card || !layout || !module || module.type !== 'notes') return;
-    var content = card.querySelector('.module-value-text, textarea[data-module-value]');
+    var content = card.querySelector('.module-value-text:not([hidden]), textarea[data-module-value]:not([hidden])');
     var body = card.querySelector('.module-body');
     if (!content || !body) return;
 
@@ -108,10 +154,7 @@ export function fitNotesModule(card, layout, module) {
     var bodyStyle = getComputedStyle(body);
     var bodyPadding = (parseFloat(bodyStyle.paddingTop) || 0) +
         (parseFloat(bodyStyle.paddingBottom) || 0);
-    var bodyGap = parseFloat(bodyStyle.rowGap) || 0;
-    var editButton = card.querySelector('.list-edit-toggle');
-    var contentHeight = headerHeight + bodyPadding + content.scrollHeight +
-        (editButton ? editButton.getBoundingClientRect().height + bodyGap : 0) + 2;
+    var contentHeight = headerHeight + bodyPadding + content.scrollHeight + 2;
     var neededRows = Math.ceil((contentHeight + rowGap) / (rowHeight + rowGap));
     card.style.gridRow = module.row + ' / span ' + Math.max(module.rowSpan, neededRows);
 }
@@ -281,11 +324,7 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
         });
         groupHeader.append(groupTitle, tabs);
         if (mode === 'developer') {
-            var groupActions = document.createElement('div');
-            groupActions.className = 'group-editor-actions';
-            groupActions.appendChild(createButton('Settings', 'module-edit', { editModule: module.id }));
-            groupActions.appendChild(createButton('Remove', 'module-remove', { removeModule: module.id }));
-            groupHeader.appendChild(groupActions);
+            groupHeader.appendChild(createModuleActions(module));
         }
         body.appendChild(groupHeader);
 
@@ -330,6 +369,11 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
     if (kind === 'group') {
         var grid = document.createElement('div');
         grid.className = 'group-field-grid';
+        if (module.children && module.children.length && module.children.every(function (child) {
+            return child.type === 'number' || child.type === 'text';
+        })) {
+            grid.classList.add('group-field-grid--compact');
+        }
         grid.dataset.layoutCanvas = '';
         grid.dataset.groupDropzone = module.id;
         grid.style.setProperty('--layout-columns', String(Math.max(1, Math.min(6, Number(module.groupColumns) || 2))));
@@ -451,32 +495,31 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
         return body;
     }
     var valueContainer = body;
-    var editingValue = mode !== 'playtest' || Boolean(player.valueEditing[module.id]);
     if (mode === 'playtest') {
         valueContainer = document.createElement('div');
         valueContainer.className = 'value-module';
-        var btn = createButton(editingValue ? 'Done' : 'Edit', 'list-edit-toggle',
-            { toggleValueEdit: module.id }, (editingValue ? 'Finish editing ' : 'Edit ') + module.name);
-        btn.setAttribute('aria-pressed', String(editingValue));
-        valueContainer.appendChild(btn);
-        if (!editingValue) {
-            var valueText = document.createElement('span');
-            valueText.className = 'module-value-text';
-            valueText.textContent = value;
-            valueContainer.appendChild(valueText);
-        }
+        var valueText = document.createElement('span');
+        valueText.className = 'module-value-text';
+        valueText.dataset.playerEditable = '';
+        valueText.tabIndex = 0;
+        valueText.setAttribute('role', 'button');
+        valueText.setAttribute('aria-label', module.name + '. Double-click or press Enter or F2 to edit.');
+        valueText.title = 'Double-click or press Enter or F2 to edit. Tab away to finish.';
+        valueText.textContent = value;
+        valueContainer.appendChild(valueText);
         body.appendChild(valueContainer);
     }
 
-    if (editingValue) {
-        var input = kind === 'notes' ? document.createElement('textarea') : document.createElement('input');
-        if (kind !== 'notes') input.type = kind === 'number' ? 'number' : 'text';
-        input.value = value;
-        input.dataset.moduleValue = module.id;
-        input.setAttribute('aria-label', module.name);
-        input.placeholder = kind === 'notes' ? 'Write notes' : kind === 'number' ? '0' : 'Enter text';
-        valueContainer.appendChild(input);
+    var input = kind === 'notes' ? document.createElement('textarea') : document.createElement('input');
+    if (kind !== 'notes') input.type = kind === 'number' ? 'number' : 'text';
+    input.value = value;
+    input.dataset.moduleValue = module.id;
+    input.setAttribute('aria-label', module.name);
+    input.placeholder = kind === 'notes' ? 'Write notes' : kind === 'number' ? '0' : 'Enter text';
+    if (mode === 'playtest') {
+        input.hidden = true;
     }
+    valueContainer.appendChild(input);
     return body;
 }
 
@@ -506,8 +549,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             var title = createModuleName(module, mode);
             header.appendChild(title);
             if (mode === 'developer') {
-                header.appendChild(createButton('Edit', 'module-edit', { editModule: module.id }));
-                header.appendChild(createButton('Remove', 'module-remove', { removeModule: module.id }));
+                header.appendChild(createModuleActions(module));
             }
             card.appendChild(header);
         } else if (compactFields && module.type !== 'pages') {
@@ -517,10 +559,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             var fieldName = createModuleName(module, mode);
             fieldLabel.appendChild(fieldName);
             if (mode === 'developer') {
-                var fieldActions = document.createElement('div');
-                fieldActions.className = 'group-field-actions';
-                fieldActions.appendChild(createButton('Edit', 'module-edit', { editModule: module.id }));
-                fieldLabel.appendChild(fieldActions);
+                fieldLabel.appendChild(createModuleActions(module));
             }
             card.appendChild(fieldLabel);
         }
@@ -553,7 +592,7 @@ function drawModules(layout, list, root, doc, player, helpers, typeTable, mode, 
             }
         }
     });
-    if (root && emptyState) emptyState.hidden = visible.length > 0;
+    if (emptyState) emptyState.hidden = visible.length > 0;
 }
 
 export function updateLiveValues(studio, state, helpers) {
@@ -652,7 +691,10 @@ export function renderCanvas(studio, state, helpers) {
     var rootCanvas = studio.querySelector('[data-root-canvas]');
     var emptyState = studio.querySelector('[data-empty-state]');
     rootCanvas.querySelectorAll('[data-sheet-module]').forEach(function (element) { element.remove(); });
-    drawModules(rootCanvas, doc.modules, true, doc, player, helpers, typeTable, ui.mode, ui, emptyState);
+    var modules = doc.modules.filter(function (module) {
+        return (module.canvasId || doc.canvases[0].id) === ui.activeCanvasId;
+    });
+    drawModules(rootCanvas, modules, true, doc, player, helpers, typeTable, ui.mode, ui, emptyState);
     var rollOverlay = rootCanvas.querySelector('[data-roll-overlay]');
     if (!rollOverlay) {
         rollOverlay = document.createElement('output');
@@ -894,10 +936,13 @@ export function renderInspector(studio, state, helpers) {
     if (config.inspector.includes('group')) {
         var groupHint = document.createElement('p');
         groupHint.className = 'studio-muted';
-        groupHint.textContent = 'Arrange related inputs together. Fields flow into a compact grid; use a List for repeatable rows.';
+        groupHint.textContent = 'Arrange fields in the group grid. Widen the group to allow more columns; Move or resize fields to fit them side by side.';
         inspector.appendChild(groupHint);
 
-        settingInput('Field columns', 'groupColumns', module.groupColumns || 2, 1, 6);
+        var groupCard = Array.prototype.find.call(studio.querySelectorAll('[data-sheet-module]'), function (card) {
+            return card.dataset.sheetModule === module.id;
+        });
+        settingInput('Field columns', 'groupColumns', module.groupColumns || 2, 1, availableGroupColumns(groupCard));
 
         var fieldsHeading = document.createElement('strong');
         fieldsHeading.textContent = 'Fields';

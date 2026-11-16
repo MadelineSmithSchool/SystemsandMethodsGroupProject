@@ -1,6 +1,13 @@
 
 /* ---------- 1. Tokens ---------- */
 :root {
+  --dark-wine: #6F1D1B;
+  --camel: #BB9457;
+  --dark-coffee: #432818;
+  --chocolate-brown: #99582A;
+  --light-apricot: #FFE6A7;
+  --soft-apricot: #FFF2D0;
+
   /* Brand accents */
   --bronze: #D58936;
   --rust: #A44200;
@@ -12,7 +19,7 @@
   --bronze-bright: #eed12b;
   --text: #fffefc;
   --muted: #fff3e0;
-  --line: rgba(150, 150, 150, 0.14);
+  --line: rgba(86, 0, 0, 0.14);
   --line-strong: rgba(255, 255, 255, 0.3);
   --danger: #ff9aab;
   --danger-bg: rgba(255, 120, 140, 0.12);
@@ -27,20 +34,12 @@
   --radius-sm: 8px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 
-  --pad: clamp(1.25rem, 5vw, 4rem);
+  --pad: clamp(1.25rem, 5vw, 8rem);
   --card-w: clamp(19rem, 32vw, 28rem);
   --token: 2.5rem;
 
   --font-head: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
-
-  /* Old variable names, kept so any leftover inline styles still work */
-  --ink: var(--text);
-  --ink-soft: var(--muted);
-  --card: var(--surface);
-  --mat: var(--bg);
-  --teal: var(--bronze-bright);
-  --gold: var(--bronze-bright);
 }
 
 /* ---------- 2. Base ---------- */
@@ -681,7 +680,7 @@ option {
 }
 
 .start {
-  padding: 8rem var(--pad);
+  padding: 4rem var(--pad);
 }
 
 .start-head h1 {
@@ -697,46 +696,45 @@ option {
 .option {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
   width: 100%;
-  height: 100%;
-  padding: 1.25rem;
-  border: 1px solid var(--line);
+  height:100%;
+  padding: 2rem;
+  border: 15px solid var(--garnett);
   border-radius: var(--radius);
-  background: var(--surface);
   color: var(--text);
   font: inherit;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  background-size: cover; 
+  background-position: center;
+  background-color: rgb(230, 196, 187);
+  background-blend-mode: multiply;
 }
 
 .option:hover {
-  border-color: var(--bronze-bright);
-  background: var(--surface-raised);
+  border: 2px solid var(--bronze-bright);
+  background-color: var(--surface-raised);
+  background-blend-mode: lighten;
   color: var(--text);
 }
 
 .option-title {
   font-family: var(--font-head);
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   line-height: 1.2;
-  text-decoration-line: underline;
+  text-align:center;
+}
+
+.buffer{
+  height:15rem;
 }
 
 .option-desc {
   color: var(--muted);
   text-align:center;
-}
-
-.option img{
-  width: 100%;
-  height: auto;
-}
-
-.option img:hover{
-  opacity:0.8;
+  
 }
 
 .workspace {
@@ -1262,7 +1260,7 @@ option {
 .sheet-module[data-module-type="notes"] .value-module {
   height: 100%;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .sheet-studio[data-mode="playtest"] .module-body .value-module > textarea {
@@ -1299,6 +1297,25 @@ option {
 .workspace-heading h2 {
   margin: 0;
   font-size: 1.15rem;
+}
+
+.sheet-settings summary {
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sheet-settings .inspector-field,
+.sheet-settings > button {
+  margin-top: 0.75rem;
+}
+
+.canvas-tabs {
+  margin-bottom: 0.6rem;
+}
+
+.canvas-tabs[hidden] {
+  display: none;
 }
 
 .studio-panel > p {
@@ -1458,6 +1475,25 @@ option {
 }
 
 .studio-canvas {
+  --sheet-canvas-color: var(--mahogany);
+  --sheet-header-color: var(--dark-wine);
+  --sheet-module-color: var(--light-apricot);
+  --sheet-input-color: var(--soft-apricot);
+  --sheet-accent-color: var(--camel);
+  --sheet-canvas-text: #ffffff;
+  --sheet-header-text: #ffffff;
+  --sheet-module-text: #000000;
+  --sheet-input-text: #000000;
+  --sheet-accent-text: #000000;
+  --sheet-linked-text: var(--dark-wine);
+  --bg: var(--sheet-module-color);
+  --surface: var(--sheet-module-color);
+  --surface-raised: var(--sheet-header-color);
+  --field: var(--sheet-input-color);
+  --text: var(--sheet-module-text);
+  --muted: var(--sheet-module-text);
+  --bronze: var(--sheet-accent-color);
+  --bronze-bright: var(--sheet-accent-color);
   --layout-columns: 12;
   --canvas-row-size: 2.5rem;
   --canvas-row-gap: 0.35rem;
@@ -1472,13 +1508,18 @@ option {
   padding: 0.75rem;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  background-color: var(--field);
+  background-color: var(--sheet-canvas-color);
+  color: var(--sheet-canvas-text);
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in srgb, var(--sheet-canvas-text) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--sheet-canvas-text) 10%, transparent) 1px, transparent 1px);
   background-size:
     calc(var(--canvas-row-size) + var(--canvas-row-gap))
     calc(var(--canvas-row-size) + var(--canvas-row-gap));
+}
+
+.sheet-studio[data-mode="playtest"] .studio-canvas {
+  background-image: none;
 }
 
 .studio-canvas {
@@ -1494,6 +1535,8 @@ option {
 }
 
 .pages-header {
+  --text: var(--sheet-header-text);
+  --muted: var(--sheet-header-text);
   display: flex;
   min-width: 0;
   align-items: center;
@@ -1505,7 +1548,7 @@ option {
 }
 
 .pages-header > strong,
-.pages-header > .module-name-input {
+.pages-header > .module-name {
   flex: 0 0 auto;
   font-family: var(--font-head);
   font-size: 0.88rem;
@@ -1597,13 +1640,6 @@ option {
   text-align: center;
 }
 
-.group-editor-actions {
-  display: flex;
-  flex: 0 0 auto;
-  justify-content: flex-end;
-  gap: 0.35rem;
-}
-
 .group-hide-name-field {
   display: flex;
   align-items: center;
@@ -1650,18 +1686,59 @@ option {
 
 .group-field-grid {
   --layout-columns: 2;
-  --group-row-size: 2.5rem;
+  --group-row-size: 1.5rem;
   display: grid;
   grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
   grid-auto-rows: minmax(var(--group-row-size), auto);
   align-content: start;
-  gap: 0.65rem 0.85rem;
+  gap: 0.25rem 0.4rem;
   min-width: 0;
-  min-height: 2.5rem;
-  padding: 0.65rem 0.75rem;
+  min-height: var(--group-row-size);
+  padding: 0.3rem;
+}
+
+.group-field-grid--compact {
+  --group-row-size: 1rem;
+  row-gap: 0.2rem;
+}
+
+.group-field-grid.group-field-grid--compact .group-field-label {
+  margin-bottom: 0.1rem;
+}
+
+.group-field-grid--compact input[data-module-value] {
+  height: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0.1rem 0.25rem;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.group-field-grid--compact .module-output {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.sheet-studio[data-mode="playtest"] .group-field-grid.group-field-grid--compact .sheet-module .module-value-text,
+.sheet-studio[data-mode="playtest"] .group-field-grid.group-field-grid--compact .sheet-module .module-output {
+  min-height: 1.5rem;
+  font-size: clamp(0.9rem, 12cqi, 1.25rem);
+  line-height: 1.1;
+}
+
+.sheet-studio[data-mode="playtest"] .group-field-grid.group-field-grid--compact .sheet-module[data-module-type="number"] .module-value-text,
+.sheet-studio[data-mode="playtest"] .group-field-grid.group-field-grid--compact .sheet-module[data-module-type="number"] .module-output {
+  display: block;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  font-size: clamp(0.9rem, 22cqi, 1.5rem);
+  line-height: 1.15;
 }
 
 .group-field-grid > .sheet-module {
+  container-type: normal;
   box-sizing: border-box;
   min-height: 0;
   overflow: hidden;
@@ -1673,7 +1750,6 @@ option {
 
 .group-field-grid > .sheet-module[data-module-type="list"] {
   grid-column: 1 / -1 !important;
-  min-height: 0;
 }
 
 .group-field-grid > .group-empty-state {
@@ -1696,25 +1772,9 @@ option {
   min-width: 0;
 }
 
-.group-field-grid .group-field-label > .module-name-input {
+.group-field-grid .group-field-label > .module-name {
+  min-width: 3ch;
   flex: 0 1 auto;
-}
-
-.group-field-actions {
-  display: none;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.sheet-studio[data-mode="developer"] .group-field-actions {
-  display: flex;
-}
-
-.group-field-actions button {
-  min-height: 1.5rem;
-  padding: 0.05rem 0.35rem;
-  font-size: 0.68rem;
 }
 
 .group-field-grid .module-dev-summary {
@@ -1726,7 +1786,11 @@ option {
   padding: 0;
 }
 
-.group-field-grid .module-body textarea {
+.group-field-grid > .sheet-module[data-module-type="list"] > .module-body {
+  overflow: auto;
+}
+
+.group-field-grid .sheet-module[data-module-type="notes"] .module-body textarea {
   min-height: 3rem;
 }
 
@@ -1768,7 +1832,13 @@ option {
   pointer-events: none;
 }
 
+.canvas-palette-prompt {
+  background: var(--mahogany);
+  color: #fff;
+}
+
 .sheet-module {
+  container: sheet-module / size;
   position: relative;
   display: flex;
   box-sizing: border-box;
@@ -1778,6 +1848,7 @@ option {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
+  color: var(--sheet-module-text);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -1799,10 +1870,12 @@ option {
 }
 
 .sheet-module-header {
+  --text: var(--sheet-header-text);
+  --muted: var(--sheet-header-text);
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.4rem;
   min-width: 0;
   min-height: 2.25rem;
@@ -1833,8 +1906,8 @@ option {
 }
 
 .sheet-module.is-hidden .sheet-module-header {
-  background: var(--mahogany);
-  color: var(--muted);
+  background: var(--surface-raised);
+  color: var(--sheet-header-text);
 }
 
 .sheet-module-header strong {
@@ -1845,6 +1918,34 @@ option {
   font-size: 0.84rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sheet-module-header > .module-name {
+  min-width: 3ch;
+  flex: 1 1 0;
+}
+
+.module-name {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+}
+
+.module-name > [hidden] {
+  display: none;
+}
+
+.module-name > [data-module-name-display] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.module-name > [data-module-name-display]:focus-visible {
+  outline: 2px solid var(--bronze-bright);
 }
 
 .module-name-input {
@@ -1861,7 +1962,7 @@ option {
   font-weight: 700;
 }
 
-.sheet-module-header > .module-name-input {
+.sheet-module-header .module-name-input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1873,22 +1974,58 @@ option {
   background: var(--field);
 }
 
-.module-edit,
-.module-remove {
-  min-height: 1.65rem;
-  padding: 0.1rem 0.4rem;
+.module-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.module-actions-toggle {
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 0.72rem;
   cursor: pointer;
 }
 
-.module-edit:hover,
-.module-remove:hover {
+.module-actions-toggle:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+.module-actions-menu {
+  position: fixed;
+  inset: auto;
+  min-width: 6rem;
+  margin: 0;
+  padding: 0.25rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--sheet-module-color);
+  color: var(--sheet-module-text);
+  box-shadow: var(--shadow);
+}
+
+.module-actions-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.module-actions-menu button:hover,
+.module-actions-menu button:focus-visible {
+  background: var(--sheet-accent-color);
+  color: var(--sheet-accent-text);
 }
 
 .module-dev-summary {
@@ -1899,6 +2036,10 @@ option {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.sheet-module[data-module-type="group"] > .module-body {
+  padding: 0.25rem;
 }
 
 .module-body {
@@ -1912,6 +2053,23 @@ option {
   gap: 0.45rem;
   padding: 0.45rem 0.55rem 0.65rem;
   overflow: hidden;
+}
+
+@container sheet-module (max-height: 110px) {
+  .module-dev-summary {
+    display: none;
+  }
+}
+
+@container sheet-module (max-height: 90px) {
+  .sheet-module-header {
+    min-height: 1.75rem;
+    padding: 0.15rem 0.3rem;
+  }
+
+  .module-body {
+    padding: 0.2rem 0.3rem;
+  }
 }
 
 .module-body > * {
@@ -2018,6 +2176,10 @@ option {
   gap: 0.2rem;
 }
 
+.value-module > [hidden] {
+  display: none !important;
+}
+
 .sheet-studio[data-mode="playtest"] .value-module {
   min-height: 100%;
   align-content: stretch;
@@ -2026,11 +2188,6 @@ option {
 .sheet-studio[data-mode="playtest"] .sheet-module[data-module-type="notes"] .value-module {
   min-height: 0;
   align-content: start;
-}
-
-.value-module > .list-edit-toggle {
-  position: static;
-  justify-self: end;
 }
 
 .list-edit-toggle {
@@ -2157,7 +2314,6 @@ option {
   min-height: 3rem;
   place-items: center;
   padding: 0.2rem;
-  color: var(--bronze-bright);
   font-family: var(--font-head);
   font-size: clamp(1.4rem, 22cqi, 3.25rem);
   font-weight: 700;
@@ -2165,6 +2321,23 @@ option {
   overflow-wrap: anywhere;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module [data-player-editable],
+.sheet-studio[data-mode="playtest"] .sheet-module .value-module > [data-module-value] {
+  color: var(--text);
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module [data-player-editable] {
+  cursor: text;
+}
+
+.sheet-studio[data-mode="playtest"] .sheet-module [data-player-editable]:focus-visible {
+  outline: 2px solid var(--bronze-bright);
+}
+
+.sheet-studio[data-mode="playtest"] [data-list-column-source] {
+  color: var(--bronze-bright);
 }
 
 .sheet-studio[data-mode="playtest"] .sheet-module[data-module-type="notes"] .module-value-text,
@@ -2342,6 +2515,40 @@ option {
   overflow-wrap: anywhere;
 }
 
+.studio-canvas :is(input:not([type="checkbox"]), textarea, select, option) {
+  --text: var(--sheet-input-text);
+  color: var(--sheet-input-text);
+  background-color: var(--field);
+}
+
+.studio-canvas .list-table td :is(input:not([type="checkbox"]), select) {
+  background-color: var(--field);
+}
+
+.studio-canvas :is(.module-output, .math-result, .module-dev-summary, .list-stat output),
+.sheet-studio[data-mode="playtest"] .studio-canvas [data-list-column-source]:not(button) {
+  color: var(--sheet-linked-text);
+}
+
+.studio-canvas :is(.module-output, .math-result, [data-list-column-source]:not(button)) {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.15em;
+}
+
+.studio-canvas :is(.dice-formula.dice-roll-trigger, .list-dice-trigger),
+.studio-canvas :is(.dice-formula.dice-roll-trigger, .list-dice-trigger):hover {
+  color: var(--sheet-accent-text);
+}
+
+.studio-canvas :is(.checkbox-item-add, .checkbox-item-remove, .list-player-add-row, .group-tab-edit):hover {
+  color: var(--sheet-header-text);
+}
+
+.studio-canvas .dice-roll-overlay {
+  background: var(--surface);
+  color: var(--sheet-module-text);
+}
+
 .sheet-studio[data-mode="playtest"] [data-developer-only],
 .sheet-studio[data-mode="playtest"] .module-remove,
 .sheet-studio[data-mode="playtest"] .module-resize-handle,
@@ -2380,7 +2587,7 @@ option {
 .templates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
-  gap: 1rem;
+  gap: 2rem;
 }
 
 .template-card {
@@ -2618,15 +2825,6 @@ option {
     min-height: 40rem;
     gap: var(--canvas-row-gap);
     padding: 0.45rem;
-  }
-
-  .sheet-module-header {
-    flex-wrap: wrap;
-  }
-
-  .sheet-module-header strong {
-    flex-basis: 100%;
-    order: -1;
   }
 
   .module-modifier {

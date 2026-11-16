@@ -45,7 +45,9 @@ function toBuilderDocument(template, isStudioTemplate) {
       schemaVersion: 2,
       name: template.name.trim(),
       description: template.description || '',
-      modules: template.modules
+      modules: template.modules,
+      canvases: template.canvases,
+      sheetColors: template.sheetColors
     };
   }
 
@@ -92,6 +94,34 @@ function checkStudioTemplate(t) {
   if (typeof t.name !== 'string' || !t.name.trim() || t.name.length > 50) return 'Template needs a name (50 characters max).';
   if (t.description !== undefined && (typeof t.description !== 'string' || t.description.length > 255)) return 'Description must be text (255 characters max).';
   if (!Array.isArray(t.modules) || t.modules.length === 0) return 'Template needs at least one module.';
+
+  if (t.sheetColors !== undefined) {
+    const colorKeys = ['canvas', 'header', 'module', 'input', 'accent'];
+    if (!t.sheetColors || typeof t.sheetColors !== 'object' || Array.isArray(t.sheetColors) ||
+      colorKeys.some((key) => typeof t.sheetColors[key] !== 'string' || !/^#[0-9a-f]{6}$/i.test(t.sheetColors[key])) ||
+      Object.keys(t.sheetColors).some((key) => !colorKeys.includes(key))) {
+      return 'Sheet colors must contain valid six-digit hex colors for each area.';
+    }
+  }
+
+  if (t.canvases !== undefined) {
+    if (!Array.isArray(t.canvases) || !t.canvases.length) return 'A sheet needs at least one canvas.';
+    const canvasIds = new Set();
+    for (const canvas of t.canvases) {
+      if (!canvas || typeof canvas !== 'object' || Array.isArray(canvas) ||
+        typeof canvas.id !== 'string' || !canvas.id || canvasIds.has(canvas.id) ||
+        typeof canvas.name !== 'string' || !canvas.name.trim() || canvas.name.length > 40 ||
+        !Number.isInteger(canvas.gridSize) || canvas.gridSize < 20 || canvas.gridSize > 80) {
+        return 'Each canvas needs a unique ID, a name (40 characters max), and a grid size from 20 to 80.';
+      }
+      canvasIds.add(canvas.id);
+    }
+    if (t.modules.some((module) => module && module.canvasId !== undefined && !canvasIds.has(module.canvasId))) {
+      return 'Every module must belong to a valid canvas.';
+    }
+  } else if (t.modules.some((module) => module && module.canvasId !== undefined)) {
+    return 'Modules cannot reference canvases that are not defined.';
+  }
 
   const ids = new Set();
   const modulesById = new Map();
@@ -233,7 +263,9 @@ module.exports = (db, auth) => {
           schemaVersion: 2,
           name: template.template_name,
           description: template.template_desc || '',
-          modules: data.schemaVersion === 1 ? migrateLegacyGroupModules(data.modules) : data.modules
+          modules: data.schemaVersion === 1 ? migrateLegacyGroupModules(data.modules) : data.modules,
+          canvases: data.canvases,
+          sheetColors: data.sheetColors
         }
         : toBuilderDocument({
           ...data,
@@ -365,7 +397,7 @@ module.exports = (db, auth) => {
         ? migrateLegacyGroupModules(template.modules)
         : template.modules;
       const data = isStudioTemplate
-        ? { schemaVersion: 2, name: template.name.trim(), description: template.description || '', modules }
+        ? { schemaVersion: 2, name: template.name.trim(), description: template.description || '', modules, canvases: template.canvases, sheetColors: template.sheetColors }
         : { name: template.name.trim(), description: template.description || '', stats: template.stats, minorStats: template.minorStats || {} };
       const row = await db.tx(async (transaction) => {
         const row = await transaction.one(
@@ -408,7 +440,9 @@ module.exports = (db, auth) => {
         schemaVersion: 2,
         name: template.name.trim(),
         description: template.description || '',
-        modules: template.modules
+        modules: template.modules,
+        canvases: template.canvases,
+        sheetColors: template.sheetColors
       };
       let savedTemplate;
       if (template.templateId) {
@@ -505,7 +539,9 @@ module.exports = (db, auth) => {
           schemaVersion: 2,
           name: template.template_name,
           description: template.template_desc || '',
-          modules: data.schemaVersion === 1 ? migrateLegacyGroupModules(data.modules) : data.modules
+          modules: data.schemaVersion === 1 ? migrateLegacyGroupModules(data.modules) : data.modules,
+          canvases: data.canvases,
+          sheetColors: data.sheetColors
         }
         : toBuilderDocument({
           ...data,

@@ -10,6 +10,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs'); //  To hash passwords
 const axios = require('axios');
 const validateRegistration = require('./src/validateRegistration');
+const { sendResetEmail } = require('./src/mailer');
 const { listQuery, MOST_SAVED } = require('./src/listQuery');
 
 //For handlebars
@@ -109,8 +110,8 @@ app.get('/library', auth, async (req, res) => {
   );
   try {
     const templates = await db.any(
-      `SELECT t.template_id, t.template_name, t.template_desc, t.created_at,
-              u.username AS creator,
+      `SELECT t.template_id, t.template_name, t.template_desc, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date,
+              u.username AS creator_name,
               (SELECT COUNT(DISTINCT library.user_id)::int FROM player_library library
                WHERE library.template_id = t.template_id AND library.user_id <> t.user_id) AS times_saved
        FROM templates t
@@ -120,9 +121,6 @@ app.get('/library', auth, async (req, res) => {
        ORDER BY ${list.orderBy}`,
       [list.pattern]
     );
-    templates.forEach((template) => {
-      template.saves_label = template.times_saved === 1 ? '1 save' : `${template.times_saved} saves`;
-    });
     res.render('pages/library', { title: 'Template', login: true, templates, list });
   } catch (err) {
     console.error('Library query failed:', err);
@@ -158,6 +156,119 @@ app.get('/logout', (req, res) => {
     res.clearCookie('connect.sid');
     res.redirect('/login');
   });
+});
+
+const renderSettings = async (req, res, extra = {}, status = 200) => {
+  try {
+    const account = await db.one(
+      'SELECT username, email FROM users WHERE user_id = $1',
+      [req.session.user.id]
+    );
+    const flash = req.session.flash || {};
+    delete req.session.flash;
+    res.status(status).render('pages/settings', {
+      title: 'Settings',
+      login: true,
+      account,
+      ...flash,
+      ...extra,
+    });
+  } catch (err) {
+    console.error('Settings load failed:', err);
+    res.redirect('/logout');
+  }
+};
+
+app.get('/settings', auth, (req, res) => renderSettings(req, res));
+
+app.post('/settings/profile', auth, async (req, res) => {
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+  const errors = [];
+
+  if (!username) errors.push('Enter a username.');
+  else if (username.length > 50) errors.push('Your username must be 50 characters or fewer.');
+
+  if (!email) errors.push('Enter an email.');
+  else if (email.length > 255 || !/^\S+@\S+\.\S+$/.test(email)) errors.push('Enter a valid email address.');
+
+  if (errors.length > 0) {
+    return renderSettings(req, res, { errors, account: { username, email } }, 400);
+  }
+
+  try {
+    await db.none(
+      'UPDATE users SET username = $1, email = $2 WHERE user_id = $3',
+      [username, email, req.session.user.id]
+    );
+    req.session.user.username = username;
+    req.session.flash = { success: 'Profile updated.' };
+    req.session.save(() => res.redirect('/settings'));
+  } catch (err) {
+    if (err.code === '23505' && err.constraint === 'users_username_key') {
+      return renderSettings(req, res, {
+        errors: ['That username is already taken.'],
+        account: { username, email },
+      }, 409);
+    }
+    console.error('Profile update failed:', err);
+    renderSettings(req, res, { errors: ['We could not update your profile right now.'] }, 500);
+  }
+});
+
+app.post('/settings/password', auth, async (req, res) => {
+  const current = typeof req.body.current_password === 'string' ? req.body.current_password : '';
+  const newPassword = typeof req.body.new_password === 'string' ? req.body.new_password : '';
+  const confirm = typeof req.body.confirm_password === 'string' ? req.body.confirm_password : '';
+
+  try {
+    const user = await db.one(
+      'SELECT username, email, password_hash FROM users WHERE user_id = $1',
+      [req.session.user.id]
+    );
+
+    if (!(await bcrypt.compare(current, user.password_hash))) {
+      return renderSettings(req, res, { errors: ['Your current password is incorrect.'] }, 401);
+    }
+    if (newPassword !== confirm) {
+      return renderSettings(req, res, { errors: ['The new passwords do not match.'] }, 400);
+    }
+
+    const errors = validateRegistration({
+      username: user.username,
+      email: user.email,
+      password: newPassword,
+    });
+    if (errors.length > 0) {
+      return renderSettings(req, res, { errors }, 400);
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.none('UPDATE users SET password_hash = $1 WHERE user_id = $2', [hash, req.session.user.id]);
+    req.session.flash = { success: 'Password updated.' };
+    req.session.save(() => res.redirect('/settings'));
+  } catch (err) {
+    console.error('Password change failed:', err);
+    renderSettings(req, res, { errors: ['We could not change your password right now.'] }, 500);
+  }
+});
+
+app.post('/settings/delete', auth, async (req, res) => {
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  try {
+    const user = await db.one('SELECT password_hash FROM users WHERE user_id = $1', [req.session.user.id]);
+    if (!(await bcrypt.compare(password, user.password_hash))) {
+      return renderSettings(req, res, { errors: ['Wrong password. Your account was not deleted.'] }, 401);
+    }
+    await db.none('UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = $1', [req.session.user.id]);
+    req.session.destroy(() => {
+      res.clearCookie('connect.sid');
+      res.redirect('/login');
+    });
+  } catch (err) {
+    console.error('Account delete failed:', err);
+    renderSettings(req, res, { errors: ['We could not delete your account right now.'] }, 500);
+  }
 });
 
 // This admin route is called /manage to make it marginally harder for bots to find.
@@ -260,6 +371,96 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// ---------- FORGOT / RESET PASSWORD ----------
+const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
+
+app.get('/forgot-password', (req, res) => res.render('pages/forgot-password'));
+
+app.post('/forgot-password', async (req, res) => {
+  const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+  const done = () => res.render('pages/forgot-password', {
+    success: 'If an account uses that email, a reset link is on its way.',
+  });
+
+  if (!email || email.length > 255) return done();
+
+  try {
+    const users = await db.any(
+      'SELECT user_id FROM users WHERE lower(email) = lower($1) AND deleted_at IS NULL',
+      [email]
+    );
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    for (const u of users) {
+      const token = crypto.randomBytes(32).toString('hex');
+      await db.none(
+        `UPDATE users SET reset_token_hash = $1, reset_expires_at = NOW() + INTERVAL '1 hour'
+         WHERE user_id = $2`,
+        [hashToken(token), u.user_id]
+      );
+      await sendResetEmail(email, `${baseUrl}/reset-password/${token}`);
+    }
+  } catch (err) {
+    console.error('Forgot password failed:', err);
+  }
+  done();
+});
+
+const findResetUser = (token) => db.oneOrNone(
+  `SELECT user_id, username, email FROM users
+   WHERE reset_token_hash = $1 AND reset_expires_at > NOW() AND deleted_at IS NULL`,
+  [hashToken(token)]
+);
+
+app.get('/reset-password/:token', async (req, res) => {
+  try {
+    if (!(await findResetUser(req.params.token))) {
+      return res.status(400).render('pages/forgot-password', {
+        errors: ['That reset link is invalid or has expired. Request a new one.'],
+      });
+    }
+    res.render('pages/reset-password', { token: req.params.token });
+  } catch (err) {
+    console.error('Reset page failed:', err);
+    res.redirect('/forgot-password');
+  }
+});
+
+app.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  const confirm = typeof req.body.confirm_password === 'string' ? req.body.confirm_password : '';
+
+  try {
+    const user = await findResetUser(token);
+    if (!user) {
+      return res.status(400).render('pages/forgot-password', {
+        errors: ['That reset link is invalid or has expired. Request a new one.'],
+      });
+    }
+    if (password !== confirm) {
+      return res.status(400).render('pages/reset-password', { token, errors: ['The passwords do not match.'] });
+    }
+    const errors = validateRegistration({ username: user.username, email: user.email, password });
+    if (errors.length > 0) {
+      return res.status(400).render('pages/reset-password', { token, errors });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    await db.none(
+      `UPDATE users SET password_hash = $1, reset_token_hash = NULL, reset_expires_at = NULL
+       WHERE user_id = $2`,
+      [hash, user.user_id]
+    );
+    res.render('pages/login', { success: 'Password updated. Log in with your new password.' });
+  } catch (err) {
+    console.error('Password reset failed:', err);
+    res.status(500).render('pages/reset-password', {
+      token,
+      errors: ['Cannnot reset password right now. Please try again.'],
+    });
+  }
+});
+
 // upload / send / edit templates templates (routes/templates.js)
 const templateRoutes = require('./routes/templates')(db, auth);
 app.use('/templates', auth, templateRoutes);
@@ -278,6 +479,7 @@ const startServer = async () => {
     ); 
     await db.none(migration);
     await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '002_admin.sql'), 'utf8'));
+    await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '003_password_reset.sql'), 'utf8'));
     console.log('Database connection successful');
   } catch (error) {
     console.error('Database initialization failed:', error);

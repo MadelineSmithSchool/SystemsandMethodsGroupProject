@@ -9,7 +9,9 @@ export function serialize(doc) {
         schemaVersion: 2,
         name: doc.name,
         description: doc.description,
-        modules: doc.modules
+        modules: doc.modules,
+        canvases: doc.canvases,
+        sheetColors: doc.sheetColors
     };
 }
 

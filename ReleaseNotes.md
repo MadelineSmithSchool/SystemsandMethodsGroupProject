@@ -4,9 +4,16 @@
 - keep updated with what you work on in the past week (idk if we will have a meeting this week)
 
 ## Week of 11/16/2026
-- keep updated with what you work on in the past week
 - added list module
 - updated group module to be less cluttered
+- page module
+- new character page
+- sheet settings panel to change colours and grid size
+- settings page
+- forgot password, reset password
+- added art cards for dashboard and edited formatting
+- fixed template library formatting
+- copy paste added
 - search + sort (part 1): search box and sort dropdown on the template library, my templates, and my characters (newest, oldest, name A-Z / Z-A)
 - search + sort (part 2): "most saved" sort + save counts on the library, "show" filter on my templates (all / made by me / saved from others)
 

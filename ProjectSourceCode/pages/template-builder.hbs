@@ -55,6 +55,36 @@
 
     <div class="studio-layout">
         <aside class="studio-sidebar" data-developer-only>
+            <details class="studio-panel sheet-settings">
+                <summary>Sheet settings</summary>
+                <label class="inspector-field">Canvas name
+                    <input type="text" maxlength="40" data-canvas-name>
+                </label>
+                <label class="inspector-field">Grid square size <output data-grid-size-output>40 px</output>
+                    <input type="range" min="20" max="80" step="1" value="40" data-canvas-grid-size>
+                </label>
+                <label class="inspector-field">Canvas background
+                    <input type="color" data-sheet-color="canvas">
+                </label>
+                <label class="inspector-field">Module headers
+                    <input type="color" data-sheet-color="header">
+                </label>
+                <label class="inspector-field">Module background
+                    <input type="color" data-sheet-color="module">
+                </label>
+                <label class="inspector-field">Input background
+                    <input type="color" data-sheet-color="input">
+                </label>
+                <label class="inspector-field">Accent
+                    <input type="color" data-sheet-color="accent">
+                </label>
+                <button class="btn" type="button" data-add-canvas>Add canvas</button>
+                <label class="inspector-field">Move selected module to
+                    <select data-move-canvas aria-label="Destination canvas"></select>
+                </label>
+                <button class="btn" type="button" data-move-to-canvas disabled>Move module</button>
+                <p class="studio-muted">Select a top-level module to move it to another canvas.</p>
+            </details>
             <section class="studio-panel module-palette" aria-labelledby="module-palette-title">
                 <h2 id="module-palette-title">Module palette</h2>
                 <p>Click to add, or drag a module onto the sheet.</p>
@@ -88,6 +118,7 @@
                     <button class="module-preset" type="button" data-load-preset="ability-score-bonus">Ability Score Bonus</button>
                 </div>
                 <p class="studio-muted" data-preset-selection aria-live="polite">Select modules by dragging across the canvas.</p>
+                <p class="studio-muted">Copy, cut, and paste selected modules with Ctrl/Cmd+C, X, and V. The module clipboard stays in this editor; cutting clears links from modules left behind.</p>
                 <label class="inspector-field" for="preset-name">Preset name
                     <input id="preset-name" type="text" maxlength="40" placeholder="My preset">
                 </label>
@@ -101,8 +132,9 @@
                 <h2 data-workspace-title>Developer canvas</h2>
                 <p data-workspace-help>Use Pages for tabs and Groups for compact field panels. Lists provide repeatable rows.</p>
             </div>
-            <div class="studio-canvas" data-layout-canvas data-root-canvas role="region" aria-label="Character sheet canvas" tabindex="0">
-                <p class="canvas-empty-state" data-empty-state>Start with a module from the palette.</p>
+            <div class="canvas-tabs pages-tabs" data-canvas-tabs role="tablist" aria-label="Canvases" hidden></div>
+            <div id="sheet-canvas" class="studio-canvas" data-layout-canvas data-root-canvas role="region" aria-label="Character sheet canvas" tabindex="0">
+                <p class="canvas-empty-state canvas-palette-prompt" data-empty-state>Start with a module from the palette.</p>
             </div>
         </section>
     </div>

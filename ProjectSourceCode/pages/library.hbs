@@ -1,19 +1,41 @@
-<h1>Template Library</h1>
-{{#if error}}<p class="error">{{error}}</p>{{/if}}
-{{> list-controls action="/library" label="Search the template library" placeholder="Name, description, or creator"}}
-<div class="template-list">
-  {{#each templates}}
-    <div class="card">
-      <h3>{{this.template_name}}</h3>
-      <p>{{this.template_desc}}</p>
-      {{#if this.creator}}<small>by {{this.creator}}</small>{{/if}}
-      <small>{{this.saves_label}}</small>
-    </div>
-  {{else}}
-    {{#if list.search}}
-      <p>No public templates match "{{list.search}}".</p>
+<main class="templates-page">
+  <h1>Template Library</h1>
+  {{#if error}}<p class="error">{{error}}</p>{{/if}}
+  {{> list-controls action="/library" label="Search the template library" placeholder="Name, description, or creator"}}
+  <div class="templates-grid">
+    {{#each templates}}
+      <article class="template-card">
+          <h2><a href="/templates/{{template_id}}">{{template_name}}</a></h2>
+          {{#if template_desc}}
+              <p class="template-card-description">{{template_desc}}</p>
+          {{/if}}
+          <dl class="template-card-details">
+              <div>
+                  <dt>Creator</dt>
+                  <dd>{{creator_name}}</dd>
+              </div>
+              <div>
+                  <dt>Created</dt>
+                  <dd>{{created_date}}</dd>
+              </div>
+              <div>
+                  <dt>Saves</dt>
+                  <dd>{{times_saved}}</dd>
+              </div>
+          </dl>
+          <div class="template-card-actions">
+              <a href="/templates/{{template_id}}" class="template-card-open">View template</a>
+              {{#if is_owner}}
+                  <a href="/templates/{{template_id}}/share" class="btn btn--sm">Share</a>
+              {{/if}}
+          </div>
+      </article>
     {{else}}
-      <p>No public templates yet.</p>
-    {{/if}}
-  {{/each}}
-</div>
+      {{#if list.search}}
+        <p class="templates-empty">No public templates match "{{list.search}}".</p>
+      {{else}}
+        <p class="templates-empty">No public templates yet.</p>
+      {{/if}}
+    {{/each}}
+  </div>
+</main>
