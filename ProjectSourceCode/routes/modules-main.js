@@ -11,7 +11,7 @@ import {
 } from './modules-render.js';
 import { builtinPresets, clonePresetModules, moduleSize, moduleTypes } from './modules-config.js';
 import {
-    clone, findModule, flatten, layoutColumns, linkSettings, findModuleEntry as helperFindEntry,
+    availableGroupColumns, clone, findModule, flatten, layoutColumns, linkSettings, findModuleEntry as helperFindEntry,
     isChecked, listCellKey, getListRows, clamp, parseListCellReference
 } from './modules-helper.js';
 
@@ -380,6 +380,77 @@ if (studio) {
         return findOpenPlacement(list, columns, module.colSpan, module.rowSpan, preferred, module.id);
     }
 
+    function groupColumnLimit(group) {
+        var card = Array.prototype.find.call(studio.querySelectorAll('[data-sheet-module]'), function (element) {
+            return element.dataset.sheetModule === group.id;
+        });
+        return availableGroupColumns(card);
+    }
+
+    function preferredGroupColSpan(module) {
+        var preferred = Number(module.preferredColSpan);
+        return Number.isInteger(preferred) && preferred > 0 ? preferred : module.colSpan;
+    }
+
+    function groupFieldPlacements(group, draggedId, draggedPlacement, preferredSpanOverride) {
+        var columns = Math.max(1, Math.min(6, Number(group.groupColumns) || 2));
+        var children = (group.children || []).slice();
+        children.sort(function (first, second) {
+            if (first.id === draggedId) return -1;
+            if (second.id === draggedId) return 1;
+            return first.row - second.row || first.col - second.col;
+        });
+
+        var placements = [];
+        children.forEach(function (child) {
+            var preferredSpan = child.id === draggedId && preferredSpanOverride ?
+                preferredSpanOverride : preferredGroupColSpan(child);
+            var placement = child.id === draggedId && draggedPlacement ?
+                Object.assign({}, draggedPlacement) : {
+                    col: child.col,
+                    row: child.row,
+                    colSpan: child.colSpan,
+                    rowSpan: child.rowSpan
+                };
+            placement.colSpan = child.type === 'list' ? columns :
+                Math.max(1, Math.min(columns, preferredSpan));
+            placement.col = child.type === 'list' ? 1 :
+                Math.max(1, Math.min(columns - placement.colSpan + 1, placement.col));
+
+            var dragged = placements.find(function (item) { return item.id === draggedId; });
+            if (dragged && child.id !== draggedId && child.type !== 'list' &&
+                placementsOverlap(placement, dragged.placement) &&
+                placement.row < dragged.placement.row + dragged.placement.rowSpan &&
+                placement.row + placement.rowSpan > dragged.placement.row &&
+                placement.col < dragged.placement.col) {
+                var spanBeforeDragged = dragged.placement.col - placement.col;
+                if (spanBeforeDragged > 0) {
+                    placement.colSpan = Math.min(placement.colSpan, spanBeforeDragged);
+                }
+            }
+
+            while (placements.some(function (item) {
+                return placementsOverlap(placement, item.placement);
+            })) {
+                placement.row += 1;
+            }
+            placements.push({ id: child.id, placement: placement });
+        });
+        return placements;
+    }
+
+    function applyGroupFieldPlacements(group, placements, draggedId, preferredSpanOverride) {
+        placements.forEach(function (item) {
+            var child = findModule(group.children, item.id);
+            if (!child) return;
+            var preferredSpan = item.id === draggedId && preferredSpanOverride ?
+                preferredSpanOverride : preferredGroupColSpan(child);
+            if (item.placement.colSpan < preferredSpan) child.preferredColSpan = preferredSpan;
+            else delete child.preferredColSpan;
+            Object.assign(child, item.placement);
+        });
+    }
+
     function displaceOverlappingModules(modules, draggedId, draggedPlacement, containerTargetId) {
         var placements = [{ id: draggedId, placement: draggedPlacement }];
         var remaining = modules.filter(function (module) { return module.id !== draggedId; })
@@ -406,6 +477,46 @@ if (studio) {
             placements.push({ id: module.id, placement: placement });
         });
         return placements;
+    }
+
+    function expandGroupsToFitContents() {
+        var modules = activeModules();
+        var canvasStyle = getComputedStyle(rootCanvas);
+        var outerRowSizeMatch = canvasStyle.gridAutoRows.match(/[\d.]+px/);
+        var outerRowSize = parseFloat(outerRowSizeMatch ? outerRowSizeMatch[0] : '') || 40;
+        var outerRowGap = parseFloat(canvasStyle.rowGap) || 0;
+        modules.filter(function (module) { return module.type === 'group'; }).forEach(function (group) {
+            var lastChildRow = (group.children || []).reduce(function (lastRow, child) {
+                return Math.max(lastRow, child.row + child.rowSpan - 1);
+            }, 0);
+            if (!lastChildRow) return;
+
+            var card = Array.prototype.find.call(rootCanvas.children, function (element) {
+                return element.dataset.sheetModule === group.id;
+            });
+            var grid = card && card.querySelector('.group-field-grid');
+            var gridStyle = grid ? getComputedStyle(grid) : null;
+            var innerRowSize = gridStyle && parseFloat(gridStyle.gridAutoRows.match(/[\d.]+px/)) || 40;
+            var innerRowGap = gridStyle && parseFloat(gridStyle.rowGap) || 10.4;
+            var innerPadding = gridStyle ?
+                (parseFloat(gridStyle.paddingTop) || 0) + (parseFloat(gridStyle.paddingBottom) || 0) : 20.8;
+            var header = card && card.querySelector('.sheet-module-header');
+            var headerHeight = header ? header.getBoundingClientRect().height : outerRowSize;
+            var gridHeight = lastChildRow * innerRowSize + Math.max(0, lastChildRow - 1) * innerRowGap + innerPadding;
+            var requiredRows = Math.ceil((gridHeight + headerHeight + 12) / (outerRowSize + outerRowGap));
+            if (requiredRows <= group.rowSpan) return;
+
+            var placement = {
+                col: group.col,
+                row: group.row,
+                colSpan: group.colSpan,
+                rowSpan: requiredRows
+            };
+            displaceOverlappingModules(modules, group.id, placement).forEach(function (item) {
+                var sibling = modules.find(function (module) { return module.id === item.id; });
+                if (sibling) Object.assign(sibling, item.id === group.id ? placement : item.placement);
+            });
+        });
     }
 
     function layoutRowStep(layout) {
@@ -452,7 +563,7 @@ if (studio) {
 
     function fitPlacementToContents(card, layout, module, placement) {
         var columns = layoutColumns(layout);
-        var minimumColumns = Math.min(columns, 3);
+        var minimumColumns = layout.matches('.group-field-grid') ? 1 : Math.min(columns, 3);
         var minimumRows = Math.max(3,
             module.type === 'checkbox' ?
                 (Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
@@ -685,7 +796,8 @@ if (studio) {
             Object.assign(added, { col: 1, row: 1 });
         } else if (parent && parent.type === 'group') {
             var groupColumns = Math.max(1, Math.min(6, Number(parent.groupColumns) || 2));
-            added.colSpan = Math.min(added.colSpan, groupColumns);
+            added.colSpan = action.moduleType === 'list' ? groupColumns :
+                Math.min(added.colSpan, Math.max(1, Math.floor(groupColumns / 2)));
             Object.assign(added, nearestPlacement(siblings, added, groupColumns, { col: 1, row: 1 }));
         }
         state.nextModuleId += 1;
@@ -738,12 +850,18 @@ if (studio) {
     function handleUpdateSetting(action) {
         var target = findModule(state.document.modules, action.id);
         if (!target) return;
+        var targetEntry = findModuleEntry(target.id);
+        var parentGroup = targetEntry && targetEntry.parent && targetEntry.parent.type === 'group' ?
+            targetEntry.parent : null;
         var previousRowSpan = target.rowSpan;
         if (numericSettings.includes(action.setting)) {
-            target[action.setting] = clampSetting(action.setting, Number(action.value));
+            target[action.setting] = action.setting === 'colSpan' && parentGroup ?
+                Math.max(1, Math.min(Number(parentGroup.groupColumns) || 2, Math.round(Number(action.value)))) :
+                clampSetting(action.setting, Number(action.value));
         } else {
             target[action.setting] = action.value;
         }
+        if (parentGroup && action.setting === 'colSpan') target.preferredColSpan = target.colSpan;
         if (linkSettings.includes(action.setting)) state.player.rollResults[target.id] = null;
         if (target.type === 'checkbox' && action.setting === 'checkboxItems') {
             target.checkboxItems = action.value;
@@ -771,6 +889,10 @@ if (studio) {
                     });
             }
         }
+        if (parentGroup && action.setting === 'colSpan') {
+            applyGroupFieldPlacements(parentGroup, groupFieldPlacements(parentGroup, target.id, target, target.colSpan),
+                target.id, target.colSpan);
+        }
         if (target.type === 'pages' && (action.setting === 'colSpan' || action.setting === 'rowSpan')) {
             var entry = findModuleEntry(target.id);
             if (entry) {
@@ -785,10 +907,8 @@ if (studio) {
             }
         }
         if (target.type === 'group' && action.setting === 'groupColumns') {
-            (target.children || []).forEach(function (child) {
-                child.colSpan = Math.min(child.colSpan, target.groupColumns);
-                Object.assign(child, nearestPlacement(target.children, child, target.groupColumns, { col: child.col, row: child.row }));
-            });
+            target.groupColumns = Math.min(target.groupColumns, groupColumnLimit(target));
+            applyGroupFieldPlacements(target, groupFieldPlacements(target, null, null));
         }
     }
 
@@ -841,10 +961,35 @@ if (studio) {
     }
 
     function handleMoveModules(action) {
+        var firstPlacement = action.placements[0];
+        var firstEntry = firstPlacement && findModuleEntry(firstPlacement.id);
+        if (firstEntry && firstEntry.parent && firstEntry.parent.type === 'group') {
+            var group = firstEntry.parent;
+            var draggedModule = firstEntry.module;
+            var preferredSpanOverride = action.resize ? firstPlacement.placement.colSpan : null;
+            var groupPlacements = groupFieldPlacements(
+                group,
+                draggedModule.id,
+                firstPlacement.placement,
+                preferredSpanOverride
+            );
+            applyGroupFieldPlacements(group, groupPlacements, draggedModule.id, preferredSpanOverride);
+            return;
+        }
+
         action.placements.forEach(function (item) {
             var module = findModule(state.document.modules, item.id);
             if (module) Object.assign(module, item.placement);
         });
+
+        if (action.resize) {
+            action.placements.forEach(function (item) {
+                var module = findModule(state.document.modules, item.id);
+                if (!module || module.type !== 'group') return;
+                module.groupColumns = Math.min(Number(module.groupColumns) || 2, groupColumnLimit(module));
+                applyGroupFieldPlacements(module, groupFieldPlacements(module, null, null));
+            });
+        }
     }
 
     function handleReparentModule(action) {
@@ -861,6 +1006,11 @@ if (studio) {
         if (prevParent && prevParent.type === 'pages' && state.ui.activeGroupTabs[prevParent.id] === entry.module.id) {
             state.ui.activeGroupTabs[prevParent.id] = prevParent.children[0] && prevParent.children[0].id;
         }
+        if (prevParent && prevParent.type === 'group') {
+            entry.module.colSpan = preferredGroupColSpan(entry.module);
+            delete entry.module.preferredColSpan;
+            applyGroupFieldPlacements(prevParent, groupFieldPlacements(prevParent, null, null));
+        }
         entry.module.colSpan = Math.min(entry.module.colSpan, newParent ? (newParent.type === 'pages' ? 6 : cols) : 
             (entry.module.type === 'list' ? 8 : entry.module.type === 'pages' ? layoutColumns(rootCanvas) : moduleSize.colSpan));
         if (newParent && newParent.type === 'pages') {
@@ -875,7 +1025,12 @@ if (studio) {
             entry.module.canvasId = activeCanvas().id;
             state.document.modules.push(entry.module);
         }
-        if (newParent) state.ui.activeGroupTabs[newParent.id] = entry.module.id;
+        if (newParent) {
+            state.ui.activeGroupTabs[newParent.id] = entry.module.id;
+            if (newParent.type === 'group') {
+                applyGroupFieldPlacements(newParent, groupFieldPlacements(newParent, entry.module.id, entry.module));
+            }
+        }
         if (action.selectionId) state.ui.selectedId = action.selectionId;
     }
 
@@ -1123,6 +1278,8 @@ if (studio) {
                 handler(action);
         }
 
+        expandGroupsToFitContents();
+
         if (edits || action.type === 'undo' || action.type === 'redo') {
             try {
                 autosave(state.document);
@@ -1255,7 +1412,9 @@ if (studio) {
         var siblings = placementSiblings(entry);
         var dropContainer = drag.resize ? null : containerAtPlacement(siblings, module, drag.placement);
         drag.dropTargetId = dropContainer && dropContainer.id;
-        drag.previewPlacements = displaceOverlappingModules(siblings, module.id, drag.placement, drag.dropTargetId);
+        drag.previewPlacements = entry.parent && entry.parent.type === 'group' ?
+            groupFieldPlacements(entry.parent, module.id, drag.placement, drag.resize ? drag.placement.colSpan : null) :
+            displaceOverlappingModules(siblings, module.id, drag.placement, drag.dropTargetId);
         drag.previewPlacements.forEach(function (item) {
             var sibling = Array.prototype.find.call(drag.layout.children, function (element) {
                 return element.dataset.sheetModule === item.id;
@@ -1303,7 +1462,8 @@ if (studio) {
         if (drag.resize) {
             dispatch({
                 type: 'move-modules',
-                placements: drag.previewPlacements || [{ id: drag.id, placement: drag.placement }]
+                placements: drag.previewPlacements || [{ id: drag.id, placement: drag.placement }],
+                resize: true
             });
             return;
         }
@@ -1837,7 +1997,7 @@ if (studio) {
             var selected = findModule(state.document.modules, state.ui.selectedId);
             if (!selected) return;
             var inPlace = setting === 'name' || numericSettings.includes(setting);
-            var rerender = !inPlace || setting === 'groupColumns';
+            var rerender = !inPlace || ['colSpan', 'groupColumns', 'rowSpan'].includes(setting);
             dispatch({ type: 'update-setting', id: selected.id, setting: setting, value: target.value, render: rerender });
             if (setting === 'name') {
                 var nameInput = studio.querySelector('[data-sheet-module="' + selected.id + '"] [data-module-name]');

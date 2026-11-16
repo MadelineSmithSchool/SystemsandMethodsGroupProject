@@ -1750,10 +1750,22 @@ option {
   display: flex;
 }
 
-.group-field-actions button {
+.group-field-actions button,
+.group-field-move {
+  box-sizing: border-box;
   min-height: 1.5rem;
   padding: 0.05rem 0.35rem;
   font-size: 0.68rem;
+}
+
+.group-field-move {
+  display: inline-flex;
+  align-items: center;
+  cursor: grab;
+}
+
+.group-field-move:active {
+  cursor: grabbing;
 }
 
 .group-field-grid .module-dev-summary {
