@@ -451,28 +451,25 @@ if (studio) {
         });
     }
 
-    function fitPlacementToContents(card, layout, module, placement) {
+    function fitPlacementToContents(card, layout, placement) {
         var columns = layoutColumns(layout);
-        var minimumColumns = Math.min(columns, 3);
-        var minimumRows = Math.max(3,
-            module.type === 'checkbox' ?
-                (Array.isArray(module.checkboxItems) && module.checkboxItems.length ?
-                    module.checkboxItems.length : 1) + 3 :
-                module.type === 'list' ? (module.rows || []).length + 2 :
-                    module.type === 'pages' ? 4 : 1);
         var fitted = Object.assign({}, placement, {
-            colSpan: Math.max(minimumColumns, placement.colSpan),
-            rowSpan: Math.max(minimumRows, placement.rowSpan)
+            colSpan: Math.max(1, placement.colSpan),
+            rowSpan: Math.max(1, placement.rowSpan)
         });
         fitted.col = Math.max(1, Math.min(columns - fitted.colSpan + 1, fitted.col));
         var body = card.querySelector('.module-body');
         var header = card.querySelector('.sheet-module-header, .group-field-label, .pages-header');
+        var nestedControls = card.querySelectorAll('.group-field-label, .checkbox-list, .checkbox-module');
 
         for (var attempt = 0; attempt < 48; attempt += 1) {
             setPlacement(card, fitted, layout);
             var widthOverflow = card.scrollWidth > card.clientWidth + 1 ||
                 body && body.scrollWidth > body.clientWidth + 1 ||
-                header && header.scrollWidth > header.clientWidth + 1;
+                header && header.scrollWidth > header.clientWidth + 1 ||
+                Array.prototype.some.call(nestedControls, function (control) {
+                    return control.scrollWidth > control.clientWidth + 1;
+                });
             var heightOverflow = card.scrollHeight > card.clientHeight + 1 ||
                 body && body.scrollHeight > body.clientHeight + 1 ||
                 header && header.scrollHeight > header.clientHeight + 1;
@@ -780,7 +777,7 @@ if (studio) {
                 });
                 var layout = card && card.parentElement.closest('[data-layout-canvas]');
                 if (card && layout) {
-                    Object.assign(target, fitPlacementToContents(card, layout, target, target));
+                    Object.assign(target, fitPlacementToContents(card, layout, target));
                 }
                 Object.assign(target, nearestPlacement(placementSiblings(entry), target, layoutColumns(rootCanvas), target));
             }
@@ -1251,7 +1248,7 @@ if (studio) {
 
         var module = findModule(state.document.modules, drag.id);
         var preview = snappedPlacement(module, drag.layout, drag.start, event.clientX, event.clientY, drag.resize);
-        if (drag.resize) preview = fitPlacementToContents(drag.element, drag.layout, module, preview);
+        if (drag.resize) preview = fitPlacementToContents(drag.element, drag.layout, preview);
         var entry = findModuleEntry(drag.id);
         drag.placement = { col: preview.col, row: preview.row, colSpan: preview.colSpan, rowSpan: preview.rowSpan };
         var siblings = placementSiblings(entry);

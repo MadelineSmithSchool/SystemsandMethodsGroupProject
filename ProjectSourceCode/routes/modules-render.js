@@ -369,6 +369,11 @@ function createControl(module, doc, player, helpers, typeTable, mode, ui) {
     if (kind === 'group') {
         var grid = document.createElement('div');
         grid.className = 'group-field-grid';
+        if (module.children && module.children.length && module.children.every(function (child) {
+            return child.type === 'number' || child.type === 'text';
+        })) {
+            grid.classList.add('group-field-grid--compact');
+        }
         grid.dataset.layoutCanvas = '';
         grid.dataset.groupDropzone = module.id;
         grid.style.setProperty('--layout-columns', String(Math.max(1, Math.min(6, Number(module.groupColumns) || 2))));

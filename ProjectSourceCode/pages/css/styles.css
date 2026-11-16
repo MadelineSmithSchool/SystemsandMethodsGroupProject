@@ -1686,18 +1686,59 @@ option {
 
 .group-field-grid {
   --layout-columns: 2;
-  --group-row-size: 2.5rem;
+  --group-row-size: 1.5rem;
   display: grid;
   grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
   grid-auto-rows: minmax(var(--group-row-size), auto);
   align-content: start;
-  gap: 0.65rem 0.85rem;
+  gap: 0.25rem 0.4rem;
   min-width: 0;
-  min-height: 2.5rem;
-  padding: 0.65rem 0.75rem;
+  min-height: var(--group-row-size);
+  padding: 0.3rem;
+}
+
+.group-field-grid--compact {
+  --group-row-size: 1rem;
+  row-gap: 0.2rem;
+}
+
+.group-field-grid.group-field-grid--compact .group-field-label {
+  margin-bottom: 0.1rem;
+}
+
+.group-field-grid--compact input[data-module-value] {
+  height: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0.1rem 0.25rem;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.group-field-grid--compact .module-output {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.sheet-studio[data-mode="playtest"] .group-field-grid.group-field-grid--compact .sheet-module .module-value-text,
+.sheet-studio[data-mode="playtest"] .group-field-grid.group-field-grid--compact .sheet-module .module-output {
+  min-height: 1.5rem;
+  font-size: clamp(0.9rem, 12cqi, 1.25rem);
+  line-height: 1.1;
+}
+
+.sheet-studio[data-mode="playtest"] .group-field-grid.group-field-grid--compact .sheet-module[data-module-type="number"] .module-value-text,
+.sheet-studio[data-mode="playtest"] .group-field-grid.group-field-grid--compact .sheet-module[data-module-type="number"] .module-output {
+  display: block;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  font-size: clamp(0.9rem, 22cqi, 1.5rem);
+  line-height: 1.15;
 }
 
 .group-field-grid > .sheet-module {
+  container-type: normal;
   box-sizing: border-box;
   min-height: 0;
   overflow: hidden;
@@ -1709,7 +1750,6 @@ option {
 
 .group-field-grid > .sheet-module[data-module-type="list"] {
   grid-column: 1 / -1 !important;
-  min-height: 0;
 }
 
 .group-field-grid > .group-empty-state {
@@ -1733,6 +1773,7 @@ option {
 }
 
 .group-field-grid .group-field-label > .module-name {
+  min-width: 3ch;
   flex: 0 1 auto;
 }
 
@@ -1745,7 +1786,11 @@ option {
   padding: 0;
 }
 
-.group-field-grid .module-body textarea {
+.group-field-grid > .sheet-module[data-module-type="list"] > .module-body {
+  overflow: auto;
+}
+
+.group-field-grid .sheet-module[data-module-type="notes"] .module-body textarea {
   min-height: 3rem;
 }
 
@@ -1793,6 +1838,7 @@ option {
 }
 
 .sheet-module {
+  container: sheet-module / size;
   position: relative;
   display: flex;
   box-sizing: border-box;
@@ -1829,7 +1875,7 @@ option {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.4rem;
   min-width: 0;
   min-height: 2.25rem;
@@ -1874,6 +1920,11 @@ option {
   white-space: nowrap;
 }
 
+.sheet-module-header > .module-name {
+  min-width: 3ch;
+  flex: 1 1 0;
+}
+
 .module-name {
   display: inline-flex;
   min-width: 0;
@@ -1886,7 +1937,7 @@ option {
 }
 
 .module-name > [data-module-name-display] {
-  min-width: 4ch;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1987,6 +2038,10 @@ option {
   text-transform: uppercase;
 }
 
+.sheet-module[data-module-type="group"] > .module-body {
+  padding: 0.25rem;
+}
+
 .module-body {
   display: grid;
   box-sizing: border-box;
@@ -1998,6 +2053,23 @@ option {
   gap: 0.45rem;
   padding: 0.45rem 0.55rem 0.65rem;
   overflow: hidden;
+}
+
+@container sheet-module (max-height: 110px) {
+  .module-dev-summary {
+    display: none;
+  }
+}
+
+@container sheet-module (max-height: 90px) {
+  .sheet-module-header {
+    min-height: 1.75rem;
+    padding: 0.15rem 0.3rem;
+  }
+
+  .module-body {
+    padding: 0.2rem 0.3rem;
+  }
 }
 
 .module-body > * {
@@ -2257,7 +2329,7 @@ option {
 }
 
 .sheet-studio[data-mode="playtest"] .sheet-module [data-player-editable] {
-  cursor: pointer;
+  cursor: text;
 }
 
 .sheet-studio[data-mode="playtest"] .sheet-module [data-player-editable]:focus-visible {
@@ -2718,15 +2790,6 @@ option {
     min-height: 40rem;
     gap: var(--canvas-row-gap);
     padding: 0.45rem;
-  }
-
-  .sheet-module-header {
-    flex-wrap: wrap;
-  }
-
-  .sheet-module-header strong {
-    flex-basis: 100%;
-    order: -1;
   }
 
   .module-modifier {
