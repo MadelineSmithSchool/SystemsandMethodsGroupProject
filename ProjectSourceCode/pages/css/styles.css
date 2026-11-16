@@ -1640,13 +1640,6 @@ option {
   text-align: center;
 }
 
-.group-editor-actions {
-  display: flex;
-  flex: 0 0 auto;
-  justify-content: flex-end;
-  gap: 0.35rem;
-}
-
 .group-hide-name-field {
   display: flex;
   align-items: center;
@@ -1741,23 +1734,6 @@ option {
 
 .group-field-grid .group-field-label > .module-name {
   flex: 0 1 auto;
-}
-
-.group-field-actions {
-  display: none;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.sheet-studio[data-mode="developer"] .group-field-actions {
-  display: flex;
-}
-
-.group-field-actions button {
-  min-height: 1.5rem;
-  padding: 0.05rem 0.35rem;
-  font-size: 0.68rem;
 }
 
 .group-field-grid .module-dev-summary {
@@ -1947,22 +1923,58 @@ option {
   background: var(--field);
 }
 
-.module-edit,
-.module-remove {
-  min-height: 1.65rem;
-  padding: 0.1rem 0.4rem;
+.module-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.module-actions-toggle {
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 0.72rem;
   cursor: pointer;
 }
 
-.module-edit:hover,
-.module-remove:hover {
+.module-actions-toggle:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+.module-actions-menu {
+  position: fixed;
+  inset: auto;
+  min-width: 6rem;
+  margin: 0;
+  padding: 0.25rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--sheet-module-color);
+  color: var(--sheet-module-text);
+  box-shadow: var(--shadow);
+}
+
+.module-actions-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.module-actions-menu button:hover,
+.module-actions-menu button:focus-visible {
+  background: var(--sheet-accent-color);
+  color: var(--sheet-accent-text);
 }
 
 .module-dev-summary {
