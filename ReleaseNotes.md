@@ -13,6 +13,7 @@
 - forgot password, reset password
 - added art cards for dashboard and edited formatting
 - fixed template library formatting
+- copy paste added
 
 ## Week of 11/9/2026
 - added visibility toggle to module setting
