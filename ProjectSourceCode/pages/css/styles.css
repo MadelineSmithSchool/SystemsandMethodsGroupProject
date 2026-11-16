@@ -1518,6 +1518,10 @@ option {
     calc(var(--canvas-row-size) + var(--canvas-row-gap));
 }
 
+.sheet-studio[data-mode="playtest"] .studio-canvas {
+  background-image: none;
+}
+
 .studio-canvas {
   position: relative;
 }
