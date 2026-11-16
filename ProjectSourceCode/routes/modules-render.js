@@ -1,5 +1,5 @@
 // draws the sheet and settings, the main file gives it the sheet data and shared helpers.
-import { findModule, flatten, layoutColumns, listCellKey } from './modules-helper.js';
+import { availableGroupColumns, findModule, flatten, layoutColumns, listCellKey } from './modules-helper.js';
 
 var mathSymbols = { add: '+', subtract: '−', multiply: '×', divide: '÷', modulo: '%' };
 var nextActionsMenuId = 0;
@@ -936,10 +936,13 @@ export function renderInspector(studio, state, helpers) {
     if (config.inspector.includes('group')) {
         var groupHint = document.createElement('p');
         groupHint.className = 'studio-muted';
-        groupHint.textContent = 'Arrange related inputs together. Fields flow into a compact grid; use a List for repeatable rows.';
+        groupHint.textContent = 'Arrange fields in the group grid. Widen the group to allow more columns; Move or resize fields to fit them side by side.';
         inspector.appendChild(groupHint);
 
-        settingInput('Field columns', 'groupColumns', module.groupColumns || 2, 1, 6);
+        var groupCard = Array.prototype.find.call(studio.querySelectorAll('[data-sheet-module]'), function (card) {
+            return card.dataset.sheetModule === module.id;
+        });
+        settingInput('Field columns', 'groupColumns', module.groupColumns || 2, 1, availableGroupColumns(groupCard));
 
         var fieldsHeading = document.createElement('strong');
         fieldsHeading.textContent = 'Fields';
