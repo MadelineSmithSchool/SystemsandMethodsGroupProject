@@ -1,9 +1,10 @@
 <main class="templates-page">
   <h1>Template Library</h1>
-  {{#if error}}<p class="error">{{error}}</p>{{/if}}
-  <div class="templates-grid">
+  {{#if error}}<p class="error" data-list-error>{{error}}</p>{{/if}}
+  {{> list-controls action="/library" label="Search the template library" placeholder="Name, description, or creator"}}
+  <div class="templates-grid" data-list-results>
     {{#each templates}}
-      <article class="template-card">
+      <article class="template-card" data-list-item>
           <h2><a href="/templates/{{template_id}}">{{template_name}}</a></h2>
           {{#if template_desc}}
               <p class="template-card-description">{{template_desc}}</p>
@@ -17,6 +18,10 @@
                   <dt>Created</dt>
                   <dd>{{created_date}}</dd>
               </div>
+              <div>
+                  <dt>Saves</dt>
+                  <dd>{{times_saved}}</dd>
+              </div>
           </dl>
           <div class="template-card-actions">
               <a href="/templates/{{template_id}}" class="template-card-open">View template</a>
@@ -26,7 +31,11 @@
           </div>
       </article>
     {{else}}
-      <p>No public templates yet.</p>
+      {{#if list.search}}
+        <p class="templates-empty">No public templates match "{{list.search}}".</p>
+      {{else}}
+        <p class="templates-empty">No public templates yet.</p>
+      {{/if}}
     {{/each}}
   </div>
 </main>

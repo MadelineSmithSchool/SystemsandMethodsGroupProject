@@ -14,6 +14,9 @@
 - added art cards for dashboard and edited formatting
 - fixed template library formatting
 - copy paste added
+- search + sort (part 1): search box and sort dropdown on the template library, my templates, and my characters (newest, oldest, name A-Z / Z-A)
+- search + sort (part 2): "most saved" sort + save counts on the library, "show" filter on my templates (all / made by me / saved from others)
+- search + sort (part 3): live search, the list updates as you type or change a dropdown without reloading the page (still works without js)
 
 ## Week of 11/9/2026
 - added visibility toggle to module setting
