@@ -102,6 +102,7 @@ if (studio) {
         nextModuleId: 1
     };
     var pendingDraft = null;
+    var editingSheetColor = null;
 
     var isPlaytest = function() { return state.ui.mode === 'playtest'; };
     var isDeveloper = function() { return state.ui.mode === 'developer'; };
@@ -1053,6 +1054,7 @@ if (studio) {
     ]);
 
     function dispatch(action) {
+        if (action.type !== 'update-sheet-color') editingSheetColor = null;
         var edits = documentActions.includes(action.type);
         if (edits && action.recordHistory !== false) {
             state.history.undo.push(clone(state.document));
@@ -1652,13 +1654,15 @@ if (studio) {
         }
         if (isDeveloper() && target.hasAttribute('data-sheet-color')) {
             var colorKey = target.dataset.sheetColor;
-            if (event.type === 'input') {
-                var preview = Object.assign({}, state.document.sheetColors);
-                preview[colorKey] = target.value;
-                applySheetColors(preview);
-            } else if (event.type === 'change') {
-                dispatch({ type: 'update-sheet-color', key: colorKey, value: target.value });
+            if (state.document.sheetColors[colorKey].toLowerCase() !== target.value.toLowerCase()) {
+                dispatch({
+                    type: 'update-sheet-color', key: colorKey, value: target.value,
+                    recordHistory: editingSheetColor !== colorKey, render: false
+                });
+                editingSheetColor = colorKey;
+                applySheetColors(state.document.sheetColors);
             }
+            if (event.type === 'change') editingSheetColor = null;
             return;
         }
         var groupSizeSetting = target.dataset.setting;
