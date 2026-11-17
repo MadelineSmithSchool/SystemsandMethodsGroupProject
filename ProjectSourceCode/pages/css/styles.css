@@ -573,7 +573,7 @@ option {
   position: relative;
   display: flex;
   gap: 2.5rem;
-  width: 300%;
+  width: max-content;
   margin: 0;
   padding: 0.5rem var(--pad) 0;
   list-style: none;
