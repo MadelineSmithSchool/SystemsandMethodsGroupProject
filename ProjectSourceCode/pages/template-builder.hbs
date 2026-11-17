@@ -41,6 +41,21 @@
         </form>
     </dialog>
 
+    <dialog class="studio-save-dialog" data-download-dialog aria-labelledby="download-dialog-title">
+        <form data-download-form>
+            <h2 id="download-dialog-title">Download template</h2>
+            <label for="download-template-name">Template name
+                <input id="download-template-name" type="text" maxlength="50" required
+                    placeholder="E.g. Fateshift Character Sheet" data-download-name>
+            </label>
+            <p class="studio-save-error" data-download-error role="alert" hidden></p>
+            <div class="studio-save-actions">
+                <button class="btn" type="button" data-cancel-download>Cancel</button>
+                <button class="btn studio-publish" type="submit" data-confirm-download>Download .json</button>
+            </div>
+        </form>
+    </dialog>
+
     <dialog class="studio-save-dialog draft-choice-dialog" data-draft-dialog aria-labelledby="draft-dialog-title">
         <div class="draft-choice-content">
             <h2 id="draft-dialog-title">Continue your saved draft?</h2>
