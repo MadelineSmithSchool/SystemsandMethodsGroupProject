@@ -3,7 +3,7 @@ const express = require('express');
 const multer = require('multer');
 const crypto = require('crypto');
 const { listQuery } = require('../src/listQuery');
-const { migrateLegacyGroupModules, templateDocument, toBuilderDocument } = require('../src/templateDocument');
+const { migrateLegacyGroupModules, templateDocument, toBuilderDocument } = require('./templateDocument');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
 const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'choice', 'notes', 'math', 'pages', 'group', 'list']);

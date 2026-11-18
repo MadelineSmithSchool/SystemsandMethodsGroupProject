@@ -1,6 +1,6 @@
 const express = require('express');
 const { listQuery } = require('../src/listQuery');
-const { templateDocument } = require('../src/templateDocument');
+const { templateDocument } = require('./templateDocument');
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
