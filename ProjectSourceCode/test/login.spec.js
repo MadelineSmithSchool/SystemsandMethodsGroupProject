@@ -54,12 +54,28 @@ describe('POST /login', () => {
 
       const characters = await agent.get('/characters');
       expect(characters).to.have.status(200);
-      expect(characters.text).to.include('href="/characters/new"');
+      expect(characters.text).to.include('href="/characters/create"');
       expect(characters.text).to.include('Create new character');
 
       const builder = await agent.get('/characters/new');
       expect(builder).to.have.status(200);
       expect(builder.text).to.include('<h1>Character Builder</h1>');
+
+      const create = await agent.get('/characters?create=1');
+      expect(create).to.have.status(200);
+      expect(create.text).to.include('<h1>Character Builder</h1>');
+
+      const characterBuilder = await agent.get('/characters/create');
+      expect(characterBuilder).to.have.status(200);
+      expect(characterBuilder.text).to.include('<h1>Character Builder</h1>');
+
+      const singularBuilder = await agent.get('/character/new');
+      expect(singularBuilder).to.have.status(200);
+      expect(singularBuilder.text).to.include('<h1>Character Builder</h1>');
+
+      const singularList = await agent.get('/character').redirects(0);
+      expect(singularList).to.have.status(302);
+      expect(singularList).to.have.header('location', '/characters');
     } finally {
       agent.close();
     }

@@ -16,6 +16,7 @@
             {{#if template.is_owner}}
                 <a href="/edit/{{template.template_id}}" class="btn btn--primary">Edit</a>
             {{/if}}
+            <a href="/characters/create?templateId={{template.template_id}}" class="btn btn--sm">Create New Character</a>
             <div class="player-sheet-saves">
                 <strong>{{template.times_saved}}</strong>
                 <span>times saved</span>

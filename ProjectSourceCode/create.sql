@@ -57,6 +57,9 @@ CREATE TABLE IF NOT EXISTS characters (
     user_id INT REFERENCES users(user_id),
 
     template_id INT REFERENCES templates(template_id),
+
+    character_data JSONB,
+
     -- 0 is private, 1 is public, 2 is unlisted
     privacy_level INT NOT NULL DEFAULT 0, 
     

@@ -101,6 +101,20 @@ if (studio) {
         history: { undo: [], redo: [] },
         nextModuleId: 1
     };
+    if (playerSheet && studio.dataset.playerState) {
+        try {
+            var savedPlayer = JSON.parse(studio.dataset.playerState);
+            ['values', 'checked', 'listRows'].forEach(function (key) {
+                var value = savedPlayer && savedPlayer[key];
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    state.player[key] = value;
+                }
+            });
+        } catch (error) {
+            console.error('Character values could not be restored:', error);
+            window.alert('Saved character values could not be restored.');
+        }
+    }
     var pendingDraft = null;
     var editingSheetColor = null;
     var moduleClipboard = null;
@@ -208,7 +222,20 @@ if (studio) {
     }
 
     function setDocumentFields() {
-        if (playerSheet) return;
+        if (playerSheet) {
+            var characterForm = studio.querySelector('[data-character-form]');
+            if (characterForm) {
+                characterForm.addEventListener('submit', function () {
+                    var stateInput = characterForm.querySelector('[data-character-state]');
+                    stateInput.value = JSON.stringify({
+                        values: state.player.values,
+                        checked: state.player.checked,
+                        listRows: state.player.listRows
+                    });
+                });
+            }
+            return;
+        }
         studio.querySelector('#sheet-name').value = state.document.name || '';
         studio.querySelector('#sheet-description').value = state.document.description || '';
     }
