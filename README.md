@@ -29,6 +29,12 @@ Users build their own templates with drag-and-drop fields like stats, skills, in
 - Team meeting: Tuesdays, 1:00 PM (Zoom)
 - Meeting with TA: Mondays, 1:45 PM (Zoom)
 
+## Render deployment
+
+Set `NODE_ENV=production` and a long, random `SESSION_SECRET` in the Render service environment.
+The app trusts one reverse proxy in production so HTTPS session cookies work behind Render.
+Sessions use the default in-memory store, so they are lost when the service restarts and are not shared across instances.
+
 ## Admin page
 
 Go to http://localhost:3001/manage. Only admins can see it.
