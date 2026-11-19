@@ -16,16 +16,16 @@
       </div>
       <div class="col-sm-4">
         <a class="option" href="/templates" style="background-image: url('/images/tempCard2.JPG');">
-          <span class="option-title">Template Library</span><hr>
+          <span class="option-title">My Templates</span><hr>
           <div class="buffer" aria-hidden="true"></div>
-          <hr><span class="option-desc">Browse and reopen your saved templates.</span>
+          <hr><span class="option-desc">Open templates you created or saved to your account.</span>
         </a>
       </div>
       <div class="col-sm-4">
         <a class="option" href="/templates/new" style="background-image: url('/images/tempCard3.JPG');">
           <span class="option-title">Build From Scratch</span><hr>
           <div class="buffer" aria-hidden="true"></div>
-          <hr><span class="option-desc">Start with an empty dashboard and add only the cards you want.</span>
+          <hr><span class="option-desc">Start with an empty sheet and add the modules you need.</span>
         </a>
       </div>
     </div>
@@ -110,7 +110,7 @@
   {{!-- ============ POP-UP: previous templates (from the database) ============ --}}
   <dialog class="picker" id="previous-dialog" aria-labelledby="previous-dialog-title">
     <div class="picker-inner">
-      <h2 id="previous-dialog-title">Your templates</h2>
+      <h2 id="previous-dialog-title">My Templates</h2>
       {{!-- DATA: pass `templates` from your route, e.g. [{ id: 7, name: 'Elf Ranger', updated: 'Oct 12' }] --}}
       <ul class="picker-list">
         {{#each templates}}
