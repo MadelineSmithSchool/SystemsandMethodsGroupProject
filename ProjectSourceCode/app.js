@@ -113,6 +113,7 @@ app.get('/library', auth, async (req, res) => {
     const templates = await db.any(
       `SELECT t.template_id, t.template_name, t.template_desc, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date,
               u.username AS creator_name,
+              (t.user_id = $2) AS is_owner,
               (SELECT COUNT(DISTINCT library.user_id)::int FROM player_library library
                WHERE library.template_id = t.template_id AND library.user_id <> t.user_id) AS times_saved
        FROM templates t
@@ -120,7 +121,7 @@ app.get('/library', auth, async (req, res) => {
        WHERE t.privacy_level = 1
          AND (t.template_name ILIKE $1 OR t.template_desc ILIKE $1 OR u.username ILIKE $1)
        ORDER BY ${list.orderBy}`,
-      [list.pattern]
+      [list.pattern, req.session.user.id]
     );
     res.render('pages/library', { title: 'Template', login: true, templates, list });
   } catch (err) {
@@ -131,11 +132,14 @@ app.get('/library', auth, async (req, res) => {
   }
 });
 // search by character name or template name
+const characterRoutes = require('./routes/characters')(db);
+app.use('/characters', auth, characterRoutes);
 app.get('/characters', auth, async (req, res) => {
   const list = listQuery(req.query, { name: 'c.character_name', created: 'c.created_at', id: 'c.character_id' });
   try {
     const characters = await db.any(
       `SELECT c.character_id, c.character_name, c.privacy_level, c.created_at,
+              (c.user_id = $1) AS is_owner,
               t.template_name
        FROM characters c
        LEFT JOIN templates t ON t.template_id = c.template_id
@@ -481,6 +485,7 @@ const startServer = async () => {
     await db.none(migration);
     await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '002_admin.sql'), 'utf8'));
     await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '003_password_reset.sql'), 'utf8'));
+    await db.none(fs.readFileSync(path.join(__dirname, 'migrations', '004_character_data.sql'), 'utf8'));
     console.log('Database connection successful');
   } catch (error) {
     console.error('Database initialization failed:', error);

@@ -26,6 +26,7 @@
           <div class="template-card-actions">
               <a href="/templates/{{template_id}}" class="template-card-open">View template</a>
               {{#if is_owner}}
+                  <a href="/edit/{{template_id}}" class="btn btn--sm">Edit</a>
                   <a href="/templates/{{template_id}}/share" class="btn btn--sm">Share</a>
               {{/if}}
           </div>

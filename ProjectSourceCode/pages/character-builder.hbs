@@ -1,1 +1,74 @@
-<h1>Character Builder</h1>
+{{#if characterSheet}}
+    <main class="sheet-studio" data-sheet-studio data-player-sheet data-mode="playtest"
+        data-player-state="{{playerState}}" data-initial-template="{{initialTemplate}}">
+        <header class="studio-header">
+            <div class="player-sheet-meta">
+                <div>
+                    <label class="player-sheet-label" for="character-name">Character name</label>
+                    <input form="character-save-form" id="character-name" name="character_name"
+                        type="text" maxlength="50" required value="{{characterName}}">
+                </div>
+                <div>
+                    <span class="player-sheet-label">Template</span>
+                    <h2>{{template.template_name}}</h2>
+                    <p class="studio-subtitle">{{#if template.template_desc}}{{template.template_desc}}{{else}}No description provided.{{/if}}</p>
+                    <hr>
+                </div>
+            </div>
+            <div class="player-sheet-header-side">
+                <a href="/characters" class="btn btn--sm">My characters</a>
+                {{#if template.is_owner}}
+                    <a href="/edit/{{template.template_id}}" class="btn btn--sm">Edit template</a>
+                {{else}}
+                    <a href="/templates/new?templateId={{template.template_id}}" class="btn btn--sm">Edit template</a>
+                {{/if}}
+                <form id="character-save-form" action="{{formAction}}" method="POST" data-character-form>
+                    {{#if isNewCharacter}}<input type="hidden" name="template_id" value="{{template.template_id}}">{{/if}}
+                    <input type="hidden" name="character_state" value="" data-character-state>
+                    <button class="btn btn--primary" type="submit">{{#if isNewCharacter}}Save character{{else}}Save changes{{/if}}</button>
+                </form>
+            </div>
+        </header>
+
+        <div class="studio-layout">
+            <section class="studio-workspace" aria-label="Character sheet">
+                <p class="studio-muted">Double-click a field (or press Enter or F2) to edit, then tab away to finish. Linked values are underlined.</p>
+                <div class="canvas-tabs pages-tabs" data-canvas-tabs role="tablist" aria-label="Canvases" hidden></div>
+                <div id="sheet-canvas" class="studio-canvas" data-layout-canvas data-root-canvas role="region" aria-label="Character sheet" tabindex="0">
+                    <p class="canvas-empty-state" data-empty-state>No character sheet modules to display.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+{{else}}
+    <main class="templates-page">
+        <header class="templates-page-header">
+            <div>
+                <h1>Character Builder</h1>
+                <p>Choose one of your templates to start a character sheet.</p>
+            </div>
+        </header>
+        {{> list-controls action="/characters/create" label="Search your templates" placeholder="Name, description, or creator"}}
+        <section class="templates-grid" aria-label="Choose a template" data-list-results>
+            {{#each templates}}
+                <article class="template-card" data-list-item>
+                    <h2>{{template_name}}</h2>
+                    {{#if template_desc}}<p class="template-card-description">{{template_desc}}</p>{{/if}}
+                    <p>Creator: {{creator_name}}</p>
+                    <div class="template-card-actions">
+                        <a class="btn btn--primary" href="/characters/create?templateId={{template_id}}">Choose template</a>
+                    </div>
+                </article>
+            {{else}}
+                {{#if list.search}}
+                    <p>None of your templates match "{{list.search}}".</p>
+                {{else}}
+                    <p>You need a template in My Templates before creating a character.</p>
+                    <a class="btn btn--primary" href="/templates">Browse My Templates</a>
+                {{/if}}
+            {{/each}}
+        </section>
+    </main>
+{{/if}}
+
+{{#if characterSheet}}<script type="module" src="/js/modules-main.js"></script>{{/if}}

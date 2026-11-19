@@ -3,6 +3,7 @@ const express = require('express');
 const multer = require('multer');
 const crypto = require('crypto');
 const { listQuery } = require('../src/listQuery');
+const { migrateLegacyGroupModules, templateDocument, toBuilderDocument } = require('./templateDocument');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
 const moduleTypes = new Set(['number', 'text', 'dice', 'checkbox', 'choice', 'notes', 'math', 'pages', 'group', 'list']);
@@ -23,54 +24,6 @@ function renderNotFound(res) {
     'Template not found',
     'This template does not exist or you do not have permission to view it.'
   );
-}
-
-function migrateLegacyGroupModules(modules, parentType) {
-  return (modules || []).map((module) => {
-    const type = module.type === 'group'
-      ? parentType === 'pages' ? 'group' : 'pages'
-      : module.type;
-    return {
-      ...module,
-      type,
-      groupColumns: type === 'group' ? module.groupColumns || 6 : module.groupColumns,
-      children: migrateLegacyGroupModules(module.children, type)
-    };
-  });
-}
-
-function toBuilderDocument(template, isStudioTemplate) {
-  if (isStudioTemplate) {
-    return {
-      schemaVersion: 2,
-      name: template.name.trim(),
-      description: template.description || '',
-      modules: template.modules,
-      canvases: template.canvases,
-      sheetColors: template.sheetColors
-    };
-  }
-
-  const stats = Object.entries(template.stats).concat(Object.entries(template.minorStats || {}));
-  return {
-    schemaVersion: 2,
-    name: template.name.trim(),
-    description: template.description || '',
-    modules: stats.map(([name, value], index) => ({
-      id: String(index + 1),
-      type: 'number',
-      name,
-      col: (index % 3) * 4 + 1,
-      row: Math.floor(index / 3) * 3 + 1,
-      colSpan: 4,
-      rowSpan: 3,
-      value: String(value),
-      source: '',
-      visibility: 'shown',
-      modifiers: [],
-      children: []
-    }))
-  };
 }
 
 // returns an error message if the uploaded template is wrong, otherwise null
@@ -257,21 +210,7 @@ module.exports = (db, auth) => {
       );
       if (!template) return renderNotFound(res);
 
-      const data = template.template_data || {};
-      const sheet = data.schemaVersion >= 1 && Array.isArray(data.modules)
-        ? {
-          schemaVersion: 2,
-          name: template.template_name,
-          description: template.template_desc || '',
-          modules: data.schemaVersion === 1 ? migrateLegacyGroupModules(data.modules) : data.modules,
-          canvases: data.canvases,
-          sheetColors: data.sheetColors
-        }
-        : toBuilderDocument({
-          ...data,
-          name: template.template_name,
-          description: template.template_desc || ''
-        }, false);
+      const sheet = templateDocument(template);
 
       res.render('pages/template-builder', {
         initialTemplate: JSON.stringify(sheet),
@@ -364,7 +303,29 @@ module.exports = (db, auth) => {
   });
 
   router.get('/upload', auth, (req, res) => res.render('pages/upload'));
-  router.get('/new', auth, (req, res) => {
+  router.get('/new', auth, async (req, res, next) => {
+    const requestedTemplateId = typeof req.query.templateId === 'string' ? req.query.templateId : '';
+    if (requestedTemplateId) {
+      if (!/^\d{1,9}$/.test(requestedTemplateId)) return renderNotFound(res);
+      try {
+        const template = await db.oneOrNone(
+          `SELECT templates.* FROM templates
+           WHERE template_id = $1 AND (user_id = $2 OR EXISTS (
+             SELECT 1 FROM player_library library
+             WHERE library.template_id = templates.template_id AND library.user_id = $2
+           ) OR privacy_level = 1)`,
+          [requestedTemplateId, req.session.user.id]
+        );
+        if (!template) return renderNotFound(res);
+        return res.render('pages/template-builder', {
+          initialTemplate: JSON.stringify(templateDocument(template)),
+          templateId: '',
+          privacyLevel: 0
+        });
+      } catch (err) {
+        return next(err);
+      }
+    }
     const initialTemplate = req.session.uploadedTemplate;
     const templateId = req.session.uploadedTemplateId;
     delete req.session.uploadedTemplate;
@@ -533,21 +494,7 @@ module.exports = (db, auth) => {
     try {
       const template = await getLibraryTemplate(req, true);
       if (!template) return renderNotFound(res);
-      const data = template.template_data || {};
-      const sheet = data.schemaVersion >= 1 && Array.isArray(data.modules)
-        ? {
-          schemaVersion: 2,
-          name: template.template_name,
-          description: template.template_desc || '',
-          modules: data.schemaVersion === 1 ? migrateLegacyGroupModules(data.modules) : data.modules,
-          canvases: data.canvases,
-          sheetColors: data.sheetColors
-        }
-        : toBuilderDocument({
-          ...data,
-          name: template.template_name,
-          description: template.template_desc || ''
-        }, false);
+      const sheet = templateDocument(template);
       res.render('pages/template', { template, initialTemplate: JSON.stringify(sheet) });
     } catch (err) {
       next(err);

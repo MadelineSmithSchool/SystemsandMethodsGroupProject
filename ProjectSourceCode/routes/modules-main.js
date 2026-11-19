@@ -101,6 +101,20 @@ if (studio) {
         history: { undo: [], redo: [] },
         nextModuleId: 1
     };
+    if (playerSheet && studio.dataset.playerState) {
+        try {
+            var savedPlayer = JSON.parse(studio.dataset.playerState);
+            ['values', 'checked', 'listRows'].forEach(function (key) {
+                var value = savedPlayer && savedPlayer[key];
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    state.player[key] = value;
+                }
+            });
+        } catch (error) {
+            console.error('Character values could not be restored:', error);
+            window.alert('Saved character values could not be restored.');
+        }
+    }
     var pendingDraft = null;
     var editingSheetColor = null;
     var moduleClipboard = null;
@@ -208,7 +222,20 @@ if (studio) {
     }
 
     function setDocumentFields() {
-        if (playerSheet) return;
+        if (playerSheet) {
+            var characterForm = studio.querySelector('[data-character-form]');
+            if (characterForm) {
+                characterForm.addEventListener('submit', function () {
+                    var stateInput = characterForm.querySelector('[data-character-state]');
+                    stateInput.value = JSON.stringify({
+                        values: state.player.values,
+                        checked: state.player.checked,
+                        listRows: state.player.listRows
+                    });
+                });
+            }
+            return;
+        }
         studio.querySelector('#sheet-name').value = state.document.name || '';
         studio.querySelector('#sheet-description').value = state.document.description || '';
     }
@@ -2162,13 +2189,38 @@ if (studio) {
         }
     }
 
-    function downloadTemplate() {
+    function openDownloadDialog() {
+        var dialog = studio.querySelector('[data-download-dialog]');
+        var nameInput = studio.querySelector('[data-download-name]');
+        var errorMessage = studio.querySelector('[data-download-error]');
+        nameInput.value = state.document.name || '';
+        errorMessage.hidden = true;
+        dialog.showModal();
+        nameInput.focus();
+        nameInput.select();
+    }
+
+    function downloadTemplate(event) {
+        event.preventDefault();
+        var nameInput = studio.querySelector('[data-download-name]');
+        var name = nameInput.value.trim();
+        var errorMessage = studio.querySelector('[data-download-error]');
+        if (!name) {
+            errorMessage.textContent = 'Enter a template name.';
+            errorMessage.hidden = false;
+            nameInput.focus();
+            return;
+        }
+
+        dispatch({ type: 'update-document-meta', key: 'name', value: name, render: false });
         var url = URL.createObjectURL(new Blob([downloadJson(state.document)], { type: 'application/json' }));
         var link = document.createElement('a');
         link.href = url;
-        link.download = (state.document.name || 'template').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.json';
+        var fileName = name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+        link.download = (fileName || 'template') + '.json';
         link.click();
         URL.revokeObjectURL(url);
+        studio.querySelector('[data-download-dialog]').close();
     }
 
     function startPlayerValueEdit(display) {
@@ -2312,7 +2364,11 @@ if (studio) {
         ['pointerup', 'pointercancel'].forEach(function (type) {
             studio.addEventListener(type, function (event) { finishPointer(event, type === 'pointercancel'); });
         });
-        studio.querySelector('[data-download-template]').addEventListener('click', downloadTemplate);
+        studio.querySelector('[data-download-template]').addEventListener('click', openDownloadDialog);
+        studio.querySelector('[data-download-form]').addEventListener('submit', downloadTemplate);
+        studio.querySelector('[data-cancel-download]').addEventListener('click', function () {
+            studio.querySelector('[data-download-dialog]').close();
+        });
         studio.querySelector('[data-save-template]').addEventListener('click', openSaveDialog);
         studio.querySelector('[data-save-form]').addEventListener('submit', saveAction);
         studio.querySelector('[data-cancel-save]').addEventListener('click', function () {
