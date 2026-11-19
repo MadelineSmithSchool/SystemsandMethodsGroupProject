@@ -2841,3 +2841,21 @@ option {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.option:hover {
+  border: 15px solid var(--bronze-bright);
+}
+
+.option {
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.option:hover,
+.option:focus-visible {
+  transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option { transition: none; }
+  .option:hover, .option:focus-visible { transform: none; }
+}
