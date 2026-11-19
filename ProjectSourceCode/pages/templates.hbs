@@ -14,7 +14,7 @@
             {{> template-stats template=sharedTemplate}}
             <div class="template-card-actions">
                 <form action="/templates/shared/{{sharedTemplate.share_id}}/save" method="POST">
-                    <button type="submit" class="btn btn--primary">Save to my templates</button>
+                    <button type="submit" class="btn btn--primary">Save to My Templates</button>
                 </form>
                 <a href="/templates/shared/{{sharedTemplate.share_id}}/download" class="btn btn--sm">Download</a>
             </div>
@@ -24,15 +24,15 @@
     <main class="templates-page">
         <header class="templates-page-header">
             <div>
-                <h1>Your templates</h1>
-                <p>Templates you have created, and saved.</p>
+                <h1>My Templates</h1>
+                <p>Templates you created or saved to your account.</p>
             </div>
-            <a href="/templates/upload" class="btn btn--primary">Upload a template</a>
+            <a href="/templates/upload" class="btn btn--primary">Upload a Template</a>
         </header>
 
-        {{> list-controls action="/templates" label="Search your templates" placeholder="Name, description, or creator"}}
+        {{> list-controls action="/templates" label="Search My Templates" placeholder="Name, description, or creator"}}
 
-        <section class="templates-grid" aria-label="Your templates" data-list-results>
+        <section class="templates-grid" aria-label="My Templates" data-list-results>
             {{#each templates}}
                 <article class="template-card" data-list-item>
                     <h2><a href="/templates/{{template_id}}">{{template_name}}</a></h2>
@@ -63,7 +63,7 @@
                 {{else if list.filtered}}
                     <p class="templates-empty">No templates to show here. Pick "All templates" to see everything.</p>
                 {{else}}
-                    <p class="templates-empty">No templates yet. Upload a template or build one from scratch to get started.</p>
+                    <p class="templates-empty">No templates yet. Select <strong>Upload a Template</strong> or <strong>Build From Scratch</strong> to get started.</p>
                 {{/if}}
             {{/each}}
         </section>
