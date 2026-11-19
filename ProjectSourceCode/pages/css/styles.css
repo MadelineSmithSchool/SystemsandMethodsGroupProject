@@ -1060,6 +1060,7 @@ option {
   gap: 0.55rem;
 }
 
+/*Player character sheet*/
 .sheet-studio[data-player-sheet] .studio-header {
   align-items: flex-start;
 }
@@ -1082,10 +1083,9 @@ option {
   margin: 0;
 }
 
-.player-sheet-header-side {
-  display: grid;
-  justify-items: end;
+.player-sheet-header-side{
   gap: 0.8rem;
+  align-items: end;
 }
 
 .player-sheet-saves {
