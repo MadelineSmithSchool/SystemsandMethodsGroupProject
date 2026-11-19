@@ -47,6 +47,7 @@ docker compose -p lab10-tests -f docker-compose.test.yaml down --volumes
 | `listSearch.spec.js` | Live search on the list pages: `/js/list-controls.js` is served, and `/library?q=...` sends back only the matching templates inside the `data-list-results` box the script swaps in |
 | `register.spec.js` | `POST /register` with good input and with no password |
 | `login.spec.js` | Extra credit: `POST /login` with the right password (redirects to `/dashboard` and the dashboard loads) and the wrong one (renders login with an error, `401`) |
+| `production-session.spec.js` | Production login behind an HTTPS proxy sets a secure session cookie that authenticates the dashboard; plain HTTP does not receive one |
 
 ## POST /register
 
