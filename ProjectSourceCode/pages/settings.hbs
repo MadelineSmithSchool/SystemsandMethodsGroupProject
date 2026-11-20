@@ -1,29 +1,63 @@
-<div class="container mt-4" style="max-width: 600px;">
-  <h2>Settings</h2>
+<div class="settings-page">
+  <header class="settings-head">
+    <h1>Settings</h1>
+    <p>Manage your profile, password, and account.</p>
+  </header>
 
-  {{#each errors}}<div class="alert alert-danger">{{this}}</div>{{/each}}
-  {{#if success}}<div class="alert alert-success">{{success}}</div>{{/if}}
+  {{#each errors}}<div class="alert alert-danger" role="alert">{{this}}</div>{{/each}}
+  {{#if success}}<div class="alert alert-success" role="status">{{success}}</div>{{/if}}
 
-  <h4 class="mt-4">Profile</h4>
-  <form action="/settings/profile" method="POST">
-    <label for="username">Username</label>
-    <input class="form-control" id="username" name="username" value="{{account.username}}" maxlength="50" required>
-    <label for="email" class="mt-2">Email</label>
-    <input class="form-control" id="email" type="email" name="email" value="{{account.email}}" maxlength="255" required>
-    <button class="btn btn-primary mt-3">Save profile</button>
-  </form>
+  <section class="settings-card" aria-labelledby="profile-title">
+    <h2 id="profile-title">Profile</h2>
+    <p class="settings-desc">Update how you appear and where we reach you.</p>
+    <form class="settings-form" action="/settings/profile" method="POST">
+      <div class="settings-field">
+        <label for="username">Username</label>
+        <input id="username" name="username" value="{{account.username}}" maxlength="50" autocomplete="username" required>
+      </div>
+      <div class="settings-field">
+        <label for="email">Email</label>
+        <input id="email" type="email" name="email" value="{{account.email}}" maxlength="255" autocomplete="email" required>
+      </div>
+      <div class="settings-actions">
+        <button type="submit" class="btn btn--primary">Save profile</button>
+      </div>
+    </form>
+  </section>
 
-  <h4 class="mt-5">Change password</h4>
-  <form action="/settings/password" method="POST">
-    <input class="form-control mb-2" type="password" name="current_password" placeholder="Current password" required>
-    <input class="form-control mb-2" type="password" name="new_password" placeholder="New password" required>
-    <input class="form-control mb-2" type="password" name="confirm_password" placeholder="Confirm new password" required>
-    <button class="btn btn-secondary">Update password</button>
-  </form>
+  <section class="settings-card" aria-labelledby="password-title">
+    <h2 id="password-title">Change password</h2>
+    <p class="settings-desc">Enter your current password, then choose a new one.</p>
+    <form class="settings-form" action="/settings/password" method="POST">
+      <div class="settings-field">
+        <label for="current_password">Current password</label>
+        <input id="current_password" type="password" name="current_password" autocomplete="current-password" required>
+      </div>
+      <div class="settings-field">
+        <label for="new_password">New password</label>
+        <input id="new_password" type="password" name="new_password" autocomplete="new-password" required>
+      </div>
+      <div class="settings-field">
+        <label for="confirm_password">Confirm new password</label>
+        <input id="confirm_password" type="password" name="confirm_password" autocomplete="new-password" required>
+      </div>
+      <div class="settings-actions">
+        <button type="submit" class="btn">Update password</button>
+      </div>
+    </form>
+  </section>
 
-  <h4 class="mt-5 text-danger">Delete account</h4>
-  <form action="/settings/delete" method="POST" onsubmit="return confirm('Delete your account? Only an admin can restore it.');">
-    <input class="form-control mb-2" placeholder="Confirm your password" required>
-    <button class="btn btn-danger">Delete my account</button>
-  </form>
+  <section class="settings-card settings-card--danger" aria-labelledby="delete-title">
+    <h2 id="delete-title">Delete account</h2>
+    <p class="settings-desc">This removes your account. Only an admin can restore it.</p>
+    <form class="settings-form" action="/settings/delete" method="POST" onsubmit="return confirm('Delete your account? Only an admin can restore it.');">
+      <div class="settings-field">
+        <label for="delete-password">Confirm your password</label>
+        <input id="delete-password" type="password" name="password" autocomplete="current-password" required>
+      </div>
+      <div class="settings-actions">
+        <button type="submit" class="btn btn--danger">Delete my account</button>
+      </div>
+    </form>
+  </section>
 </div>
