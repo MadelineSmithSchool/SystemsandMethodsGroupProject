@@ -1062,11 +1062,12 @@ option {
 
 .sheet-studio[data-player-sheet] .studio-header {
   align-items: flex-start;
+  padding: 1.75rem clamp(0.75rem, 2vw, 2rem) 1rem;
 }
 
-.player-sheet-meta {
-  display: grid;
-  gap: 0.8rem;
+.sheet-studio[data-player-sheet] {
+  width: 100%;
+  padding: 0;
 }
 
 .player-sheet-label {
@@ -1078,13 +1079,23 @@ option {
   text-transform: uppercase;
 }
 
-.player-sheet-meta .studio-subtitle {
+.player-sheet-footer h2 {
   margin: 0;
 }
 
-.player-sheet-header-side {
-  display: grid;
-  justify-items: end;
+.player-sheet-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-inline: clamp(0.75rem, 2vw, 2rem);
+}
+
+.player-sheet-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.8rem;
 }
 
@@ -1520,6 +1531,11 @@ option {
 
 .sheet-studio[data-mode="playtest"] .studio-canvas {
   background-image: none;
+}
+
+.sheet-studio[data-player-sheet] .studio-canvas {
+  grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
+  border-radius: 0;
 }
 
 .studio-canvas {

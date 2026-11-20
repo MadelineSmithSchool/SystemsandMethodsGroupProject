@@ -2,40 +2,10 @@
     <main class="sheet-studio" data-sheet-studio data-player-sheet data-mode="playtest"
         data-player-state="{{playerState}}" data-initial-template="{{initialTemplate}}">
         <header class="studio-header">
-            <div class="player-sheet-meta" style="width:100%">
-                <div>
-                    <span class="player-sheet-label">Template</span>
-                    <h3><a href="/templates/{{template.template_id}}">{{template.template_name}}</a></h3>
-                </div>
-                <div class="row" style="width:100%;">
-                    <div class="col">
-                        <label class="player-sheet-label" for="character-name">Character name</label>
-                        <input form="character-save-form" id="character-name" name="character_name"
-                            type="text" maxlength="50" required value="{{characterName}}">
-                        <p class="studio-muted">Double-click a field (or press Enter or F2) to edit, then tab away to finish. Linked values are underlined.</p>
-                    </div>
-                    <div class="col-5 d-flex justify-content-end">
-                        <div class="row gx-3">
-                            <div class="col-3">
-                                {{#if template.is_owner}}
-                                    <a href="/edit/{{template.template_id}}" class="btn btn--sm">Edit template</a>
-                                {{else}}
-                                    <a href="/templates/new?templateId={{template.template_id}}" class="btn btn--sm">Edit template</a>
-                                {{/if}}
-                            </div>
-                            <div class="col-3">
-                                <a href="/characters" class="btn btn--sm">My characters</a>
-                            </div>
-                            <div class="col-6">
-                                <form id="character-save-form" action="{{formAction}}" method="POST" data-character-form>
-                                    {{#if isNewCharacter}}<input type="hidden" name="template_id" value="{{template.template_id}}">{{/if}}
-                                    <input type="hidden" name="character_state" value="" data-character-state>
-                                    <button class="btn btn--primary" type="submit">{{#if isNewCharacter}}Save character{{else}}Save changes{{/if}}</button>
-                                </form>
-                            </div>
-                        </div>  
-                    </div>
-                </div>
+            <div>
+                <label class="player-sheet-label" for="character-name">Character name</label>
+                <input form="character-save-form" id="character-name" name="character_name"
+                    type="text" maxlength="50" required value="{{characterName}}">
             </div>
         </header>
 
@@ -47,6 +17,28 @@
                 </div>
             </section>
         </div>
+
+        <footer class="player-sheet-footer">
+            <div>
+                <span class="player-sheet-label">Template</span>
+                <h2>{{template.template_name}}</h2>
+                <p class="studio-subtitle">{{#if template.template_desc}}{{template.template_desc}}{{else}}No description provided.{{/if}}</p>
+                <p class="studio-muted">Double-click a field (or press Enter or F2) to edit, then tab away to finish. Linked values are underlined.</p>
+            </div>
+            <div class="player-sheet-footer-actions">
+                <a href="/characters" class="btn btn--sm">My characters</a>
+                {{#if template.is_owner}}
+                    <a href="/edit/{{template.template_id}}" class="btn btn--sm">Edit template</a>
+                {{else}}
+                    <a href="/templates/new?templateId={{template.template_id}}" class="btn btn--sm">Edit template</a>
+                {{/if}}
+                <form id="character-save-form" action="{{formAction}}" method="POST" data-character-form>
+                    {{#if isNewCharacter}}<input type="hidden" name="template_id" value="{{template.template_id}}">{{/if}}
+                    <input type="hidden" name="character_state" value="" data-character-state>
+                    <button class="btn btn--primary" type="submit">{{#if isNewCharacter}}Save character{{else}}Save changes{{/if}}</button>
+                </form>
+            </div>
+        </footer>
     </main>
 {{else}}
     <main class="templates-page">
