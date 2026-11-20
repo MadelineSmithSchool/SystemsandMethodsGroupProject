@@ -512,6 +512,7 @@ if (studio) {
 
     function expandGroupsToFitContents() {
         var modules = activeModules();
+        var expanded = false;
         var canvasStyle = getComputedStyle(rootCanvas);
         var outerRowSizeMatch = canvasStyle.gridAutoRows.match(/[\d.]+px/);
         var outerRowSize = parseFloat(outerRowSizeMatch ? outerRowSizeMatch[0] : '') || 40;
@@ -526,17 +527,18 @@ if (studio) {
                 return element.dataset.sheetModule === group.id;
             });
             var grid = card && card.querySelector('.group-field-grid');
-            var gridStyle = grid ? getComputedStyle(grid) : null;
-            var innerRowSize = gridStyle && parseFloat(gridStyle.gridAutoRows.match(/[\d.]+px/)) || 40;
-            var innerRowGap = gridStyle && parseFloat(gridStyle.rowGap) || 10.4;
-            var innerPadding = gridStyle ?
-                (parseFloat(gridStyle.paddingTop) || 0) + (parseFloat(gridStyle.paddingBottom) || 0) : 20.8;
             var header = card && card.querySelector('.sheet-module-header');
-            var headerHeight = header ? header.getBoundingClientRect().height : outerRowSize;
+            if (!grid || !header) return;
+            var gridStyle = getComputedStyle(grid);
+            var innerRowSize = parseFloat(gridStyle.gridAutoRows.match(/[\d.]+px/)) || 40;
+            var innerRowGap = parseFloat(gridStyle.rowGap) || 0;
+            var innerPadding = (parseFloat(gridStyle.paddingTop) || 0) + (parseFloat(gridStyle.paddingBottom) || 0);
+            var headerHeight = header.getBoundingClientRect().height;
             var gridHeight = lastChildRow * innerRowSize + Math.max(0, lastChildRow - 1) * innerRowGap + innerPadding;
             var requiredRows = Math.ceil((gridHeight + headerHeight + 12) / (outerRowSize + outerRowGap));
             if (requiredRows <= group.rowSpan) return;
 
+            expanded = true;
             var placement = {
                 col: group.col,
                 row: group.row,
@@ -548,6 +550,7 @@ if (studio) {
                 if (sibling) Object.assign(sibling, item.id === group.id ? placement : item.placement);
             });
         });
+        return expanded;
     }
 
     function layoutRowStep(layout) {
@@ -1336,7 +1339,9 @@ if (studio) {
                 handler(action);
         }
 
-        expandGroupsToFitContents();
+        // Measure the current canvas rather than stale or missing group elements.
+        if (action.render !== false || action.type === 'restore-document') refresh();
+        var groupsExpanded = expandGroupsToFitContents();
 
         if (edits || action.type === 'undo' || action.type === 'redo') {
             try {
@@ -1346,7 +1351,7 @@ if (studio) {
             }
         }
         if (action.render === false) return;
-        refresh();
+        if (groupsExpanded) refresh();
         if (action.type === 'save-preset' || action.type === 'load-preset') {
             renderSavedPresets(studio, state.document.savedPresets);
         }
