@@ -4,8 +4,8 @@
     {{#if admin}}
       <ul class="nav-list">
         <li><form action="/manage" method="GET"><input class="form-control" type="search" name="users" value="{{userSearch}}" aria-label="User search" placeholder="Search users"></form></li>
-        <li><form action="/manage" method="GET"><input class="form-control" type="search" name="templates" value="{{templateSearch}}" aria-label="Library search" placeholder="Search library"></form></li>
-        <li><a href="/logout">Logout</a></li>
+        <li><form action="/manage" method="GET"><input class="form-control" type="search" name="templates" value="{{templateSearch}}" aria-label="Template search" placeholder="Search templates"></form></li>
+        <li><a href="/logout">Log Out</a></li>
       </ul>
     {{else if login}}
       <ul class="nav-list">
@@ -15,22 +15,22 @@
             {{!-- change this to image maybe or icon --}}
             <summary>Navigation</summary> 
             <ul class="nav-dropdown-menu">
-              <li><a href="/dashboard">Open Dashboard</a></li>
-              <li><a href="/templates/new">Build Template From Scratch</a></li>
+              <li><a href="/dashboard">Dashboard</a></li>
+              <li><a href="/templates/new">Build From Scratch</a></li>
               <li><a href="/templates">My Templates</a></li>
               <li><a href="/library">Browse Templates</a></li>
               <li><a href="/characters">My Characters</a></li>
-              <li><a href="/characters/create">Create New Character</a></li>
+              <li><a href="/characters/create">Character Builder</a></li>
               {{#if user.admin}}<li><a href="/manage">Admin</a></li>{{/if}}
             </ul>
           </details>
         </li>
-        <li><a href="/logout">Log out</a></li>
+        <li><a href="/logout">Log Out</a></li>
         <li><a href="/settings">Settings</a></li>
       </ul>
     {{else}}
       <ul class="nav-list">
-        <li><a href="/login">Login</a></li>
+        <li><a href="/login">Log In</a></li>
         <li><a href="/register">Register</a></li>
       </ul>
     {{/if}}

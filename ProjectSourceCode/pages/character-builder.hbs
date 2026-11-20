@@ -48,7 +48,7 @@
                 <p>Choose one of your templates to start a character sheet.</p>
             </div>
         </header>
-        {{> list-controls action="/characters/create" label="Search your templates" placeholder="Name, description, or creator"}}
+        {{> list-controls action="/characters/create" label="Search My Templates" placeholder="Name, description, or creator"}}
         <section class="templates-grid" aria-label="Choose a template" data-list-results>
             {{#each templates}}
                 <article class="template-card" data-list-item>
@@ -64,7 +64,7 @@
                     <p>None of your templates match "{{list.search}}".</p>
                 {{else}}
                     <p>You need a template in My Templates before creating a character.</p>
-                    <a class="btn btn--primary" href="/templates">Browse My Templates</a>
+                    <a class="btn btn--primary" href="/templates">My Templates</a>
                 {{/if}}
             {{/each}}
         </section>
