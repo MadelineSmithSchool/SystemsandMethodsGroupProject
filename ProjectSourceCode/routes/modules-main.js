@@ -266,7 +266,9 @@ if (studio) {
         var style = getComputedStyle(rootCanvas);
         var cellSize = parseFloat(style.getPropertyValue('--canvas-row-size'));
         if (!Number.isFinite(cellSize) || cellSize <= 0) return false;
-        var columns = columnsForGridSize(cellSize);
+        var columns = playerSheet ? activeModules().reduce(function (rightEdge, module) {
+            return Math.max(rightEdge, module.col + module.colSpan - 1);
+        }, 1) : columnsForGridSize(cellSize);
         var previousColumns = Number(style.getPropertyValue('--layout-columns').trim());
         if (columns === previousColumns) return false;
         rootCanvas.style.setProperty('--layout-columns', String(columns));
