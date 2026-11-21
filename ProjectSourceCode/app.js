@@ -118,6 +118,8 @@ app.get('/library', auth, async (req, res) => {
       `SELECT t.template_id, t.template_name, t.template_desc, to_char(t.created_at, 'Mon FMDD, YYYY') AS created_date,
               u.username AS creator_name,
               (t.user_id = $2) AS is_owner,
+              EXISTS (SELECT 1 FROM player_library library
+                      WHERE library.template_id = t.template_id AND library.user_id = $2) AS is_saved,
               (SELECT COUNT(DISTINCT library.user_id)::int FROM player_library library
                WHERE library.template_id = t.template_id AND library.user_id <> t.user_id) AS times_saved
        FROM templates t

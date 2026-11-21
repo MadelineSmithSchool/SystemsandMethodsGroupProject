@@ -12,7 +12,7 @@ import {
 import { builtinPresets, clonePresetModules, moduleSize, moduleTypes } from './modules-config.js';
 import {
     availableGroupColumns, clone, findModule, flatten, layoutColumns, linkSettings, findModuleEntry as helperFindEntry,
-    isChecked, listCellKey, getListRows, clamp, parseListCellReference
+    isChecked, listCellKey, getListRows, clamp, parseListCellReference, selectionBounds, fitSelectionResize
 } from './modules-helper.js';
 
 /* sheet state */
@@ -482,9 +482,10 @@ if (studio) {
         });
     }
 
-    function displaceOverlappingModules(modules, draggedId, draggedPlacement, containerTargetId) {
-        var placements = [{ id: draggedId, placement: draggedPlacement }];
-        var remaining = modules.filter(function (module) { return module.id !== draggedId; })
+    function displaceOverlappingModules(modules, draggedId, draggedPlacement, containerTargetId, selectionPlacements) {
+        var placements = selectionPlacements ? selectionPlacements.slice() : [{ id: draggedId, placement: draggedPlacement }];
+        var movedIds = new Set(placements.map(function (item) { return item.id; }));
+        var remaining = modules.filter(function (module) { return !movedIds.has(module.id); })
             .slice()
             .sort(function (first, second) {
                 if (first.id === containerTargetId) return -1;
@@ -510,33 +511,37 @@ if (studio) {
         return placements;
     }
 
-    function expandGroupsToFitContents() {
-        var modules = activeModules();
-        var canvasStyle = getComputedStyle(rootCanvas);
+    function minimumGroupRows(group, card, layout) {
+        var lastChildRow = (group.children || []).reduce(function (lastRow, child) {
+            return Math.max(lastRow, child.row + child.rowSpan - 1);
+        }, 0);
+        var grid = card && card.querySelector('.group-field-grid');
+        var header = card && card.querySelector('.sheet-module-header');
+        if (!lastChildRow || !grid || !header) return 0;
+        var canvasStyle = getComputedStyle(layout);
         var outerRowSizeMatch = canvasStyle.gridAutoRows.match(/[\d.]+px/);
         var outerRowSize = parseFloat(outerRowSizeMatch ? outerRowSizeMatch[0] : '') || 40;
         var outerRowGap = parseFloat(canvasStyle.rowGap) || 0;
-        modules.filter(function (module) { return module.type === 'group'; }).forEach(function (group) {
-            var lastChildRow = (group.children || []).reduce(function (lastRow, child) {
-                return Math.max(lastRow, child.row + child.rowSpan - 1);
-            }, 0);
-            if (!lastChildRow) return;
+        var gridStyle = getComputedStyle(grid);
+        var innerRowSize = parseFloat(gridStyle.gridAutoRows.match(/[\d.]+px/)) || 40;
+        var innerRowGap = parseFloat(gridStyle.rowGap) || 0;
+        var innerPadding = (parseFloat(gridStyle.paddingTop) || 0) + (parseFloat(gridStyle.paddingBottom) || 0);
+        var headerHeight = header.getBoundingClientRect().height;
+        var gridHeight = lastChildRow * innerRowSize + Math.max(0, lastChildRow - 1) * innerRowGap + innerPadding;
+        return Math.ceil((gridHeight + headerHeight + 12) / (outerRowSize + outerRowGap));
+    }
 
+    function expandGroupsToFitContents() {
+        var modules = activeModules();
+        var expanded = false;
+        modules.filter(function (module) { return module.type === 'group'; }).forEach(function (group) {
             var card = Array.prototype.find.call(rootCanvas.children, function (element) {
                 return element.dataset.sheetModule === group.id;
             });
-            var grid = card && card.querySelector('.group-field-grid');
-            var gridStyle = grid ? getComputedStyle(grid) : null;
-            var innerRowSize = gridStyle && parseFloat(gridStyle.gridAutoRows.match(/[\d.]+px/)) || 40;
-            var innerRowGap = gridStyle && parseFloat(gridStyle.rowGap) || 10.4;
-            var innerPadding = gridStyle ?
-                (parseFloat(gridStyle.paddingTop) || 0) + (parseFloat(gridStyle.paddingBottom) || 0) : 20.8;
-            var header = card && card.querySelector('.sheet-module-header');
-            var headerHeight = header ? header.getBoundingClientRect().height : outerRowSize;
-            var gridHeight = lastChildRow * innerRowSize + Math.max(0, lastChildRow - 1) * innerRowGap + innerPadding;
-            var requiredRows = Math.ceil((gridHeight + headerHeight + 12) / (outerRowSize + outerRowGap));
+            var requiredRows = minimumGroupRows(group, card, rootCanvas);
             if (requiredRows <= group.rowSpan) return;
 
+            expanded = true;
             var placement = {
                 col: group.col,
                 row: group.row,
@@ -548,6 +553,7 @@ if (studio) {
                 if (sibling) Object.assign(sibling, item.id === group.id ? placement : item.placement);
             });
         });
+        return expanded;
     }
 
     function layoutRowStep(layout) {
@@ -625,6 +631,25 @@ if (studio) {
             }
         }
         return fitted;
+    }
+
+    function resizeSelection(drag, columnsMoved, rowsMoved) {
+        return fitSelectionResize(drag.items, drag.bounds, layoutColumns(drag.layout), columnsMoved, rowsMoved,
+            function (candidate) {
+                return candidate.every(function (item) {
+                    var placement = item.placement;
+                    var card = Array.prototype.find.call(drag.layout.children, function (element) {
+                        return element.dataset.sheetModule === item.id;
+                    });
+                    var module = findModule(state.document.modules, item.id);
+                    if (!card || !module) return false;
+                    var fitted = fitPlacementToContents(card, drag.layout, placement);
+                    return fitted.col === placement.col && fitted.colSpan === placement.colSpan &&
+                        fitted.rowSpan === placement.rowSpan &&
+                        (module.type !== 'group' || availableGroupColumns(card) >= (Number(module.groupColumns) || 2) &&
+                            minimumGroupRows(module, card, drag.layout) <= placement.rowSpan);
+                });
+            });
     }
 
     /* values and rolls */
@@ -1040,6 +1065,7 @@ if (studio) {
 
         if (action.resize) {
             action.placements.forEach(function (item) {
+                if (action.resizedIds && !action.resizedIds.includes(item.id)) return;
                 var module = findModule(state.document.modules, item.id);
                 if (!module || module.type !== 'group') return;
                 module.groupColumns = Math.min(Number(module.groupColumns) || 2, groupColumnLimit(module));
@@ -1336,7 +1362,9 @@ if (studio) {
                 handler(action);
         }
 
-        expandGroupsToFitContents();
+        // Measure the current canvas rather than stale or missing group elements.
+        if (action.render !== false || action.type === 'restore-document') refresh();
+        var groupsExpanded = expandGroupsToFitContents();
 
         if (edits || action.type === 'undo' || action.type === 'redo') {
             try {
@@ -1346,7 +1374,7 @@ if (studio) {
             }
         }
         if (action.render === false) return;
-        refresh();
+        if (groupsExpanded) refresh();
         if (action.type === 'save-preset' || action.type === 'load-preset') {
             renderSavedPresets(studio, state.document.savedPresets);
         }
@@ -1442,6 +1470,27 @@ if (studio) {
         var module = findModule(state.document.modules, card.dataset.sheetModule);
         if (!module) return;
         var placement = { col: module.col, row: module.row, colSpan: module.colSpan, rowSpan: module.rowSpan };
+        if (card.parentElement === rootCanvas && state.ui.selectedModuleIds.length > 1 &&
+            state.ui.selectedModuleIds.includes(module.id)) {
+            var items = activeModules().filter(function (item) {
+                return state.ui.selectedModuleIds.includes(item.id);
+            }).map(function (item) {
+                return { id: item.id, placement: { col: item.col, row: item.row, colSpan: item.colSpan, rowSpan: item.rowSpan } };
+            });
+            var bounds = selectionBounds(items);
+            if (bounds.col + bounds.width - 1 > layoutColumns(rootCanvas)) {
+                window.alert('The selection extends beyond the current grid. Widen the builder or reduce the grid square size first.');
+                return;
+            }
+            handle.setPointerCapture(event.pointerId);
+            setUi({ activeDrag: {
+                kind: 'multi', pointerId: event.pointerId, id: module.id, layout: rootCanvas,
+                resize: Boolean(resize), startX: event.clientX, startY: event.clientY,
+                items: items, bounds: bounds
+            } }, false);
+            event.preventDefault();
+            return;
+        }
         handle.setPointerCapture(event.pointerId);
         setUi({ activeDrag: {
             kind: 'module', pointerId: event.pointerId, id: module.id, element: card,
@@ -1484,6 +1533,33 @@ if (studio) {
             }).map(function (element) { return element.dataset.sheetModule; });
             setUi({ selectedModuleIds: ids }, false);
             updatePresetSelection(studio, state.ui);
+            event.preventDefault();
+            return;
+        }
+
+        if (drag.kind === 'multi') {
+            var columnsMoved = Math.round((event.clientX - drag.startX) / layoutColumnStep(drag.layout));
+            var rowsMoved = Math.round((event.clientY - drag.startY) / layoutRowStep(drag.layout));
+            var selected;
+            if (drag.resize) {
+                selected = resizeSelection(drag, columnsMoved, rowsMoved);
+            } else {
+                columnsMoved = clamp(columnsMoved, 1 - drag.bounds.col,
+                    layoutColumns(drag.layout) + 1 - drag.bounds.col - drag.bounds.width);
+                rowsMoved = Math.max(1 - drag.bounds.row, rowsMoved);
+                selected = drag.items.map(function (item) {
+                    return { id: item.id, placement: Object.assign({}, item.placement, {
+                        col: item.placement.col + columnsMoved, row: item.placement.row + rowsMoved
+                    }) };
+                });
+            }
+            drag.previewPlacements = displaceOverlappingModules(activeModules(), null, null, null, selected);
+            drag.previewPlacements.forEach(function (item) {
+                var sibling = Array.prototype.find.call(drag.layout.children, function (element) {
+                    return element.dataset.sheetModule === item.id;
+                });
+                if (sibling) setPlacement(sibling, item.placement, drag.layout);
+            });
             event.preventDefault();
             return;
         }
@@ -1542,6 +1618,14 @@ if (studio) {
     }
 
     function dropModule(drag, event) {
+        if (drag.kind === 'multi') {
+            if (!drag.previewPlacements) return;
+            dispatch({
+                type: 'move-modules', placements: drag.previewPlacements, resize: drag.resize,
+                resizedIds: drag.items.map(function (item) { return item.id; })
+            });
+            return;
+        }
         var entry = findModuleEntry(drag.id);
         if (drag.resize) {
             dispatch({

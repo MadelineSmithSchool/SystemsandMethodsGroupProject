@@ -56,6 +56,48 @@ export function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
 
+export function selectionBounds(items) {
+    var left = Math.min.apply(null, items.map(function (item) { return item.placement.col; }));
+    var top = Math.min.apply(null, items.map(function (item) { return item.placement.row; }));
+    var right = Math.max.apply(null, items.map(function (item) {
+        return item.placement.col + item.placement.colSpan;
+    }));
+    var bottom = Math.max.apply(null, items.map(function (item) {
+        return item.placement.row + item.placement.rowSpan;
+    }));
+    return { col: left, row: top, width: right - left, height: bottom - top };
+}
+
+export function scaledSelection(items, bounds, width, height) {
+    return items.map(function (item) {
+        var original = item.placement;
+        var left = Math.round((original.col - bounds.col) * width / bounds.width);
+        var right = Math.round((original.col + original.colSpan - bounds.col) * width / bounds.width);
+        var top = Math.round((original.row - bounds.row) * height / bounds.height);
+        var bottom = Math.round((original.row + original.rowSpan - bounds.row) * height / bounds.height);
+        return {
+            id: item.id,
+            placement: { col: bounds.col + left, row: bounds.row + top, colSpan: right - left, rowSpan: bottom - top }
+        };
+    });
+}
+
+export function fitSelectionResize(items, bounds, columns, columnsMoved, rowsMoved, canFit) {
+    var width = clamp(bounds.width + columnsMoved, 1, columns - bounds.col + 1);
+    var height = Math.max(1, bounds.height + rowsMoved);
+    var steps = Math.max(Math.abs(width - bounds.width), Math.abs(height - bounds.height));
+
+    for (var step = steps; step > 0; step -= 1) {
+        var candidate = scaledSelection(items, bounds,
+            bounds.width + Math.round((width - bounds.width) * step / steps),
+            bounds.height + Math.round((height - bounds.height) * step / steps));
+        if (candidate.every(function (item) {
+            return item.placement.colSpan >= 1 && item.placement.rowSpan >= 1;
+        }) && canFit(candidate)) return candidate;
+    }
+    return items;
+}
+
 export function parseListCellReference(source) {
     var match = /^(.+)\.(\d+)\.(\d+)$/.exec(String(source || ''));
     return match ? {
