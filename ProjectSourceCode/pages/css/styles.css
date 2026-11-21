@@ -2874,4 +2874,97 @@ option {
 @media (prefers-reduced-motion: reduce) {
   .option { transition: none; }
   .option:hover, .option:focus-visible { transform: none; }
+} 
+
+/* settings */
+.settings-page {
+  display: grid;
+  gap: 1.5rem;
+  width: min(100% - 2 * var(--pad), 40rem);
+  margin: 2.5rem auto 4rem;
+}
+
+.settings-head h1 {
+  margin: 0 0 0.4rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.settings-head p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.settings-page .alert {
+  margin: 0;
+}
+
+.settings-card {
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.settings-card h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1.4rem;
+}
+
+.settings-desc {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.settings-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.settings-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-field label {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.settings-field input {
+  width: 100%;
+  min-height: 2.5rem;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
+.settings-card--danger {
+  border-color: var(--danger);
+  border-left-width: 4px;
+}
+
+.settings-card--danger h2 {
+  color: var(--danger);
+}
+
+.btn--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn--danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--mahogany);
+}
+
+@media (max-width: 34rem) {
+  .settings-actions .btn {
+    width: 100%;
+  }
 }

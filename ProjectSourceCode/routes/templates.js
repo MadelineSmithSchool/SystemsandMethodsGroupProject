@@ -358,6 +358,17 @@ module.exports = (db, auth) => {
       return fail('That file is not valid JSON.');
     }
 
+    if (template && typeof template === 'object' && !Array.isArray(template) &&
+      (template.name === undefined || template.name === null ||
+        (typeof template.name === 'string' && !template.name.trim()))) {
+      const fileName = String(req.file.originalname || '')
+        .replace(/^.*[\\/]/, '')
+        .replace(/\.[^.]*$/, '')
+        .trim()
+        .slice(0, 50);
+      if (fileName) template.name = fileName;
+    }
+
     const studioError = checkStudioTemplate(template);
     const isStudioTemplate = !studioError;
     const error = isStudioTemplate ? null : checkLegacyTemplate(template);
