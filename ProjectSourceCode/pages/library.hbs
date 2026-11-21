@@ -19,7 +19,7 @@
                   <dd>{{created_date}}</dd>
               </div>
               <div>
-                  <dt>Saves</dt>
+                  <dt>Saves by others</dt>
                   <dd>{{times_saved}}</dd>
               </div>
           </dl>
@@ -28,6 +28,14 @@
               {{#if is_owner}}
                   <a href="/edit/{{template_id}}" class="btn btn--sm">Edit</a>
                   <a href="/templates/{{template_id}}/share" class="btn btn--sm">Share</a>
+              {{else if is_saved}}
+                  <span>Saved to your templates</span>
+              {{else}}
+                  <form action="/templates/{{template_id}}/save-to-library" method="POST">
+                      <input type="hidden" name="q" value="{{../list.search}}">
+                      <input type="hidden" name="sort" value="{{../list.sort}}">
+                      <button type="submit" class="btn btn--sm">Add to my templates</button>
+                  </form>
               {{/if}}
           </div>
       </article>

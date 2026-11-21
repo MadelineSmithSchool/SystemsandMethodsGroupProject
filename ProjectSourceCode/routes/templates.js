@@ -2,7 +2,7 @@
 const express = require('express'); 
 const multer = require('multer');
 const crypto = require('crypto');
-const { listQuery } = require('../src/listQuery');
+const { listQuery, MOST_SAVED } = require('../src/listQuery');
 const { migrateLegacyGroupModules, templateDocument, toBuilderDocument } = require('./templateDocument');
 
 const upload = multer({ limits: { fileSize: 1024 * 1024 } }); // 1 MB max, kept in memory
@@ -244,7 +244,7 @@ module.exports = (db, auth) => {
       `SELECT templates.*, (templates.user_id = $2) AS is_owner${saveCount}
        FROM templates
        WHERE template_id = $1
-         AND (user_id = $2 OR EXISTS (
+         AND (user_id = $2 OR privacy_level = 1 OR EXISTS (
            SELECT 1 FROM player_library library
            WHERE library.template_id = templates.template_id AND library.user_id = $2
          ))`,
@@ -255,6 +255,16 @@ module.exports = (db, auth) => {
   const getShared = (req) => db.oneOrNone(
     'SELECT * FROM templates WHERE share_id = $1 AND privacy_level IN (1, 2)',
     [req.params.shareId]
+  );
+
+  const addToLibrary = (transaction, template, userId) => transaction.none(
+    `INSERT INTO player_library (user_id, template_id)
+     SELECT $1, $2
+     WHERE $1 IS DISTINCT FROM $3
+       AND NOT EXISTS (
+         SELECT 1 FROM player_library WHERE user_id = $1 AND template_id = $2
+       )`,
+    [userId, template.template_id, template.user_id]
   );
 
   // search + sort for the list (?q=...&sort=..., see src/listQuery.js)
@@ -470,19 +480,40 @@ module.exports = (db, auth) => {
   // Add the original shared template to the user's library.
   router.post('/shared/:shareId/save', auth, async (req, res, next) => {
     try {
-      const template = await getShared(req);
+      const template = await db.tx(async (transaction) => {
+        const shared = await transaction.oneOrNone(
+          'SELECT * FROM templates WHERE share_id = $1 AND privacy_level IN (1, 2) FOR UPDATE',
+          [req.params.shareId]
+        );
+        if (shared) await addToLibrary(transaction, shared, req.session.user.id);
+        return shared;
+      });
       if (!template) return res.status(404).send('This link is invalid.');
-      await db.none(
-        `INSERT INTO player_library (user_id, template_id)
-         SELECT $1, $2
-         WHERE $1 IS DISTINCT FROM $3
-           AND NOT EXISTS (
-             SELECT 1 FROM player_library
-             WHERE user_id = $1 AND template_id = $2
-           )`,
-        [req.session.user.id, template.template_id, template.user_id]
-      );
       res.redirect('/templates/' + template.template_id);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/:id/save-to-library', auth, async (req, res, next) => {
+    if (!/^\d{1,9}$/.test(req.params.id)) return renderNotFound(res);
+    try {
+      const template = await db.tx(async (transaction) => {
+        const publicTemplate = await transaction.oneOrNone(
+          'SELECT template_id, user_id FROM templates WHERE template_id = $1 AND privacy_level = 1 FOR UPDATE',
+          [req.params.id]
+        );
+        if (publicTemplate) await addToLibrary(transaction, publicTemplate, req.session.user.id);
+        return publicTemplate;
+      });
+      if (!template) return renderNotFound(res);
+      const list = listQuery(req.body, {
+        name: 't.template_name', created: 't.created_at', id: 't.template_id', saves: 'times_saved'
+      }, { sorts: [MOST_SAVED] });
+      const params = new URLSearchParams();
+      if (list.search) params.set('q', list.search);
+      if (list.sort !== 'newest') params.set('sort', list.sort);
+      res.redirect('/library' + (params.toString() ? '?' + params.toString() : ''));
     } catch (err) {
       next(err);
     }
