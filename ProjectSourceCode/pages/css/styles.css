@@ -35,7 +35,7 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 
   --pad: clamp(1.25rem, 5vw, 8rem);
-  --card-w: clamp(19rem, 32vw, 28rem);
+  --card-w: clamp(21rem, 36vw, 34rem);
   --token: 2.5rem;
 
   --font-head: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
@@ -619,8 +619,8 @@ option {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 1.15rem;
+  padding: 1.25rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -640,7 +640,9 @@ option {
 .shot {
   display: grid;
   place-items: center;
-  aspect-ratio: 16 / 10;
+  width: 100%;
+  min-height: 14rem;
+  aspect-ratio: 16 / 9;
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--field);
@@ -1421,6 +1423,7 @@ option {
 .inspector-panel {
   border-color: var(--line-strong);
   transition: border-color 180ms ease, box-shadow 180ms ease;
+  scroll-margin-top: 1rem;
 }
 
 .inspector-panel.is-active {
@@ -2819,7 +2822,7 @@ option {
 
 @media (max-width: 40rem) {
   :root {
-    --card-w: 82vw;
+    --card-w: 88vw;
   }
 
   .controls {
