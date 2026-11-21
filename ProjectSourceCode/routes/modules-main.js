@@ -2342,6 +2342,27 @@ if (studio) {
                 startModuleNameEdit(nameDisplay);
                 return;
             }
+            if (isDeveloper()) {
+                var numericCard = event.target.closest('[data-sheet-module][data-module-type="number"], [data-sheet-module][data-module-type="math"]');
+                if (numericCard) {
+                    event.preventDefault();
+                    setUi({
+                        selectedId: numericCard.dataset.sheetModule,
+                        selectedModuleIds: []
+                    });
+                    window.requestAnimationFrame(function () {
+                        var inspectorPanel = studio.querySelector('.inspector-panel');
+                        if (!inspectorPanel) return;
+                        inspectorPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        var inspectorInput = inspectorPanel.querySelector('[data-setting="value"], [data-setting="leftValue"], [data-setting="mathOperation"]');
+                        if (inspectorInput) {
+                            inspectorInput.focus();
+                            if (inspectorInput.tagName === 'INPUT') inspectorInput.select();
+                        }
+                    });
+                    return;
+                }
+            }
             var valueDisplay = event.target.closest('[data-player-editable]');
             if (isPlaytest() && valueDisplay) startPlayerValueEdit(valueDisplay);
         });
