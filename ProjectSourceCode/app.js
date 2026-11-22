@@ -144,7 +144,7 @@ app.get('/characters', auth, async (req, res) => {
     const characters = await db.any(
       `SELECT c.character_id, c.character_name, c.privacy_level, c.created_at,
               (c.user_id = $1) AS is_owner,
-              t.template_name
+              t.template_name,
        FROM characters c
        LEFT JOIN templates t ON t.template_id = c.template_id
        WHERE c.user_id = $1

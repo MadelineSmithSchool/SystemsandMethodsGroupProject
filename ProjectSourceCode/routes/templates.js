@@ -501,6 +501,33 @@ module.exports = (db, auth) => {
 
   // ---- your own templates ----
 
+  router.post('/:id/delete', auth, async (req, res, next) => {
+    if (!/^\d{1,9}$/.test(req.params.id)) return renderNotFound(res);
+
+    try {
+      const deleted = await db.tx(async (transaction) => {
+        const template = await transaction.oneOrNone(
+          'SELECT template_id FROM templates WHERE template_id = $1 AND user_id = $2 FOR UPDATE',
+          [req.params.id, req.session.user.id]
+        );
+        if (!template) return false;
+
+        await transaction.none('DELETE FROM player_library WHERE template_id = $1', [template.template_id]);
+        await transaction.none('UPDATE characters SET template_id = NULL WHERE template_id = $1', [template.template_id]);
+        await transaction.none(
+          'DELETE FROM templates WHERE template_id = $1 AND user_id = $2',
+          [template.template_id, req.session.user.id]
+        );
+        return true;
+      });
+
+      if (!deleted) return renderNotFound(res);
+      res.redirect('/templates');
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.get('/:id', auth, async (req, res, next) => {
     try {
       const template = await getLibraryTemplate(req, true);

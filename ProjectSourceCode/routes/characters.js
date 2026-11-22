@@ -254,5 +254,34 @@ module.exports = (db) => {
     }
   });
 
+  router.post('/:id/delete', async (req, res, next) => {
+    if (!/^\d{1,9}$/.test(req.params.id)) return renderError(res, 404, 'This character does not exist.');
+
+    try {
+      const deleted = await db.tx(async (transaction) => {
+        const character = await transaction.oneOrNone(
+          'SELECT character_id FROM characters WHERE character_id = $1 AND user_id = $2 FOR UPDATE',
+          [req.params.id, req.session.user.id]
+        );
+        if (!character) return false;
+
+        await transaction.none(
+          'DELETE FROM player_library WHERE character_id = $1',
+          [character.character_id]
+        );
+        await transaction.none(
+          'DELETE FROM characters WHERE character_id = $1 AND user_id = $2',
+          [character.character_id, req.session.user.id]
+        );
+        return true;
+      });
+
+      if (!deleted) return renderError(res, 404, 'This character does not exist.');
+      res.redirect('/characters');
+    } catch (err) {
+      next(err);
+    }
+  });
+
   return router;
 };

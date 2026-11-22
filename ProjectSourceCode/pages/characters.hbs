@@ -1,4 +1,4 @@
-<main class="templates-page">
+  <main class="templates-page">
   <header class="templates-page-header">
       <div>
           <h1>My Characters</h1>
@@ -13,7 +13,10 @@
         <h2><a href="/characters/{{character_id}}">{{character_name}}</a></h2>
         {{#if template_name}}<p><strong>Template:</strong> {{template_name}}</p>{{/if}}
         <div class="template-card-actions">
-            <a href="/characters/{{character_id}}" class="character-card-open">View character</a>
+            <a href="/characters/{{character_id}}" class="btn btn--sm" style="color:var(--bronze-bright)">View character</a>
+            <form action="/characters/{{character_id}}/delete" method="POST" onsubmit="return confirm('Delete this character? This cannot be undone.');">
+                <button type="submit" class="btn btn--danger btn--sm">Delete</button>
+            </form>
         </div>
       </article>
     {{else}}

@@ -15,6 +15,7 @@
         <div class="player-sheet-header" style="margin-top:30px">
             {{#if template.is_owner}}
                 <a href="/edit/{{template.template_id}}" class="btn btn--primary">Edit</a>
+                <button type="button" class="btn btn--danger" data-open-template-delete>Delete</button>
             {{/if}}
             <a href="/characters/create?templateId={{template.template_id}}" class="btn btn--sm">Create Character</a>
             <div class="player-sheet-saves">
@@ -23,6 +24,32 @@
             </div>
         </div>
     </header>
+
+    {{#if template.is_owner}}
+        <dialog class="template-share-dialog" data-template-delete-dialog aria-labelledby="template-delete-dialog-title">
+            <div>
+                <h2 id="template-delete-dialog-title">Delete {{template.template_name}}?</h2>
+                <p>This permanently deletes the template and removes it from all libraries. Existing characters will remain but will no longer be linked to it.</p>
+                <div class="template-card-actions">
+                    <form action="/templates/{{template.template_id}}/delete" method="POST">
+                        <button type="submit" class="btn btn--danger">Delete template</button>
+                    </form>
+                    <button type="button" class="btn btn--sm" data-close-template-delete>Cancel</button>
+                </div>
+            </div>
+        </dialog>
+        <script>
+            (function () {
+                var dialog = document.querySelector('[data-template-delete-dialog]');
+                document.querySelector('[data-open-template-delete]').addEventListener('click', function () {
+                    dialog.showModal();
+                });
+                document.querySelector('[data-close-template-delete]').addEventListener('click', function () {
+                    dialog.close();
+                });
+            }());
+        </script>
+    {{/if}}
 
     <div class="studio-layout">
         <section class="studio-workspace" aria-label="Character sheet">
